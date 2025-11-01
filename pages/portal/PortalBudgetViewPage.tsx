@@ -5,7 +5,7 @@ import { useParams } from 'react-router-dom';
 // FIX: Added .tsx extension to the import path.
 import { useAppStore } from '../../hooks/useAppStore.tsx';
 import Card, { CardHeader, CardContent, CardFooter } from '../../components/ui/Card';
-import { formatCurrency } from '../../lib/utils';
+import { formatCurrency } from '../../lib/utils.ts';
 import Button from '../../components/ui/Button';
 
 const PortalBudgetViewPage: React.FC = () => {

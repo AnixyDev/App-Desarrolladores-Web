@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Briefcase, DollarSign, Clock, Hash, Send, Zap, Star } from 'lucide-react';
-import JobPostPaymentModal from '../components/modals/JobPostPaymentModal';
-import { useToast } from '../hooks/useToast';
+import JobPostPaymentModal from '../components/modals/JobPostPaymentModal.tsx';
+import { useToast } from '../hooks/useToast.ts';
 
 // Lista de habilidades comunes para la selección múltiple
 const commonSkills = [

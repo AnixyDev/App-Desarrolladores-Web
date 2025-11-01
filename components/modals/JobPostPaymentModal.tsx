@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import Modal from '../ui/Modal';
-import { CheckCircleIcon, XCircleIcon, RefreshCwIcon } from '../icons/Icon';
-import Button from '../ui/Button';
+import Modal from '../ui/Modal.tsx';
+import { CheckCircleIcon, XCircleIcon, RefreshCwIcon } from '../icons/Icon.tsx';
+import Button from '../ui/Button.tsx';
 
 type Status = 'processing' | 'success' | 'error';
 

@@ -11,7 +11,7 @@ import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 // FIX: Added .ts extension to the import path.
 import { Proposal } from '../types.ts';
-import { formatCurrency } from '../lib/utils';
+import { formatCurrency } from '../lib/utils.ts';
 import { Link } from 'react-router-dom';
 import StatusChip from '../components/ui/StatusChip';
 
