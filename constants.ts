@@ -2,7 +2,7 @@ import {
     LayoutDashboard, Users, Briefcase, FileText, DollarSign,
     MessageSquare, FileSignature, Clock, BarChart2, Book,
     Settings, Sparkles, TrendingUp, UsersIcon, ListTodo, BrainCircuitIcon, ZapIcon, ShieldIcon, StarIcon, Share2Icon
-} from '../components/icons/Icon.tsx';
+} from './components/icons/Icon.tsx';
 
 export const SIDEBAR_STRUCTURE = [
     { type: 'link', href: '/', label: 'Dashboard', icon: LayoutDashboard },

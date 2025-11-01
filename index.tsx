@@ -1,5 +1,4 @@
 
-
 import React, { Suspense, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 // FIX: Add .tsx extension to App import
@@ -34,12 +33,9 @@ type ErrorBoundaryProps = React.PropsWithChildren<{ fallback: React.ReactNode }>
 type ErrorBoundaryState = { hasError: boolean };
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-    // FIX: The class property syntax for state initialization was causing issues with `this.props` type inference in the render method.
-    // Reverting to a standard constructor ensures the component's `this` context is correctly typed.
-    constructor(props: ErrorBoundaryProps) {
-        super(props);
-        this.state = { hasError: false };
-    }
+    // FIX: Reverted to class property state initialization. This is a common and valid
+    // pattern in modern React that resolves issues with `this` context in some TypeScript configurations.
+    state: ErrorBoundaryState = { hasError: false };
 
     static getDerivedStateFromError(error: Error): ErrorBoundaryState {
         // Return a new state object to indicate an error has occurred.

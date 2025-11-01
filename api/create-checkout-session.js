@@ -3,7 +3,7 @@
 const Stripe = require('stripe');
 
 // La función que Vercel ejecutará
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Solo permitir peticiones POST
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
