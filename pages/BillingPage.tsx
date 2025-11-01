@@ -100,7 +100,7 @@ const BillingPage: React.FC = () => {
                  />
                  <PlanCard 
                     title="Pro"
-                    price="19€"
+                    price="3,95€"
                     features={['Clientes Ilimitados', 'Proyectos Ilimitados', 'Portal de Cliente', 'Reportes Avanzados', 'Soporte prioritario']}
                     isCurrent={profile.plan === 'Pro'}
                     planType='Pro'

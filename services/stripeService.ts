@@ -34,7 +34,7 @@ const getStripe = () => {
 // Paso 2: Reemplaza los placeholders con tus IDs de Precio reales de Stripe.
 export const STRIPE_ITEMS = {
     proPlan: {
-        priceId: 'price_..._REEMPLAZAR_PLAN_PRO', // Producto: prod_TLNEUCgXpmygfC
+        priceId: 'price_1SOgUF8oC5awQy15dOEM5jGS', // Producto: prod_TLNEUCgXpmygfC
         mode: 'subscription',
     },
     teamsPlanMonthly: {
