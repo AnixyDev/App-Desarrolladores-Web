@@ -1,8 +1,25 @@
 import {
-    LayoutDashboard, Users, Briefcase, FileText, DollarSign,
-    MessageSquare, FileSignature, Clock, BarChart2, Book,
-    Settings, Sparkles, TrendingUp, UsersIcon, ListTodo, BrainCircuitIcon, ZapIcon, ShieldIcon, StarIcon, Share2Icon
-} from './components/icons/Icon.tsx';
+    LayoutDashboard,
+    Users,
+    Briefcase,
+    FileText,
+    DollarSign,
+    MessageSquare,
+    FileSignature,
+    Clock,
+    BarChart2,
+    Book,
+    Settings,
+    Sparkles,
+    TrendingUp,
+    ListTodo,
+    Users as UsersIcon,
+    BrainCircuit as BrainCircuitIcon,
+    Zap as ZapIcon,
+    Shield as ShieldIcon,
+    Star as StarIcon,
+    Share2 as Share2Icon
+} from 'lucide-react';
 
 export const SIDEBAR_STRUCTURE = [
     { type: 'link', href: '/', label: 'Dashboard', icon: LayoutDashboard },

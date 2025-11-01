@@ -1,8 +1,8 @@
 
 
+
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-// FIX: Added .ts extension to the import path.
 import type { Invoice, Client, Profile } from '../types.ts';
 
 const formatCurrency = (cents: number) => {

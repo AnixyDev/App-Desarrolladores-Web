@@ -1,9 +1,7 @@
-// FIX: Add a triple-slash directive to explicitly include React types, resolving issues with JSX elements not being recognized by TypeScript.
 /// <reference types="react" />
 
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-// FIX: Added .ts extension to the import path.
 import type { Invoice, Expense } from '../../types.ts';
 
 interface ChartProps {

@@ -1,4 +1,3 @@
-// FIX: Add a triple-slash directive to explicitly include React types, resolving issues with JSX elements not being recognized by TypeScript.
 /// <reference types="react" />
 
 import React from 'react';
@@ -23,8 +22,6 @@ const Button = <E extends React.ElementType = typeof defaultElement>({
   className = '',
   ...props
 }: ButtonProps<E>) => {
-  // FIX: Explicitly type `Tag` as `React.ElementType` to help TypeScript's JSX transformer
-  // understand that it's a valid renderable component, resolving the "does not have any construct or call signatures" error.
   const Tag: React.ElementType = as || defaultElement;
 
   const baseStyles = 'inline-flex items-center justify-center rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed';

@@ -1,17 +1,13 @@
-// FIX: Add a triple-slash directive to explicitly include React types, resolving issues with JSX elements not being recognized by TypeScript.
 /// <reference types="react" />
 
 import React, { useState, useMemo } from 'react';
-// FIX: Add .tsx extension to useAppStore import
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 import Button from '../components/ui/Button.tsx';
 import Modal from '../components/ui/Modal.tsx';
 import Input from '../components/ui/Input.tsx';
-// FIX: Add .ts extension to types import
 import { Budget, InvoiceItem } from '../types.ts';
 import { formatCurrency } from '../lib/utils.ts';
-// FIX: Add .tsx extension to Icon import
 import { PlusIcon, TrashIcon, CheckCircleIcon, XCircleIcon, MessageSquareIcon } from '../components/icons/Icon.tsx';
 import StatusChip from '../components/ui/StatusChip.tsx';
 import EmptyState from '../components/ui/EmptyState.tsx';

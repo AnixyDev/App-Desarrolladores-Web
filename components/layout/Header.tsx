@@ -1,4 +1,3 @@
-// FIX: Add a triple-slash directive to explicitly include React types, resolving issues with JSX elements not being recognized by TypeScript.
 /// <reference types="react" />
 
 import React from 'react';
@@ -43,10 +42,7 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
                             <p className="text-xs text-gray-400">{profile?.plan} Plan</p>
                         </div>
                     </button>
-                    {/* --- FIX START --- */}
-                    {/* The outer div is for positioning and hover detection. pt-2 creates the visual gap without a physical one. */}
                     <div className="absolute right-0 top-full w-56 pt-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
-                         {/* The inner div is the visible menu card */}
                         <div className="bg-gray-800 border border-gray-700 rounded-md shadow-lg py-1">
                             <Link to="/settings" className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Mi Perfil y Ajustes</Link>
                             <div className="border-t border-gray-700 my-1"></div>
@@ -59,7 +55,6 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
                             </button>
                         </div>
                     </div>
-                    {/* --- FIX END --- */}
                 </div>
             </div>
         </header>
