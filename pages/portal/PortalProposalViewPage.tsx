@@ -1,3 +1,6 @@
+// FIX: Add a triple-slash directive to explicitly include React types, resolving issues with JSX elements not being recognized by TypeScript.
+/// <reference types="react" />
+
 import React from 'react';
 import { useParams } from 'react-router-dom';
 // FIX: Added .tsx extension to the import path.

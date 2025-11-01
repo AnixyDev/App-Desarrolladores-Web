@@ -1,7 +1,10 @@
+// FIX: Add a triple-slash directive to explicitly include React types, resolving issues with JSX elements not being recognized by TypeScript.
+/// <reference types="react" />
+
 import React, { useState } from 'react';
 import { Briefcase, DollarSign, Clock, Hash, Send, Zap, Star } from 'lucide-react';
-import JobPostPaymentModal from '../components/modals/JobPostPaymentModal.tsx';
 import { useToast } from '../hooks/useToast.ts';
+import { redirectToCheckout } from '../services/stripeService.ts';
 
 // Lista de habilidades comunes para la selección múltiple
 const commonSkills = [
@@ -37,7 +40,7 @@ const JobPostForm: React.FC = () => {
     habilidadesRequeridas: [],
   });
   const [isFeatured, setIsFeatured] = useState(false);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { addToast } = useToast();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -67,22 +70,24 @@ const JobPostForm: React.FC = () => {
       setIsFeatured(false);
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isFeatured) {
-        setIsPaymentModalOpen(true);
+        setIsLoading(true);
+        try {
+            await redirectToCheckout('featuredJobPost');
+            // El usuario será redirigido a Stripe.
+            // Tras un pago exitoso, la app mostrará una notificación.
+        } catch (error) {
+            addToast((error as Error).message, 'error');
+            setIsLoading(false); // Reactivar el botón si hay un error antes de la redirección
+        }
     } else {
-        // Normal submission without payment
+        // Envío normal sin pago
         console.log("Datos de la oferta de trabajo enviados (Simulación):", formData);
         addToast('¡Oferta de trabajo publicada con éxito!', 'success');
         resetForm();
     }
-  };
-  
-  const handlePaymentSuccess = () => {
-    console.log("Oferta destacada pagada y publicada (Simulación):", formData);
-    addToast('¡Oferta publicada y destacada con éxito!', 'success');
-    resetForm();
   };
 
   const InputField: React.FC<InputFieldProps> = ({ label, name, type = 'text', icon: Icon, required = false }) => (
@@ -156,22 +161,16 @@ const JobPostForm: React.FC = () => {
                 </button>
             </div>
             {isFeatured && (
-                 <p className="text-center text-yellow-300 font-semibold mt-3 text-sm bg-gray-800/50 p-2 rounded">Coste adicional: 25,00 € para 7 días de visibilidad premium.</p>
+                 <p className="text-center text-yellow-300 font-semibold mt-3 text-sm bg-gray-800/50 p-2 rounded">Coste adicional: 5,95 € para 7 días de visibilidad premium.</p>
             )}
           </div>
           
-          <button type="submit" className={`w-full py-3 font-bold rounded-full shadow-lg transition-all duration-200 flex items-center justify-center ${isFeatured ? 'bg-yellow-400 text-black hover:bg-yellow-500 shadow-yellow-500/40' : 'bg-fuchsia-600 text-black hover:bg-fuchsia-700 shadow-fuchsia-500/50'}`}>
+          <button type="submit" disabled={isLoading} className={`w-full py-3 font-bold rounded-full shadow-lg transition-all duration-200 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed ${isFeatured ? 'bg-yellow-400 text-black hover:bg-yellow-500 shadow-yellow-500/40' : 'bg-fuchsia-600 text-black hover:bg-fuchsia-700 shadow-fuchsia-500/50'}`}>
             <Send className="w-5 h-5 mr-2" />
-            {isFeatured ? 'Pagar 25,00 € y Publicar' : 'Publicar Oferta Ahora'}
+            {isLoading ? 'Procesando...' : (isFeatured ? 'Pagar 5,95 € y Publicar' : 'Publicar Oferta Ahora')}
           </button>
         </form>
       </div>
-
-      <JobPostPaymentModal 
-        isOpen={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
-        onSuccess={handlePaymentSuccess}
-      />
     </div>
   );
 };

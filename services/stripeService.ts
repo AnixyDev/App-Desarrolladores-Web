@@ -15,7 +15,7 @@
 // ========================================================================
 
 // Paso 1: Reemplaza esta clave con tu propia Clave Publicable de Stripe (Live o Test).
-const STRIPE_PUBLISHABLE_KEY = 'pk_test_51SDWPB8oC5awQy15tNu6KiYVF6F2ICAFWDvmQQERxmPQRT12coU7EBMLZJAZX5JIgr8PBvVz9J4ZrPXNi5z2a1bG00x6QAXtJY';
+const STRIPE_PUBLISHABLE_KEY = 'pk_live_51SDWPB8oC5awQy1545zGz4ujNU8tnMm7YDT8FME95jWrGHttn8cHN7koOrcVOGqz7jXxODYmKslH1aqSaYULJPgn00WD4Bq8SD';
 
 declare const Stripe: any; // Declara la variable global de Stripe
 
@@ -59,6 +59,10 @@ export const STRIPE_ITEMS = {
         priceId: 'price_1SOguC8oC5awQy15LGchpkVG', // Producto: prod_TLNfeYcDhzRqU7
         mode: 'payment',
         credits: 1000
+    },
+    featuredJobPost: {
+        priceId: 'price_1SOlOv8oC5awQy15Q2aXoEg7',
+        mode: 'payment',
     }
 };
 

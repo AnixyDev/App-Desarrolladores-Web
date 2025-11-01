@@ -1,3 +1,6 @@
+// FIX: Add a triple-slash directive to explicitly include React types, resolving issues with JSX elements not being recognized by TypeScript.
+/// <reference types="react" />
+
 import React, { useState, useMemo } from 'react';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 // FIX: Added .tsx extension to the import path.

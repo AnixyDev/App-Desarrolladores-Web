@@ -1,3 +1,5 @@
+// FIX: Add a triple-slash directive to explicitly include React types, resolving issues with JSX elements and component properties not being recognized by TypeScript.
+/// <reference types="react" />
 
 import React, { Suspense, useState } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -33,11 +35,8 @@ type ErrorBoundaryProps = React.PropsWithChildren<{ fallback: React.ReactNode }>
 type ErrorBoundaryState = { hasError: boolean };
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-    // FIX: Switched to a constructor for state initialization to ensure `this.props` is correctly available on the component instance, resolving a TypeScript error.
-    constructor(props: ErrorBoundaryProps) {
-        super(props);
-        this.state = { hasError: false };
-    }
+    // FIX: Initialize state directly as a class property for simplicity and to resolve type errors. This is a more modern syntax than using a constructor for basic state initialization.
+    state: ErrorBoundaryState = { hasError: false };
 
     static getDerivedStateFromError(error: Error): ErrorBoundaryState {
         // Return a new state object to indicate an error has occurred.

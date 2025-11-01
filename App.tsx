@@ -1,6 +1,8 @@
+// FIX: Add a triple-slash directive to explicitly include React types, resolving issues with JSX elements not being recognized by TypeScript.
+/// <reference types="react" />
 
-import React, { useState, lazy } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import React, { useState, lazy, useEffect } from 'react';
+import { HashRouter as Router, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import { useAppStore } from './hooks/useAppStore.tsx';
 import Sidebar from './components/layout/Sidebar.tsx';
@@ -8,6 +10,8 @@ import Header from './components/layout/Header.tsx';
 import AuthLayout from './pages/auth/AuthLayout.tsx';
 import PortalLayout from './pages/portal/PortalLayout.tsx';
 import ToastContainer from './components/ui/Toast.tsx';
+import { useToast } from './hooks/useToast.ts';
+
 
 // Lazy load pages for better performance
 const DashboardPage = lazy(() => import('./pages/DashboardPage.tsx'));
@@ -70,10 +74,38 @@ const PrivateRoute: React.FC = () => {
     return isAuthenticated && profile ? <MainLayout /> : <Navigate to="/auth/login" />;
 };
 
+const HandlePaymentRedirects: React.FC = () => {
+    const { addToast } = useToast();
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    useEffect(() => {
+        // Stripe success redirect will have search params on the root URL
+        const rootParams = new URLSearchParams(window.location.search);
+        if (rootParams.get('payment') === 'success') {
+            addToast('¡Pago completado con éxito!', 'success');
+            // Clean URL by navigating to the current hash path without search params
+            navigate(location.pathname, { replace: true });
+        }
+
+        // Stripe cancel redirect will have search params inside the hash
+        const hashParams = new URLSearchParams(location.search);
+        if (hashParams.get('payment') === 'cancelled') {
+            addToast('El pago fue cancelado.', 'info');
+            // Clean URL
+            navigate(location.pathname, { replace: true });
+        }
+    }, [addToast, navigate, location]);
+
+    return null; // This component doesn't render anything
+};
+
+
 const App: React.FC = () => {
     return (
         <>
             <Router>
+                <HandlePaymentRedirects />
                 <Routes>
                     {/* Main Application Routes */}
                     <Route path="/" element={<PrivateRoute />}>

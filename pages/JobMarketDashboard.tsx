@@ -1,3 +1,5 @@
+// FIX: Add a triple-slash directive to explicitly include React types, resolving issues with JSX elements not being recognized by TypeScript.
+/// <reference types="react" />
 
 import React, { useState } from 'react';
 import { Briefcase, DollarSign, Clock, Zap, Target, Filter, ChevronDown, TrendingUp, Search, Star, InfoIcon } from 'lucide-react';

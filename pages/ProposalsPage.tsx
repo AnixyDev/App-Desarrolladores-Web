@@ -1,14 +1,13 @@
-
-
-
+// FIX: Add a triple-slash directive to explicitly include React types, resolving issues with JSX elements not being recognized by TypeScript.
+/// <reference types="react" />
 
 import React, { useState } from 'react';
 // FIX: Added .tsx extension to the import path.
 import { useAppStore } from '../hooks/useAppStore.tsx';
-import Card, { CardContent, CardHeader } from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import Modal from '../components/ui/Modal';
-import Input from '../components/ui/Input';
+import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
+import Button from '../components/ui/Button.tsx';
+import Modal from '../components/ui/Modal.tsx';
+import Input from '../components/ui/Input.tsx';
 // FIX: Added .ts extension to the import path.
 import { Proposal } from '../types.ts';
 import { formatCurrency } from '../lib/utils.ts';

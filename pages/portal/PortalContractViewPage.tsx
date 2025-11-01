@@ -1,3 +1,6 @@
+// FIX: Add a triple-slash directive to explicitly include React types, resolving issues with JSX elements not being recognized by TypeScript.
+/// <reference types="react" />
+
 import React from 'react';
 import { useParams } from 'react-router-dom';
 // FIX: Added .tsx extension to the import path.
@@ -47,19 +50,18 @@ const PortalContractViewPage: React.FC = () => {
                     contract.status === 'signed' ? 'bg-green-500/20 text-green-400' :
                     'bg-gray-500/20 text-gray-400'
                 }`}>
-                    Estado: {contract.status === 'sent' ? 'Pendiente de Firma' : 'Firmado'}
+                    Estado: {contract.status}
                 </span>
-
                 {contract.status === 'sent' && (
-                    <Button size='sm' onClick={handleSign}>
+                    <Button onClick={handleSign}>
                         <SignatureIcon className='w-4 h-4 mr-2'/>
-                        Aceptar y Firmar
+                        Firmar Contrato
                     </Button>
                 )}
-                 {contract.status === 'signed' && (
-                    <div className='flex items-center gap-2 text-sm text-green-400'>
-                        <CheckCircleIcon className='w-5 h-5'/>
-                        <span>Firmado por {contract.signed_by} el {contract.signed_at ? new Date(contract.signed_at).toLocaleDateString() : ''}</span>
+                {contract.status === 'signed' && (
+                    <div className="flex items-center gap-2 text-green-400 text-sm">
+                        <CheckCircleIcon className="w-5 h-5" />
+                        <span>Firmado por {contract.signed_by} el {new Date(contract.signed_at || '').toLocaleDateString()}</span>
                     </div>
                 )}
             </CardFooter>
