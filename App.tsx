@@ -9,6 +9,7 @@ import AuthLayout from './pages/auth/AuthLayout.tsx';
 import PortalLayout from './pages/portal/PortalLayout.tsx';
 import ToastContainer from './components/ui/Toast.tsx';
 import { useToast } from './hooks/useToast.ts';
+import { STRIPE_ITEMS } from './services/stripeService.ts';
 
 
 // Lazy load pages for better performance
@@ -76,14 +77,38 @@ const HandlePaymentRedirects: React.FC = () => {
     const { addToast } = useToast();
     const navigate = useNavigate();
     const location = useLocation();
+    const { upgradePlan, purchaseCredits } = useAppStore();
 
     useEffect(() => {
         // Stripe success redirect will have search params on the root URL
         const rootParams = new URLSearchParams(window.location.search);
         if (rootParams.get('payment') === 'success') {
             addToast('¡Pago completado con éxito!', 'success');
-            // Clean URL by navigating to the current hash path without search params
-            navigate(location.pathname, { replace: true });
+
+            const purchasedItemKey = rootParams.get('item');
+            if (purchasedItemKey) {
+                const item = STRIPE_ITEMS[purchasedItemKey as keyof typeof STRIPE_ITEMS];
+                if (item) {
+                    if (item.mode === 'subscription') {
+                        if (purchasedItemKey.toLowerCase().includes('pro')) {
+                            upgradePlan('Pro');
+                            addToast('¡Has mejorado al plan Pro!', 'success');
+                        } else if (purchasedItemKey.toLowerCase().includes('teams')) {
+                            upgradePlan('Teams');
+                            addToast('¡Has mejorado al plan Teams!', 'success');
+                        }
+                    } else if (item.mode === 'payment') {
+                        const credits = (item as { credits?: number }).credits || 0;
+                        if (credits > 0) {
+                            purchaseCredits(credits);
+                            addToast(`${credits.toLocaleString('es-ES')} créditos añadidos a tu cuenta.`, 'success');
+                        }
+                    }
+                }
+            }
+            // Limpia los parámetros de la URL para evitar reprocesamiento en recargas.
+            const cleanUrl = window.location.pathname + window.location.hash;
+            window.history.replaceState(null, '', cleanUrl);
         }
 
         // Stripe cancel redirect will have search params inside the hash
@@ -93,7 +118,7 @@ const HandlePaymentRedirects: React.FC = () => {
             // Clean URL
             navigate(location.pathname, { replace: true });
         }
-    }, [addToast, navigate, location]);
+    }, [addToast, navigate, location, upgradePlan, purchaseCredits]);
 
     return null; // This component doesn't render anything
 };

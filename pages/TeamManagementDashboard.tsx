@@ -148,4 +148,60 @@ const TeamManagementDashboard: React.FC = () => {
           <h2 className="text-xl font-semibold text-white mb-4 border-b border-gray-800 pb-2">Miembros del Equipo ({team.length})</h2>
 
           <div className="overflow-x-auto">
-            <table className="
+            <table className="w-full min-w-[700px] text-left">
+              <thead className="text-xs text-gray-400 uppercase tracking-wider">
+                <tr>
+                  <th className="p-4">Miembro</th>
+                  <th className="p-4">Rol</th>
+                  <th className="p-4">Estado</th>
+                  <th className="p-4">Invitado el</th>
+                  <th className="p-4 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {team.map(member => (
+                  <tr key={member.id} className="border-t border-gray-800 hover:bg-gray-800/50">
+                    <td className="p-4">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center mr-3">
+                          <User className="text-fuchsia-400" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">{member.name}</p>
+                          <p className="text-sm text-gray-400">{member.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                        <select 
+                            value={member.role}
+                            onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                            className="bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:outline-none"
+                        >
+                            {roles.map(r => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                    </td>
+                    <td className="p-4">
+                      <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusStyle(member.status)}`}>
+                        {member.status}
+                      </span>
+                    </td>
+                    <td className="p-4 text-gray-300">{member.invitedOn}</td>
+                    <td className="p-4 text-right">
+                      <button onClick={() => handleDelete(member.id)} className="text-gray-400 hover:text-red-500 p-2 rounded-full transition duration-200">
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// FIX: Add default export for lazy loading.
+export default TeamManagementDashboard;

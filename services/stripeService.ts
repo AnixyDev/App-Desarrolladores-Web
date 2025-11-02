@@ -87,7 +87,11 @@ export const redirectToCheckout = async (itemKey: keyof typeof STRIPE_ITEMS) => 
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ priceId: item.priceId, mode: item.mode }),
+        body: JSON.stringify({ 
+            priceId: item.priceId, 
+            mode: item.mode,
+            itemKey: itemKey // Se añade la clave del producto para el seguimiento
+        }),
     });
 
     if (!response.ok) {

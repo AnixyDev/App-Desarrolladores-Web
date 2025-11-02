@@ -12,12 +12,13 @@ export type AppState = AuthSlice & ClientSlice & ProjectSlice & FinanceSlice & T
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set, get) => ({
-      ...createAuthSlice(set, get),
-      ...createClientSlice(set, get),
-      ...createProjectSlice(set, get),
-      ...createFinanceSlice(set, get),
-      ...createTeamSlice(set, get),
+    // FIX: Use rest parameters to pass all arguments (set, get, api) to slice creators, resolving errors about incorrect argument counts.
+    (...a) => ({
+      ...createAuthSlice(...a),
+      ...createClientSlice(...a),
+      ...createProjectSlice(...a),
+      ...createFinanceSlice(...a),
+      ...createTeamSlice(...a),
     }),
     {
       name: 'devfreelancer-storage', // name of the item in the storage (must be unique)

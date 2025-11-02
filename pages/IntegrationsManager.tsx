@@ -18,26 +18,6 @@ const availableEvents = [
   { id: 'TIMESHEET_SUBMITTED', name: 'Registro de Horas Enviado' },
 ];
 
-// --- MOCK DATA ---
-const mockIntegrations: Integration[] = [
-  { 
-    id: 'slack-tasks', 
-    name: 'Notificaciones de Tareas (Slack)', 
-    url: 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXX', 
-    event: 'TASK_COMPLETED', 
-    isActive: true, 
-    lastTest: { success: true, timestamp: '2024-10-24 14:00' } 
-  },
-  { 
-    id: 'discord-docs', 
-    name: 'Alerta de Nuevos Documentos (Discord)', 
-    url: 'https://discord.com/api/webhooks/12345/abcdefg', 
-    event: 'NEW_DOCUMENT', 
-    isActive: true, 
-    lastTest: { success: false, timestamp: '2024-10-23 09:30' } 
-  },
-];
-
 const buttonStyle = 'px-3 py-2 text-sm font-semibold rounded-lg transition duration-200 flex items-center justify-center';
 
 // --- CHILD COMPONENTS ---
@@ -129,7 +109,7 @@ const AddIntegrationForm: React.FC<{ onClose: () => void; onSave: (integration: 
 
 // --- MAIN COMPONENT ---
 const IntegrationsManager: React.FC = () => {
-  const [integrations, setIntegrations] = useState(mockIntegrations);
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleSaveIntegration = (newIntegration: Integration) => {

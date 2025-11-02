@@ -6,7 +6,7 @@ import Button from '../../components/ui/Button';
 import { useAppStore } from '../../hooks/useAppStore';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { GoogleJwtPayload } from '../../types';
-import { AlertTriangleIcon } from '../../components/icons/Icon';
+import { AlertTriangleIcon, InfoIcon } from '../../components/icons/Icon.tsx';
 import { jwtDecode } from '../../lib/utils.ts';
 
 const LoginPage: React.FC = () => {
@@ -52,7 +52,7 @@ const LoginPage: React.FC = () => {
     return (
         <AuthCard>
             <h2 className="text-2xl font-bold text-center text-white mb-6">Iniciar Sesión</h2>
-
+            
             {showGoogleConfigError && (
                  <div className="bg-red-900/50 border border-red-500/50 text-red-300 p-4 rounded-lg mb-6 text-sm">
                     <div className="flex items-start">

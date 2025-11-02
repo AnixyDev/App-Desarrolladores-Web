@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAppStore } from '../hooks/useAppStore';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -145,4 +146,22 @@ const ForecastingPage: React.FC = () => {
                                 </ul>
                             </div>
                         )}
-                         
+                        {analysis.suggestions.length > 0 && (
+                            <div>
+                                <h3 className="font-semibold text-green-400 mb-2 flex items-center gap-2"><CheckCircleIcon/> Sugerencias y Oportunidades</h3>
+                                <ul className="list-disc list-inside space-y-1 text-gray-300">
+                                    {analysis.suggestions.map((sug, i) => <li key={i}>{sug}</li>)}
+                                </ul>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+            
+            <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />
+        </div>
+    );
+};
+
+// FIX: Add default export for lazy loading.
+export default ForecastingPage;
