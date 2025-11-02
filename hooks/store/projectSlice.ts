@@ -22,7 +22,22 @@ export const createProjectSlice: StateCreator<AppState, [], [], ProjectSlice> = 
     timeEntries: [],
     getProjectById: (id) => get().projects.find(p => p.id === id),
     addProject: (project) => set(state => ({ projects: [...state.projects, { ...project, id: `p-${Date.now()}`, user_id: 'u-1', created_at: new Date().toISOString() }]})),
-    updateProjectStatus: (id, status) => set(state => ({ projects: state.projects.map(p => p.id === id ? { ...p, status } : p) })),
+    updateProjectStatus: (id, status) => {
+        const project = get().projects.find(p => p.id === id);
+        if(project) {
+            const statusMap = {
+                'planning': 'Planificación',
+                'in-progress': 'En Progreso',
+                'completed': 'Completado',
+                'on-hold': 'En Pausa'
+            };
+            get().addNotification(
+                `El estado del proyecto "${project.name}" ha cambiado a "${statusMap[status]}".`,
+                `/projects/${id}`
+            );
+        }
+        set(state => ({ projects: state.projects.map(p => p.id === id ? { ...p, status } : p) }));
+    },
     getTasksByProjectId: (projectId) => get().tasks.filter(t => t.project_id === projectId),
     addTask: (task) => set(state => ({ tasks: [...state.tasks, { ...task, id: `t-${Date.now()}`, user_id: 'u-1', created_at: new Date().toISOString(), completed: false, invoice_id: null }]})),
     toggleTask: (id) => set(state => ({ tasks: state.tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t) })),

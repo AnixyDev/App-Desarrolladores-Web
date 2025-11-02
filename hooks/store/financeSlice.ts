@@ -49,6 +49,8 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
             created_at: new Date().toISOString(),
         };
         set(state => ({ invoices: [newInvoice, ...state.invoices] }));
+        
+        get().addNotification(`Nueva factura #${newInvoice.invoice_number} creada.`, '/invoices');
 
         if (timeEntryIdsToBill && timeEntryIdsToBill.length > 0) {
             const updatedTimeEntries = get().timeEntries.map(entry => 
@@ -58,7 +60,13 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
         }
     },
     deleteInvoice: (id) => set(state => ({ invoices: state.invoices.filter(i => i.id !== id) })),
-    markInvoiceAsPaid: (id) => set(state => ({ invoices: state.invoices.map(i => i.id === id ? { ...i, paid: true, payment_date: new Date().toISOString().split('T')[0] } : i) })),
+    markInvoiceAsPaid: (id) => {
+        const invoice = get().invoices.find(i => i.id === id);
+        if(invoice) {
+             get().addNotification(`La factura #${invoice.invoice_number} ha sido pagada.`, '/invoices');
+        }
+        set(state => ({ invoices: state.invoices.map(i => i.id === id ? { ...i, paid: true, payment_date: new Date().toISOString().split('T')[0] } : i) }));
+    },
     addExpense: (expense) => set(state => ({ expenses: [{ ...expense, id: `e-${Date.now()}`, user_id: 'u-1', created_at: new Date().toISOString() }, ...state.expenses] })),
     deleteExpense: (id) => set(state => ({ expenses: state.expenses.filter(e => e.id !== id) })),
     addRecurringExpense: (expense) => {

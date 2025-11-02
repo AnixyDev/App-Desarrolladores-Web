@@ -1,4 +1,5 @@
 
+
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
@@ -7,8 +8,9 @@ import { createClientSlice, ClientSlice } from './store/clientSlice.ts';
 import { createProjectSlice, ProjectSlice } from './store/projectSlice.ts';
 import { createFinanceSlice, FinanceSlice } from './store/financeSlice.ts';
 import { createTeamSlice, TeamSlice } from './store/teamSlice.ts';
+import { createNotificationSlice, NotificationSlice } from './store/notificationSlice.ts';
 
-export type AppState = AuthSlice & ClientSlice & ProjectSlice & FinanceSlice & TeamSlice;
+export type AppState = AuthSlice & ClientSlice & ProjectSlice & FinanceSlice & TeamSlice & NotificationSlice;
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -19,6 +21,7 @@ export const useAppStore = create<AppState>()(
       ...createProjectSlice(...a),
       ...createFinanceSlice(...a),
       ...createTeamSlice(...a),
+      ...createNotificationSlice(...a),
     }),
     {
       name: 'devfreelancer-storage', // name of the item in the storage (must be unique)

@@ -3,9 +3,19 @@ import { ClientSlice } from './hooks/store/clientSlice.ts';
 import { ProjectSlice } from './hooks/store/projectSlice.ts';
 import { FinanceSlice } from './hooks/store/financeSlice.ts';
 import { TeamSlice } from './hooks/store/teamSlice.ts';
+import { NotificationSlice } from './hooks/store/notificationSlice.ts';
+
 
 // Export Slice interfaces for combined AppState type
-export type { AuthSlice, ClientSlice, ProjectSlice, FinanceSlice, TeamSlice };
+export type { AuthSlice, ClientSlice, ProjectSlice, FinanceSlice, TeamSlice, NotificationSlice };
+
+export interface Notification {
+  id: string;
+  message: string;
+  link: string;
+  isRead: boolean;
+  createdAt: string;
+}
 
 export interface Client {
   id: string;
