@@ -1,4 +1,3 @@
-/// <reference types="react" />
 
 import React, { useState, useRef, useEffect } from 'react';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';

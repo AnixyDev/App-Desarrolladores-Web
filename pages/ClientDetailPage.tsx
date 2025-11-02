@@ -1,4 +1,3 @@
-/// <reference types="react" />
 
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';

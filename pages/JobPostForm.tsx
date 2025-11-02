@@ -1,4 +1,3 @@
-/// <reference types="react" />
 
 import React, { useState } from 'react';
 import { Briefcase, DollarSign, Clock, Hash, Send, Zap, Star } from 'lucide-react';
@@ -166,7 +165,7 @@ const JobPostForm: React.FC = () => {
           
           <button type="submit" disabled={isLoading} className={`w-full py-3 font-bold rounded-full shadow-lg transition-all duration-200 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed ${isFeatured ? 'bg-yellow-400 text-black hover:bg-yellow-500 shadow-yellow-500/40' : 'bg-fuchsia-600 text-black hover:bg-fuchsia-700 shadow-fuchsia-500/50'}`}>
             <Send className="w-5 h-5 mr-2" />
-            {isLoading ? 'Procesando...' : (isFeatured ? 'Pagar 5,95 € y Publicar' : 'Publicar Oferta Ahora')}
+            {isLoading ? 'Procesando...' : (isFeatured ? 'Pagar 5,95 € y Publicar' : 'Publicar Oferta Agora')}
           </button>
         </form>
       </div>

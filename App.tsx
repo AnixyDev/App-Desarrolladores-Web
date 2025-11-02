@@ -1,4 +1,3 @@
-/// <reference types="react" />
 
 import React, { useState, lazy, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';

@@ -1,4 +1,3 @@
-/// <reference types="react" />
 
 import React, { ReactNode } from 'react';
 

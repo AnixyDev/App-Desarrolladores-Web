@@ -13,13 +13,13 @@ import {
     Sparkles,
     TrendingUp,
     ListTodo,
-    Users as UsersIcon,
-    BrainCircuit as BrainCircuitIcon,
-    Zap as ZapIcon,
-    Shield as ShieldIcon,
-    Star as StarIcon,
-    Share2 as Share2Icon
-} from 'lucide-react';
+    UsersIcon,
+    BrainCircuitIcon,
+    ZapIcon,
+    ShieldIcon,
+    StarIcon,
+    Share2Icon
+} from './components/icons/Icon.tsx';
 
 export const SIDEBAR_STRUCTURE = [
     { type: 'link', href: '/', label: 'Dashboard', icon: LayoutDashboard },

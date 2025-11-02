@@ -1,4 +1,3 @@
-/// <reference types="react" />
 
 import React, { useState } from 'react';
 import { Briefcase, DollarSign, Clock, Zap, Target, Filter, ChevronDown, TrendingUp, Search, Star, InfoIcon } from 'lucide-react';

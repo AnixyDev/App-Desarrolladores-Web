@@ -1,4 +1,3 @@
-/// <reference types="react" />
 
 import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal.tsx';

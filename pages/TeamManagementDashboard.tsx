@@ -1,5 +1,3 @@
-// FIX: Add a triple-slash directive to explicitly include React types, resolving issues with JSX elements not being recognized by TypeScript.
-/// <reference types="react" />
 
 import React, { useState } from 'react';
 import { Users, UserPlus, Trash2, Mail, Settings, User, X, Check } from 'lucide-react';
@@ -150,76 +148,4 @@ const TeamManagementDashboard: React.FC = () => {
           <h2 className="text-xl font-semibold text-white mb-4 border-b border-gray-800 pb-2">Miembros del Equipo ({team.length})</h2>
 
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-800">
-              <thead className="bg-gray-800">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Miembro</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Rol</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Estado</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Invitado</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800">
-                {team.map((member) => (
-                  <tr key={member.id} className={member.role === 'CEO / Admin' ? 'bg-gray-800/50' : ''}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <User className="w-5 h-5 mr-3 text-gray-500" />
-                        <div>
-                          <p className="text-sm font-medium text-white">{member.name}</p>
-                          <p className="text-xs text-gray-400">{member.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {member.role === 'CEO / Admin' ? (
-                        <span className="text-sm font-medium text-fuchsia-500 flex items-center">
-                          <Settings className="w-4 h-4 mr-1" /> {member.role}
-                        </span>
-                      ) : (
-                        <select
-                          value={member.role}
-                          onChange={(e) => handleRoleChange(member.id, e.target.value)}
-                          className="p-1 bg-gray-800 text-white rounded-md border border-gray-700 focus:border-fuchsia-500 outline-none text-sm"
-                        >
-                          {roles.filter(r => r !== 'Admin').map(role => (
-                            <option key={role} value={role}>{role}</option>
-                          ))}
-                        </select>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusStyle(member.status)}`}>
-                        {member.status === 'Active' ? <Check className="w-4 h-4 mr-1" /> : <Mail className="w-4 h-4 mr-1" />}
-                        {member.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{member.invitedOn}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {member.role !== 'CEO / Admin' && (
-                        <button
-                          onClick={() => handleDelete(member.id)}
-                          className="text-red-500 hover:text-red-700 transition duration-150 p-2 rounded-full hover:bg-gray-800"
-                          aria-label={`Eliminar a ${member.name}`}
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="mt-8 p-4 bg-gray-900 rounded-xl border-l-4 border-fuchsia-500">
-            <p className="text-sm text-gray-400">Nota: Los usuarios con rol "Admin" tienen acceso completo a Facturación, Proyectos, CRM y Gestión de Equipo. Otros roles tienen acceso restringido basado en el perfil.</p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default TeamManagementDashboard;
+            <table className="

@@ -1,4 +1,3 @@
-/// <reference types="react" />
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
