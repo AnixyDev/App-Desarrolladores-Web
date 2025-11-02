@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import AuthCard from '../../components/auth/AuthCard';
-import Input from '../../components/ui/Input';
-import Button from '../../components/ui/Button';
-import { useAppStore } from '../../hooks/useAppStore';
+import AuthCard from '../../components/auth/AuthCard.tsx';
+import Input from '../../components/ui/Input.tsx';
+import Button from '../../components/ui/Button.tsx';
+import { useAppStore } from '../../hooks/useAppStore.tsx';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
-import { GoogleJwtPayload } from '../../types';
-import { AlertTriangleIcon } from '../../components/icons/Icon';
+import { GoogleJwtPayload } from '../../types.ts';
+import { AlertTriangleIcon } from '../../components/icons/Icon.tsx';
 import { jwtDecode } from '../../lib/utils.ts';
 
 

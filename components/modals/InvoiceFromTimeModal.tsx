@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import Modal from '../ui/Modal';
-import Button from '../ui/Button';
-import { useAppStore } from '../../hooks/useAppStore';
-import { formatCurrency } from '../../lib/utils';
+import Modal from '../ui/Modal.tsx';
+import Button from '../ui/Button.tsx';
+import { useAppStore } from '../../hooks/useAppStore.tsx';
+import { formatCurrency } from '../../lib/utils.ts';
 
 interface InvoiceFromTimeModalProps {
   isOpen: boolean;
