@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../hooks/useAppStore.tsx';
@@ -11,6 +10,7 @@ import { EditIcon, TrashIcon, PhoneIcon, MailIcon, UsersIcon } from '../componen
 import { useToast } from '../hooks/useToast.ts';
 import EmptyState from '../components/ui/EmptyState.tsx';
 import UpgradePromptModal from '../components/modals/UpgradePromptModal.tsx';
+import ConfirmationModal from '../components/modals/ConfirmationModal.tsx';
 
 
 const initialClientState: NewClient = {
@@ -25,6 +25,8 @@ const ClientsPage: React.FC = () => {
     const { addToast } = useToast();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
     const [formData, setFormData] = useState<NewClient | Client>(initialClientState);
     const [editingClient, setEditingClient] = useState<Client | null>(null);
 
@@ -69,12 +71,19 @@ const ClientsPage: React.FC = () => {
         }
     };
 
-    const handleDelete = (id: string, name: string) => {
-        if (window.confirm(`¿Estás seguro? Se eliminarán todos los datos asociados a "${name}" (proyectos, facturas, etc.).`)) {
-            deleteClient(id);
-            addToast(`Cliente "${name}" eliminado`, 'info');
+    const handleDelete = (client: Client) => {
+        setClientToDelete(client);
+        setIsConfirmModalOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (clientToDelete) {
+            deleteClient(clientToDelete.id);
+            addToast(`Cliente "${clientToDelete.name}" eliminado`, 'info');
+            setIsConfirmModalOpen(false);
+            setClientToDelete(null);
         }
-    }
+    };
 
     return (
         <div>
@@ -107,7 +116,7 @@ const ClientsPage: React.FC = () => {
                                 <Button as="a" href={`mailto:${client.email}`} size="sm" variant="secondary" title="Enviar Email" aria-label={`Enviar email a ${client.name}`}><MailIcon className="w-4 h-4" /></Button>
                                 <Button as="a" href={`tel:${client.phone}`} size="sm" variant="secondary" title="Llamar" aria-label={`Llamar a ${client.name}`}><PhoneIcon className="w-4 h-4" /></Button>
                                 <Button onClick={() => openEditModal(client)} size="sm" variant="secondary" title="Editar" aria-label={`Editar cliente ${client.name}`}><EditIcon className="w-4 h-4" /></Button>
-                                <Button onClick={() => handleDelete(client.id, client.name)} size="sm" variant="secondary" className="text-red-400 hover:bg-red-500/20 hover:text-red-300" title="Eliminar" aria-label={`Eliminar cliente ${client.name}`}><TrashIcon className="w-4 h-4" /></Button>
+                                <Button onClick={() => handleDelete(client)} size="sm" variant="danger" title="Eliminar" aria-label={`Eliminar cliente ${client.name}`}><TrashIcon className="w-4 h-4" /></Button>
                             </div>
                         </Card>
                     ))}
@@ -138,6 +147,14 @@ const ClientsPage: React.FC = () => {
                 isOpen={isUpgradeModalOpen} 
                 onClose={() => setIsUpgradeModalOpen(false)}
                 featureName="clientes"
+            />
+            
+            <ConfirmationModal 
+                isOpen={isConfirmModalOpen}
+                onClose={() => setIsConfirmModalOpen(false)}
+                onConfirm={confirmDelete}
+                title="¿Eliminar Cliente?"
+                message={`¿Estás seguro? Se eliminarán permanentemente todos los datos asociados a "${clientToDelete?.name}", incluyendo proyectos, facturas y gastos. Esta acción no se puede deshacer.`}
             />
         </div>
     );

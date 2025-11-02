@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import { UsersIcon, UserIcon, ShieldIcon, BriefcaseIcon, EditIcon, SaveIcon, TrashIcon } from '../components/icons/Icon.tsx';
 import { UserData } from '../types.ts';
+import ConfirmationModal from '../components/modals/ConfirmationModal.tsx';
 
 interface Role {
     id: 'Admin' | 'Manager' | 'Developer';
@@ -35,7 +36,7 @@ const RoleBadge: React.FC<{ role: Role['id'] }> = ({ role }) => {
     );
 };
 
-const UserRow: React.FC<{ user: UserData; onUpdateRole: (id: string, role: Role['id']) => void; onUpdateStatus: (id: string, status: UserData['status']) => void; onDeleteUser: (id: string) => void; }> = ({ user, onUpdateRole, onUpdateStatus, onDeleteUser }) => {
+const UserRow: React.FC<{ user: UserData; onUpdateRole: (id: string, role: Role['id']) => void; onUpdateStatus: (id: string, status: UserData['status']) => void; onDeleteUser: (user: UserData) => void; currentUserId: string | undefined; }> = ({ user, onUpdateRole, onUpdateStatus, onDeleteUser, currentUserId }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [selectedRole, setSelectedRole] = useState<Role['id']>(user.role);
 
@@ -48,12 +49,14 @@ const UserRow: React.FC<{ user: UserData; onUpdateRole: (id: string, role: Role[
         onUpdateStatus(user.id, user.status === 'Activo' ? 'Inactivo' : 'Activo');
     };
 
+    const isCurrentUser = user.id === currentUserId;
+
     return (
         <div className="grid grid-cols-12 gap-4 items-center p-4 border-b border-gray-700 hover:bg-gray-800 transition">
             <div className="col-span-4 text-white"><p className="font-semibold">{user.name.split('(')[0].trim()}</p><p className="text-xs text-gray-400">{user.email}</p></div>
             <div className="col-span-3 text-sm text-gray-500 truncate hidden md:block">{user.id}</div>
             <div className="col-span-3">
-                {isEditing ? (
+                {isEditing && !isCurrentUser ? (
                     <select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value as Role['id'])} className="w-full p-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-fuchsia-500 outline-none text-sm">
                         {availableRoles.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}
                     </select>
@@ -63,9 +66,10 @@ const UserRow: React.FC<{ user: UserData; onUpdateRole: (id: string, role: Role[
                  <button
                     onClick={handleStatusToggle}
                     title={user.status === 'Activo' ? 'Desactivar usuario' : 'Activar usuario'}
+                    disabled={isCurrentUser}
                     className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
                         user.status === 'Activo' ? 'bg-green-500' : 'bg-gray-600'
-                    }`}
+                    } ${isCurrentUser ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                     <span
                         className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
@@ -78,23 +82,32 @@ const UserRow: React.FC<{ user: UserData; onUpdateRole: (id: string, role: Role[
                 {isEditing ? (
                     <button onClick={handleSave} className={`${buttonStyle} bg-green-600 text-white hover:bg-green-700`}><SaveIcon className="w-4 h-4" /></button>
                 ) : (
-                    <button onClick={() => setIsEditing(true)} className={`${buttonStyle} bg-fuchsia-600 text-black hover:bg-fuchsia-700`}><EditIcon className="w-4 h-4" /></button>
+                    <button onClick={() => setIsEditing(true)} disabled={isCurrentUser} className={`${buttonStyle} bg-fuchsia-600 text-black hover:bg-fuchsia-700 disabled:opacity-50 disabled:cursor-not-allowed`}><EditIcon className="w-4 h-4" /></button>
                 )}
-                <button onClick={() => onDeleteUser(user.id)} className={`${buttonStyle} bg-red-600 text-white hover:bg-red-700`}><TrashIcon className="w-4 h-4" /></button>
+                <button onClick={() => onDeleteUser(user)} disabled={isCurrentUser} className={`${buttonStyle} bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed`}><TrashIcon className="w-4 h-4" /></button>
             </div>
         </div>
     );
 };
 
 const RoleManagement: React.FC = () => {
-    const { users, updateUserRole, updateUserStatus, deleteUser } = useAppStore();
+    const { users, profile, updateUserRole, updateUserStatus, deleteUser } = useAppStore();
     const [isRolesView, setIsRolesView] = useState(false);
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
 
-    const handleDelete = (userId: string) => {
-        if(window.confirm('¿Estás seguro de que quieres eliminar a este usuario?')) {
-            deleteUser(userId);
+    const handleDelete = (user: UserData) => {
+        setUserToDelete(user);
+        setIsConfirmModalOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (userToDelete) {
+            deleteUser(userToDelete.id);
+            setIsConfirmModalOpen(false);
+            setUserToDelete(null);
         }
-    }
+    };
 
     return (
     <div className="space-y-8">
@@ -132,11 +145,20 @@ const RoleManagement: React.FC = () => {
                             onUpdateRole={updateUserRole}
                             onUpdateStatus={updateUserStatus}
                             onDeleteUser={handleDelete}
+                            currentUserId={profile?.id}
                         />
                     ))}
                 </div>
             </div>
         )}
+        
+        <ConfirmationModal 
+            isOpen={isConfirmModalOpen}
+            onClose={() => setIsConfirmModalOpen(false)}
+            onConfirm={confirmDelete}
+            title="¿Eliminar Usuario?"
+            message={`¿Estás seguro de que quieres eliminar a ${userToDelete?.name}? Esta acción es permanente.`}
+        />
 
     </div>
   );

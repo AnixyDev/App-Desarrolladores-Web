@@ -1,6 +1,6 @@
-
 import React, { useState } from 'react';
 import { Users, UserPlus, Trash2, Mail, Settings, User, X, Check } from 'lucide-react';
+import ConfirmationModal from '../components/modals/ConfirmationModal.tsx';
 
 // --- TYPES ---
 interface TeamMember {
@@ -29,6 +29,8 @@ const roles: string[] = [
 const TeamManagementDashboard: React.FC = () => {
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null);
   const [newMember, setNewMember] = useState<NewMember>({ name: '', email: '', role: roles[0] });
 
   const handleInvite = (e: React.FormEvent) => {
@@ -48,10 +50,17 @@ const TeamManagementDashboard: React.FC = () => {
     setShowInviteModal(false);
   };
 
-  const handleDelete = (id: number) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar a este miembro del equipo?')) {
-        setTeam(team.filter(member => member.id !== id));
-    }
+  const handleDelete = (member: TeamMember) => {
+    setMemberToDelete(member);
+    setIsConfirmModalOpen(true);
+  };
+  
+  const confirmDelete = () => {
+      if (memberToDelete) {
+          setTeam(team.filter(member => member.id !== memberToDelete.id));
+          setIsConfirmModalOpen(false);
+          setMemberToDelete(null);
+      }
   };
   
   const handleRoleChange = (id: number, newRole: string) => {
@@ -188,7 +197,7 @@ const TeamManagementDashboard: React.FC = () => {
                     </td>
                     <td className="p-4 text-gray-300">{member.invitedOn}</td>
                     <td className="p-4 text-right">
-                      <button onClick={() => handleDelete(member.id)} className="text-gray-400 hover:text-red-500 p-2 rounded-full transition duration-200">
+                      <button onClick={() => handleDelete(member)} className="text-gray-400 hover:text-red-500 p-2 rounded-full transition duration-200">
                         <Trash2 className="w-5 h-5" />
                       </button>
                     </td>
@@ -199,6 +208,14 @@ const TeamManagementDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      <ConfirmationModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="Eliminar Miembro del Equipo"
+        message={`¿Estás seguro de que quieres eliminar a ${memberToDelete?.name} del equipo? Se revocará su acceso permanentemente.`}
+      />
     </div>
   );
 };

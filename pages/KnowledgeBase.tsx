@@ -12,6 +12,7 @@ import { useAppStore } from '../hooks/useAppStore.tsx';
 import BuyCreditsModal from '../components/modals/BuyCreditsModal.tsx';
 import { AI_CREDIT_COSTS } from '../services/geminiService.ts';
 import { useToast } from '../hooks/useToast.ts';
+import ConfirmationModal from '../components/modals/ConfirmationModal.tsx';
 
 const KnowledgeBase: React.FC = () => {
     const { profile, consumeCredits } = useAppStore();
@@ -22,6 +23,8 @@ const KnowledgeBase: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isGeneratorModalOpen, setIsGeneratorModalOpen] = useState(false);
     const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [articleToDelete, setArticleToDelete] = useState<KnowledgeArticle | null>(null);
     
     const [currentArticle, setCurrentArticle] = useState<Partial<KnowledgeArticle> | null>(null);
     const [generatorTopic, setGeneratorTopic] = useState('');
@@ -53,9 +56,16 @@ const KnowledgeBase: React.FC = () => {
         setIsModalOpen(false);
     };
     
-    const handleDelete = (id: string) => {
-        if(window.confirm('¿Seguro que quieres eliminar este artículo?')) {
-            setArticles(articles.filter(a => a.id !== id));
+    const handleDelete = (article: KnowledgeArticle) => {
+        setArticleToDelete(article);
+        setIsConfirmModalOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (articleToDelete) {
+            setArticles(articles.filter(a => a.id !== articleToDelete.id));
+            setIsConfirmModalOpen(false);
+            setArticleToDelete(null);
         }
     };
     
@@ -125,7 +135,7 @@ const KnowledgeBase: React.FC = () => {
                             <span>Actualizado: {article.updated_at}</span>
                             <div className="flex gap-2">
                                 <Button size="sm" variant="secondary" onClick={() => openModal(article)}><EditIcon className="w-4 h-4"/></Button>
-                                <Button size="sm" variant="danger" onClick={() => handleDelete(article.id)}><TrashIcon className="w-4 h-4"/></Button>
+                                <Button size="sm" variant="danger" onClick={() => handleDelete(article)}><TrashIcon className="w-4 h-4"/></Button>
                             </div>
                         </div>
                     </Card>
@@ -169,6 +179,14 @@ const KnowledgeBase: React.FC = () => {
             </Modal>
             
             <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />
+
+            <ConfirmationModal
+                isOpen={isConfirmModalOpen}
+                onClose={() => setIsConfirmModalOpen(false)}
+                onConfirm={confirmDelete}
+                title="¿Eliminar Artículo?"
+                message={`¿Estás seguro de que quieres eliminar permanentemente el artículo "${articleToDelete?.title}"?`}
+            />
         </div>
     );
 };

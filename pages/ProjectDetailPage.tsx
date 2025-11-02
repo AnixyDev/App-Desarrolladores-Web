@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../hooks/useAppStore.tsx';
@@ -6,9 +5,10 @@ import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 import Button from '../components/ui/Button.tsx';
 import Input from '../components/ui/Input.tsx';
 import { formatCurrency } from '../lib/utils.ts';
-import { Project } from '../types.ts';
+import { Project, Task } from '../types.ts';
 import { PlusIcon, TrashIcon, ClockIcon, FileTextIcon, MessageSquareIcon } from '../components/icons/Icon.tsx';
 import ProjectChat from '../components/ProjectChat.tsx';
+import ConfirmationModal from '../components/modals/ConfirmationModal.tsx';
 
 const ProjectDetailPage: React.FC = () => {
     const { projectId } = useParams<{ projectId: string }>();
@@ -26,6 +26,8 @@ const ProjectDetailPage: React.FC = () => {
     } = useAppStore();
 
     const [newTaskDescription, setNewTaskDescription] = useState('');
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
 
     const project = projectId ? getProjectById(projectId) : undefined;
     const client = project ? getClientById(project.client_id) : undefined;
@@ -67,6 +69,19 @@ const ProjectDetailPage: React.FC = () => {
                 clientId: client.id
             }
         });
+    };
+    
+    const handleDeleteClick = (task: Task) => {
+        setTaskToDelete(task);
+        setIsConfirmModalOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (taskToDelete) {
+            deleteTask(taskToDelete.id);
+            setIsConfirmModalOpen(false);
+            setTaskToDelete(null);
+        }
     };
 
     return (
@@ -169,7 +184,7 @@ const ProjectDetailPage: React.FC = () => {
                                         </button>
                                         <span className={` ${task.completed ? 'line-through text-gray-500' : 'text-white'}`}>{task.description}</span>
                                     </div>
-                                    <Button size="sm" variant="secondary" onClick={() => deleteTask(task.id)} className="text-red-400 hover:bg-red-500/20" aria-label={`Eliminar tarea '${task.description}'`}>
+                                    <Button size="sm" variant="danger" onClick={() => handleDeleteClick(task)} aria-label={`Eliminar tarea '${task.description}'`}>
                                         <TrashIcon className="w-4 h-4"/>
                                     </Button>
                                 </li>
@@ -190,6 +205,14 @@ const ProjectDetailPage: React.FC = () => {
                     <ProjectChat projectId={project.id} />
                 </CardContent>
             </Card>
+
+            <ConfirmationModal 
+                isOpen={isConfirmModalOpen}
+                onClose={() => setIsConfirmModalOpen(false)}
+                onConfirm={confirmDelete}
+                title="¿Eliminar Tarea?"
+                message={`¿Estás seguro de que quieres eliminar la tarea: "${taskToDelete?.description}"?`}
+            />
         </div>
     );
 };

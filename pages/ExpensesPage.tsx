@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
@@ -8,6 +7,7 @@ import Input from '../components/ui/Input.tsx';
 import { Expense, RecurringExpense } from '../types.ts';
 import { formatCurrency } from '../lib/utils.ts';
 import { PlusIcon, TrashIcon, RepeatIcon } from '../components/icons/Icon.tsx';
+import ConfirmationModal from '../components/modals/ConfirmationModal.tsx';
 
 const ExpensesPage: React.FC = () => {
     const {
@@ -22,6 +22,8 @@ const ExpensesPage: React.FC = () => {
 
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<{ id: string; type: 'single' | 'recurring' } | null>(null);
 
     const initialExpenseState: Omit<Expense, 'id' | 'user_id' | 'created_at'> = {
         description: '',
@@ -74,6 +76,23 @@ const ExpensesPage: React.FC = () => {
         setNewRecurringExpense(initialRecurringState);
     };
 
+    const handleDeleteClick = (id: string, type: 'single' | 'recurring') => {
+        setItemToDelete({ id, type });
+        setIsConfirmModalOpen(true);
+    };
+    
+    const confirmDelete = () => {
+        if (itemToDelete) {
+            if (itemToDelete.type === 'single') {
+                deleteExpense(itemToDelete.id);
+            } else {
+                deleteRecurringExpense(itemToDelete.id);
+            }
+            setIsConfirmModalOpen(false);
+            setItemToDelete(null);
+        }
+    };
+
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
@@ -110,7 +129,7 @@ const ExpensesPage: React.FC = () => {
                                         <td className="p-4 text-gray-300">{expense.date}</td>
                                         <td className="p-4 text-white font-semibold">{formatCurrency(expense.amount_cents)}</td>
                                         <td className="p-4 text-right">
-                                            <Button size="sm" variant="secondary" onClick={() => deleteExpense(expense.id)} className="text-red-400 hover:bg-red-500/20">
+                                            <Button size="sm" variant="danger" onClick={() => handleDeleteClick(expense.id, 'single')}>
                                                 <TrashIcon className="w-4 h-4" />
                                             </Button>
                                         </td>
@@ -142,7 +161,7 @@ const ExpensesPage: React.FC = () => {
                                         <td className="p-4 text-gray-300">{expense.next_due_date}</td>
                                         <td className="p-4 text-white font-semibold">{formatCurrency(expense.amount_cents)}</td>
                                         <td className="p-4 text-right">
-                                            <Button size="sm" variant="secondary" onClick={() => deleteRecurringExpense(expense.id)} className="text-red-400 hover:bg-red-500/20">
+                                            <Button size="sm" variant="danger" onClick={() => handleDeleteClick(expense.id, 'recurring')}>
                                                 <TrashIcon className="w-4 h-4" />
                                             </Button>
                                         </td>
@@ -196,6 +215,14 @@ const ExpensesPage: React.FC = () => {
                     </div>
                 </form>
             </Modal>
+            
+            <ConfirmationModal 
+                isOpen={isConfirmModalOpen}
+                onClose={() => setIsConfirmModalOpen(false)}
+                onConfirm={confirmDelete}
+                title="¿Eliminar Gasto?"
+                message="Esta acción eliminará el gasto de forma permanente. ¿Estás seguro de que quieres continuar?"
+            />
 
         </div>
     );

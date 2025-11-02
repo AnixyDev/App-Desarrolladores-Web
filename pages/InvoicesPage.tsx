@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../hooks/useAppStore.tsx';
@@ -11,6 +10,7 @@ import { DownloadIcon, TrashIcon, CheckCircleIcon, ClockIcon } from '../componen
 import StatusChip from '../components/ui/StatusChip.tsx';
 import UpgradePromptModal from '../components/modals/UpgradePromptModal.tsx';
 import InvoiceFromTimeModal from '../components/modals/InvoiceFromTimeModal.tsx';
+import ConfirmationModal from '../components/modals/ConfirmationModal.tsx';
 
 
 const InvoicesPage: React.FC = () => {
@@ -25,6 +25,8 @@ const InvoicesPage: React.FC = () => {
 
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
     const [isTimeInvoiceModalOpen, setIsTimeInvoiceModalOpen] = useState(false);
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
 
     const monthlyInvoiceCount = useMemo(() => {
         const today = new Date();
@@ -54,6 +56,19 @@ const InvoicesPage: React.FC = () => {
     const handleGenerateFromTime = (clientId: string, projectId: string, timeEntryIds: string[]) => {
         setIsTimeInvoiceModalOpen(false);
         navigate('/invoices/create', { state: { clientId, projectId, timeEntryIds } });
+    };
+
+    const handleDeleteClick = (invoice: Invoice) => {
+        setInvoiceToDelete(invoice);
+        setIsConfirmModalOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (invoiceToDelete) {
+            deleteInvoice(invoiceToDelete.id);
+            setIsConfirmModalOpen(false);
+            setInvoiceToDelete(null);
+        }
     };
 
     return (
@@ -97,7 +112,7 @@ const InvoicesPage: React.FC = () => {
                                             <div className="flex gap-2">
                                                 {!invoice.paid && <Button size="sm" variant="secondary" title="Marcar como pagada" aria-label={`Marcar como pagada la factura ${invoice.invoice_number}`} onClick={() => markInvoiceAsPaid(invoice.id)}><CheckCircleIcon className="w-4 h-4 text-green-400"/></Button>}
                                                 <Button size="sm" variant="secondary" title="Descargar PDF" aria-label={`Descargar PDF de la factura ${invoice.invoice_number}`} onClick={() => handleDownloadPdf(invoice)}><DownloadIcon className="w-4 h-4" /></Button>
-                                                <Button size="sm" variant="secondary" title="Eliminar" aria-label={`Eliminar factura ${invoice.invoice_number}`} className="text-red-400 hover:bg-red-500/20" onClick={() => deleteInvoice(invoice.id)}><TrashIcon className="w-4 h-4" /></Button>
+                                                <Button size="sm" variant="danger" title="Eliminar" aria-label={`Eliminar factura ${invoice.invoice_number}`} onClick={() => handleDeleteClick(invoice)}><TrashIcon className="w-4 h-4" /></Button>
                                             </div>
                                         </td>
                                     </tr>
@@ -118,6 +133,14 @@ const InvoicesPage: React.FC = () => {
                 isOpen={isTimeInvoiceModalOpen}
                 onClose={() => setIsTimeInvoiceModalOpen(false)}
                 onGenerate={handleGenerateFromTime}
+            />
+            
+            <ConfirmationModal 
+                isOpen={isConfirmModalOpen}
+                onClose={() => setIsConfirmModalOpen(false)}
+                onConfirm={confirmDelete}
+                title="¿Eliminar Factura?"
+                message={`¿Estás seguro de que quieres eliminar la factura #${invoiceToDelete?.invoice_number}? Esta acción no se puede deshacer.`}
             />
         </div>
     );
