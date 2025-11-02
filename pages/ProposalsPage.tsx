@@ -8,7 +8,7 @@ import Input from '../components/ui/Input.tsx';
 import { Proposal } from '../types.ts';
 import { formatCurrency } from '../lib/utils.ts';
 import { Link } from 'react-router-dom';
-import StatusChip from '../components/ui/StatusChip';
+import StatusChip from '../components/ui/StatusChip.tsx';
 
 
 const ProposalsPage: React.FC = () => {

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useAppStore } from '../hooks/useAppStore';
+import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 import Button from '../components/ui/Button.tsx';
 import { SparklesIcon, CheckCircleIcon, StarIcon } from '../components/icons/Icon.tsx';

@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
-import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card';
-import Input from '../components/ui/Input';
-import Button from '../components/ui/Button';
+import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card.tsx';
+import Input from '../components/ui/Input.tsx';
+import Button from '../components/ui/Button.tsx';
 
 const SettingsPage: React.FC = () => {
     const { profile } = useAppStore();

@@ -2,7 +2,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useAppStore } from '../../hooks/useAppStore.tsx';
-import Card, { CardHeader, CardContent } from '../../components/ui/Card';
+import Card, { CardHeader, CardContent } from '../../components/ui/Card.tsx';
 import { formatCurrency } from '../../lib/utils.ts';
 import { Link } from 'react-router-dom';
 
