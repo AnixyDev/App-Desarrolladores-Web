@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
@@ -7,20 +6,31 @@ import Modal from '../components/ui/Modal.tsx';
 import Input from '../components/ui/Input.tsx';
 import { Budget, InvoiceItem } from '../types.ts';
 import { formatCurrency } from '../lib/utils.ts';
-import { PlusIcon, TrashIcon, CheckCircleIcon, XCircleIcon, MessageSquareIcon } from '../components/icons/Icon.tsx';
+import { PlusIcon, TrashIcon, CheckCircleIcon, XCircleIcon, MessageSquareIcon, SparklesIcon } from '../components/icons/Icon.tsx';
 import StatusChip from '../components/ui/StatusChip.tsx';
 import EmptyState from '../components/ui/EmptyState.tsx';
+import { generateItemsForDocument, AI_CREDIT_COSTS } from '../services/geminiService.ts';
+import { useToast } from '../hooks/useToast.ts';
+import BuyCreditsModal from '../components/modals/BuyCreditsModal.tsx';
+
 
 const BudgetsPage: React.FC = () => {
     const { 
         budgets, 
         clients, 
+        profile,
         addBudget,
         updateBudgetStatus,
-        getClientById 
+        getClientById,
+        consumeCredits
     } = useAppStore();
+    const { addToast } = useToast();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isAIGeneratorOpen, setIsAIGeneratorOpen] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [isAiLoading, setIsAiLoading] = useState(false);
+    const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
     
     const initialBudgetState = {
         client_id: clients[0]?.id || '',
@@ -65,6 +75,29 @@ const BudgetsPage: React.FC = () => {
         addBudget(newBudget);
         setIsModalOpen(false);
         setNewBudget(initialBudgetState);
+    };
+
+    const handleAiGenerate = async () => {
+        if (profile.ai_credits < AI_CREDIT_COSTS.generateInvoiceItems) {
+            setIsBuyCreditsModalOpen(true);
+            return;
+        }
+        setIsAiLoading(true);
+        try {
+            const items = await generateItemsForDocument(aiPrompt, profile.hourly_rate_cents);
+            if (items && items.length > 0) {
+                setNewBudget(prev => ({ ...prev, items }));
+                addToast('Conceptos generados con IA.', 'success');
+                consumeCredits(AI_CREDIT_COSTS.generateInvoiceItems);
+                setIsAIGeneratorOpen(false);
+            } else {
+                addToast('No se pudieron generar conceptos. Intenta ser más específico.', 'error');
+            }
+        } catch (e) {
+            addToast((e as Error).message, 'error');
+        } finally {
+            setIsAiLoading(false);
+        }
     };
 
     const totalAmount = useMemo(() => {
@@ -139,7 +172,10 @@ const BudgetsPage: React.FC = () => {
                     </div>
                     
                     <div className="space-y-2 pt-2 border-t border-gray-700">
-                        <h4 className="font-semibold text-gray-200">Conceptos</h4>
+                        <div className="flex justify-between items-center">
+                            <h4 className="font-semibold text-gray-200">Conceptos</h4>
+                            <Button type="button" variant="secondary" size="sm" onClick={() => setIsAIGeneratorOpen(true)}><SparklesIcon className="w-4 h-4 mr-1"/>Generar con IA</Button>
+                        </div>
                         {newBudget.items.map((item, index) => (
                             <div key={index} className="flex gap-2 items-end">
                                 <Input label="Descripción" wrapperClassName="flex-1" value={item.description} onChange={e => handleItemChange(index, 'description', e.target.value)} />
@@ -158,6 +194,22 @@ const BudgetsPage: React.FC = () => {
                     </div>
                 </form>
             </Modal>
+            
+            {/* AI Generator Modal */}
+            <Modal isOpen={isAIGeneratorOpen} onClose={() => setIsAIGeneratorOpen(false)} title="Generar Conceptos con IA">
+                <div className="space-y-4">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Describe los conceptos a presupuestar:</label>
+                    <textarea value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} rows={4} className="w-full p-2 bg-gray-800 text-gray-300 border border-gray-700 rounded-md" placeholder="Ej: desarrollo de una landing page con formulario de contacto y despliegue en Vercel."/>
+                    <div className="flex justify-end pt-2">
+                        <Button onClick={handleAiGenerate} disabled={isAiLoading || !aiPrompt}>
+                           {isAiLoading ? 'Generando...' : `Generar (${AI_CREDIT_COSTS.generateInvoiceItems} créditos)`}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+            
+            <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />
+
         </div>
     );
 };

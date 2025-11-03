@@ -1,22 +1,34 @@
-
 import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 import Button from '../components/ui/Button.tsx';
 import { formatCurrency } from '../lib/utils.ts';
-import { DownloadIcon, DollarSignIcon, TrendingUpIcon, UsersIcon, ClockIcon } from '../components/icons/Icon.tsx';
+import { DownloadIcon, DollarSignIcon, TrendingUpIcon, UsersIcon, ClockIcon, SparklesIcon, RefreshCwIcon } from '../components/icons/Icon.tsx';
 import ProfitabilityByClientChart from '../components/charts/ProfitabilityByClientChart.tsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { analyzeProfitability, AI_CREDIT_COSTS } from '../services/geminiService.ts';
+import BuyCreditsModal from '../components/modals/BuyCreditsModal.tsx';
+import { useToast } from '../hooks/useToast.ts';
+
+interface FinancialAnalysis {
+    summary: string;
+    topPerformers: string[];
+    areasForImprovement: string[];
+}
 
 const ReportsPage: React.FC = () => {
-  const { invoices, expenses, clients, projects, timeEntries, profile } = useAppStore();
+  const { invoices, expenses, clients, projects, timeEntries, profile, consumeCredits } = useAppStore();
+  const { addToast } = useToast();
   
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
   const [startDate, setStartDate] = useState(firstDayOfMonth.toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(today.toISOString().split('T')[0]);
+  const [analysis, setAnalysis] = useState<FinancialAnalysis | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
 
   const filteredData = useMemo(() => {
     const start = new Date(startDate);
@@ -97,15 +109,42 @@ const ReportsPage: React.FC = () => {
 
     doc.save(`Reporte_DevFreelancer_${startDate}_${endDate}.pdf`);
   };
+  
+   const handleAiAnalysis = async () => {
+        if (profile.ai_credits < AI_CREDIT_COSTS.analyzeProfitability) {
+            setIsBuyCreditsModalOpen(true);
+            return;
+        }
+        setIsAiLoading(true);
+        setAnalysis(null);
+        try {
+            const result = await analyzeProfitability(reportKpis);
+            if (result) {
+                setAnalysis(result);
+                consumeCredits(AI_CREDIT_COSTS.analyzeProfitability);
+                addToast("Análisis de rentabilidad completado.", "success");
+            } else {
+                addToast("No se pudo generar el análisis.", "error");
+            }
+        } catch (error) {
+            addToast((error as Error).message, 'error');
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h1 className="text-2xl font-semibold text-white">Reportes</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
               <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="px-3 py-2 border border-gray-600 rounded-md bg-gray-800 text-white" />
               <span className="text-gray-400">a</span>
               <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="px-3 py-2 border border-gray-600 rounded-md bg-gray-800 text-white" />
+              <Button onClick={handleAiAnalysis} disabled={isAiLoading}>
+                  {isAiLoading ? <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin"/> : <SparklesIcon className="w-4 h-4 mr-2" />}
+                  {isAiLoading ? 'Analizando...' : 'Analizar con IA'}
+              </Button>
               <Button onClick={handleExportPdf} variant="secondary"><DownloadIcon className="w-4 h-4 mr-2" /> Exportar PDF</Button>
           </div>
       </div>
@@ -117,6 +156,30 @@ const ReportsPage: React.FC = () => {
           <StatCard icon={ClockIcon} title="Horas Registradas" value={`${reportKpis.totalHoursTracked.toFixed(2)}h`} />
       </div>
 
+      {analysis && (
+            <Card>
+                <CardHeader><h2 className="text-lg font-semibold text-white">Análisis de Rentabilidad por IA</h2></CardHeader>
+                <CardContent className="space-y-4">
+                    <div>
+                        <h3 className="font-semibold text-primary-400 mb-2">Resumen</h3>
+                        <p className="text-gray-300">{analysis.summary}</p>
+                    </div>
+                     <div>
+                        <h3 className="font-semibold text-green-400 mb-2">Clientes y Proyectos Estrella</h3>
+                        <ul className="list-disc list-inside space-y-1 text-gray-300">
+                            {analysis.topPerformers.map((item, i) => <li key={i}>{item}</li>)}
+                        </ul>
+                    </div>
+                     <div>
+                        <h3 className="font-semibold text-yellow-400 mb-2">Áreas de Mejora</h3>
+                        <ul className="list-disc list-inside space-y-1 text-gray-300">
+                            {analysis.areasForImprovement.map((item, i) => <li key={i}>{item}</li>)}
+                        </ul>
+                    </div>
+                </CardContent>
+            </Card>
+      )}
+
       <Card>
         <CardHeader><h2 className="text-lg font-semibold text-white flex items-center gap-2"><UsersIcon className="w-5 h-5"/> Rentabilidad por Cliente</h2></CardHeader>
         <CardContent>
@@ -127,6 +190,8 @@ const ReportsPage: React.FC = () => {
             )}
         </CardContent>
       </Card>
+      
+       <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />
     </div>
   );
 };

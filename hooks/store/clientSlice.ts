@@ -5,6 +5,7 @@ import { AppState } from '../useAppStore.tsx';
 export interface ClientSlice {
   clients: Client[];
   getClientById: (id: string) => Client | undefined;
+  getClientByName: (name: string) => Client | undefined;
   addClient: (client: NewClient) => Client;
   updateClient: (client: Client) => void;
   deleteClient: (id: string) => void;
@@ -13,6 +14,7 @@ export interface ClientSlice {
 export const createClientSlice: StateCreator<AppState, [], [], ClientSlice> = (set, get) => ({
     clients: [], // Will be initialized by spreading MOCK_DATA
     getClientById: (id) => get().clients.find(c => c.id === id),
+    getClientByName: (name) => get().clients.find(c => c.name.toLowerCase() === name.toLowerCase()),
     addClient: (client) => {
         const newClient: Client = { ...client, id: `c-${Date.now()}`, user_id: 'u-1', created_at: new Date().toISOString() };
         set(state => ({ clients: [...state.clients, newClient]}));

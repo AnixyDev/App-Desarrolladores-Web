@@ -1,18 +1,29 @@
-import React, { useState, useMemo } from 'react';
-// FIX: Add .tsx extension to Icon import
+import React, { useState, useMemo, useEffect } from 'react';
 import { BookIcon, PlusIcon, SearchIcon, EditIcon, TrashIcon, SparklesIcon, FileSignatureIcon, BrainCircuitIcon } from '../components/icons/Icon.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 import Button from '../components/ui/Button.tsx';
 import Input from '../components/ui/Input.tsx';
 import Modal from '../components/ui/Modal.tsx';
-// FIX: Add .ts extension to types import
 import { KnowledgeArticle } from '../types.ts';
-// FIX: Add .tsx extension to useAppStore import
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import BuyCreditsModal from '../components/modals/BuyCreditsModal.tsx';
-import { AI_CREDIT_COSTS } from '../services/geminiService.ts';
+import { AI_CREDIT_COSTS, rankArticlesByRelevance } from '../services/geminiService.ts';
 import { useToast } from '../hooks/useToast.ts';
 import ConfirmationModal from '../components/modals/ConfirmationModal.tsx';
+
+const useDebounce = (value: string, delay: number) => {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+    return debouncedValue;
+};
+
 
 const KnowledgeBase: React.FC = () => {
     const { profile, consumeCredits } = useAppStore();
@@ -20,6 +31,9 @@ const KnowledgeBase: React.FC = () => {
 
     const [articles, setArticles] = useState<KnowledgeArticle[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
+    const [rankedArticleIds, setRankedArticleIds] = useState<string[]>([]);
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isGeneratorModalOpen, setIsGeneratorModalOpen] = useState(false);
     const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
@@ -32,12 +46,37 @@ const KnowledgeBase: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
     
-    const filteredArticles = useMemo(() => {
-        return articles.filter(article => 
-            article.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            article.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-        );
-    }, [articles, searchTerm]);
+    useEffect(() => {
+        const performSearch = async () => {
+            if (debouncedSearchTerm.trim().length > 2) {
+                if(profile.ai_credits < AI_CREDIT_COSTS.searchKnowledgeBase) {
+                    addToast("No tienes suficientes créditos para la búsqueda IA.", "error");
+                    return;
+                }
+                setIsLoading(true);
+                try {
+                    const rankedIds = await rankArticlesByRelevance(debouncedSearchTerm, articles);
+                    setRankedArticleIds(rankedIds);
+                    consumeCredits(AI_CREDIT_COSTS.searchKnowledgeBase);
+                } catch(e) {
+                     addToast((e as Error).message, 'error');
+                } finally {
+                    setIsLoading(false);
+                }
+            } else {
+                setRankedArticleIds([]);
+            }
+        };
+        performSearch();
+    }, [debouncedSearchTerm, articles, profile.ai_credits, consumeCredits, addToast]);
+
+
+    const displayedArticles = useMemo(() => {
+        if (debouncedSearchTerm.trim() && rankedArticleIds.length > 0) {
+            return [...articles].sort((a, b) => rankedArticleIds.indexOf(a.id) - rankedArticleIds.indexOf(b.id));
+        }
+        return articles;
+    }, [articles, rankedArticleIds, debouncedSearchTerm]);
     
     const openModal = (article: Partial<KnowledgeArticle> | null = null) => {
         setCurrentArticle(article || { title: '', content: '', tags: [] });
@@ -116,11 +155,12 @@ const KnowledgeBase: React.FC = () => {
 
             <div className="relative">
                 <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                <Input placeholder="Buscar por título o tag..." className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <Input placeholder="Búsqueda semántica con IA..." className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                {isLoading && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary-400">Buscando...</span>}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredArticles.map(article => (
+                {displayedArticles.map(article => (
                     <Card key={article.id} className="flex flex-col">
                         <CardHeader>
                             <h3 className="text-lg font-semibold text-primary-400 truncate">{article.title}</h3>

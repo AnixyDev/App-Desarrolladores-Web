@@ -4,9 +4,13 @@ import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card.tsx';
 import Button from '../components/ui/Button.tsx';
 import Input from '../components/ui/Input.tsx';
+import Modal from '../components/ui/Modal.tsx';
 import { InvoiceItem } from '../types.ts';
-import { PlusIcon, TrashIcon } from '../components/icons/Icon.tsx';
+import { PlusIcon, TrashIcon, SparklesIcon } from '../components/icons/Icon.tsx';
 import { useToast } from '../hooks/useToast.ts';
+import { generateItemsForDocument, AI_CREDIT_COSTS } from '../services/geminiService.ts';
+import BuyCreditsModal from '../components/modals/BuyCreditsModal.tsx';
+
 
 const CreateInvoicePage: React.FC = () => {
     const { 
@@ -14,7 +18,8 @@ const CreateInvoicePage: React.FC = () => {
         projects,
         timeEntries, 
         profile, 
-        addInvoice
+        addInvoice,
+        consumeCredits
     } = useAppStore();
     const navigate = useNavigate();
     const location = useLocation();
@@ -30,6 +35,10 @@ const CreateInvoicePage: React.FC = () => {
     };
     const [newInvoice, setNewInvoice] = useState(initialInvoiceState);
     const [timeEntryIdsToBill, setTimeEntryIdsToBill] = useState<string[]>([]);
+    const [isAIGeneratorOpen, setIsAIGeneratorOpen] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [isAiLoading, setIsAiLoading] = useState(false);
+    const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
     
     useEffect(() => {
         const { projectId, clientId, timeEntryIds } = location.state || {};
@@ -104,6 +113,29 @@ const CreateInvoicePage: React.FC = () => {
         addToast('Factura creada con éxito', 'success');
         navigate('/invoices');
     };
+    
+    const handleAiGenerate = async () => {
+        if (profile.ai_credits < AI_CREDIT_COSTS.generateInvoiceItems) {
+            setIsBuyCreditsModalOpen(true);
+            return;
+        }
+        setIsAiLoading(true);
+        try {
+            const items = await generateItemsForDocument(aiPrompt, profile.hourly_rate_cents);
+            if (items && items.length > 0) {
+                setNewInvoice(prev => ({ ...prev, items }));
+                addToast('Conceptos generados con IA.', 'success');
+                consumeCredits(AI_CREDIT_COSTS.generateInvoiceItems);
+                setIsAIGeneratorOpen(false);
+            } else {
+                addToast('No se pudieron generar conceptos. Intenta ser más específico.', 'error');
+            }
+        } catch (e) {
+            addToast((e as Error).message, 'error');
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
 
 
     return (
@@ -138,7 +170,10 @@ const CreateInvoicePage: React.FC = () => {
             </Card>
 
             <Card>
-                <CardHeader><h2 className="text-lg font-semibold text-white">Conceptos</h2></CardHeader>
+                <CardHeader className="flex justify-between items-center">
+                    <h2 className="text-lg font-semibold text-white">Conceptos</h2>
+                    <Button type="button" variant="secondary" size="sm" onClick={() => setIsAIGeneratorOpen(true)}><SparklesIcon className="w-4 h-4 mr-1"/>Generar con IA</Button>
+                </CardHeader>
                 <CardContent className="space-y-2">
                     {newInvoice.items.map((item, index) => (
                         <div key={index} className="flex gap-2 items-end">
@@ -155,6 +190,20 @@ const CreateInvoicePage: React.FC = () => {
                 </CardFooter>
             </Card>
 
+            {/* AI Generator Modal */}
+            <Modal isOpen={isAIGeneratorOpen} onClose={() => setIsAIGeneratorOpen(false)} title="Generar Conceptos con IA">
+                <div className="space-y-4">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Describe los conceptos a facturar:</label>
+                    <textarea value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} rows={4} className="w-full p-2 bg-gray-800 text-gray-300 border border-gray-700 rounded-md" placeholder="Ej: desarrollo de API de autenticación, 3 endpoints, y configuración de base de datos."/>
+                    <div className="flex justify-end pt-2">
+                        <Button onClick={handleAiGenerate} disabled={isAiLoading || !aiPrompt}>
+                           {isAiLoading ? 'Generando...' : `Generar (${AI_CREDIT_COSTS.generateInvoiceItems} créditos)`}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+            
+            <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />
         </form>
     );
 };

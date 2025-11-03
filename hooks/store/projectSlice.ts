@@ -7,6 +7,7 @@ export interface ProjectSlice {
   tasks: Task[];
   timeEntries: TimeEntry[];
   getProjectById: (id: string) => Project | undefined;
+  getProjectByName: (name: string) => Project | undefined;
   addProject: (project: NewProject) => void;
   updateProjectStatus: (id: string, status: Project['status']) => void;
   getTasksByProjectId: (projectId: string) => Task[];
@@ -21,6 +22,7 @@ export const createProjectSlice: StateCreator<AppState, [], [], ProjectSlice> = 
     tasks: [],
     timeEntries: [],
     getProjectById: (id) => get().projects.find(p => p.id === id),
+    getProjectByName: (name) => get().projects.find(p => p.name.toLowerCase() === name.toLowerCase()),
     addProject: (project) => set(state => ({ projects: [...state.projects, { ...project, id: `p-${Date.now()}`, user_id: 'u-1', created_at: new Date().toISOString() }]})),
     updateProjectStatus: (id, status) => {
         const project = get().projects.find(p => p.id === id);

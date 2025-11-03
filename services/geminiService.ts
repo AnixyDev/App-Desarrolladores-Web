@@ -1,4 +1,4 @@
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse, Type, FunctionDeclaration } from "@google/genai";
 
 // La clave de API es inyectada por el entorno.
 // Se inicializa el cliente una vez, asumiendo que process.env.API_KEY está disponible.
@@ -17,25 +17,29 @@ export const AI_CREDIT_COSTS = {
     chatMessage: 1,
     generateTasks: 5,
     estimateBudget: 8,
+    // --- Nuevos Costes ---
+    searchKnowledgeBase: 2,
+    analyzeProfitability: 15,
+    generateInvoiceItems: 8,
 };
 
 // Función auxiliar para gestionar las llamadas a la API de forma segura
-async function safeApiCall(apiCall: () => Promise<GenerateContentResponse>, errorContext: string): Promise<string> {
+async function safeApiCall<T>(apiCall: () => Promise<T>, errorContext: string): Promise<T> {
     if (!process.env.API_KEY) {
         console.error("La clave de API de Gemini no está configurada en el entorno.");
-        return API_KEY_ERROR_MESSAGE;
+        throw new Error(API_KEY_ERROR_MESSAGE);
     }
     try {
-        const response = await apiCall();
-        return response.text;
+        return await apiCall();
     } catch (error) {
         console.error(`${errorContext}:`, error);
         if (error instanceof Error && (error.message.includes('API key not valid') || error.message.includes('API_KEY_INVALID'))) {
-            return "Error: La clave de API de Gemini proporcionada por el entorno no es válida. Por favor, verifica la configuración.";
+            throw new Error("Error: La clave de API de Gemini proporcionada por el entorno no es válida. Por favor, verifica la configuración.");
         }
-        return `Hubo un error al procesar la solicitud de IA. Por favor, inténtalo de nuevo.`;
+        throw new Error(`Hubo un error al procesar la solicitud de IA. Por favor, inténtalo de nuevo.`);
     }
 }
+
 
 export const generateProposalText = async (jobTitle: string, jobDescription: string, userProfile: string): Promise<string> => {
     const prompt = `
@@ -62,7 +66,8 @@ export const generateProposalText = async (jobTitle: string, jobDescription: str
         Genera solo el texto de la propuesta.
     `;
 
-    return safeApiCall(() => ai.models.generateContent({
+    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
+    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -72,18 +77,23 @@ export const generateProposalText = async (jobTitle: string, jobDescription: str
             maxOutputTokens: 512,
         }
     }), "Error generating proposal with Gemini");
+    return response.text;
 };
 
-export const getAIResponse = async (prompt: string, history: { role: string, parts: { text: string }[] }[]): Promise<string> => {
-    const contents = [
-        ...history,
-        { role: 'user', parts: [{ text: prompt }] }
-    ];
+export const getAIResponse = async (
+    prompt: string, 
+    history: { role: string, parts: any }[],
+    tools?: FunctionDeclaration[]
+): Promise<GenerateContentResponse> => {
+    
+    const contents = [...history, { role: 'user', parts: [{ text: prompt }] }];
 
-    return safeApiCall(() => ai.models.generateContent({
+    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
+    return safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-pro',
         contents: contents as any,
-         config: {
+        config: {
+            tools: tools ? [{ functionDeclarations: tools }] : undefined,
             temperature: 0.9,
             topP: 1,
             topK: 1,
@@ -106,13 +116,15 @@ export const generateFinancialForecast = async (data: any): Promise<any> => {
         4.  El resultado debe ser un objeto JSON con las claves: "summary", "potentialRisks", "suggestions".
     `;
     
-    const resultText = await safeApiCall(() => ai.models.generateContent({
+    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
+    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: { responseMimeType: "application/json" }
     }), "Error generating financial forecast");
 
     try {
+        const resultText = response.text;
         if (resultText.startsWith("Error:")) {
             return { summary: resultText, potentialRisks: [], suggestions: [] };
         }
@@ -146,7 +158,8 @@ export const generateTimeEntryDescription = async (projectName: string, projectD
         4.  Genera solo el texto de la descripción, sin introducciones ni saludos.
     `;
 
-    const result = await safeApiCall(() => ai.models.generateContent({
+    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
+    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -155,5 +168,97 @@ export const generateTimeEntryDescription = async (projectName: string, projectD
         }
     }), "Error generating time entry description");
     
-    return result.trim();
+    return response.text.trim();
+};
+
+
+// --- NUEVAS FUNCIONES ---
+
+export const generateItemsForDocument = async (prompt: string, hourlyRate: number) => {
+    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
+    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: `Basado en la siguiente descripción, genera una lista de conceptos para una factura o presupuesto. Estima las horas si es necesario y calcula el precio usando una tarifa de ${hourlyRate} EUR/hora. La descripción es: "${prompt}"`,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        description: { type: Type.STRING },
+                        quantity: { type: Type.NUMBER },
+                        price_cents: { type: Type.INTEGER, description: "Precio en céntimos de euro" },
+                    },
+                    required: ["description", "quantity", "price_cents"],
+                },
+            },
+        },
+    }), "Error generating invoice items with Gemini");
+    
+    const resultText = response.text.trim();
+    try {
+        return JSON.parse(resultText);
+    } catch (e) {
+        console.error("Error parsing invoice items from Gemini:", e);
+        return [];
+    }
+};
+
+export const rankArticlesByRelevance = async (query: string, articles: { id: string, title: string, content: string }[]) => {
+    const simplifiedArticles = articles.map(a => ({ id: a.id, title: a.title, excerpt: a.content.substring(0, 150) }));
+    
+    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
+    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: `Dada la siguiente consulta de búsqueda y una lista de artículos, devuelve un array JSON con los IDs de los artículos ordenados por relevancia semántica (el más relevante primero). Consulta: "${query}". Artículos: ${JSON.stringify(simplifiedArticles)}`,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } },
+        },
+    }), "Error ranking articles with Gemini");
+
+    const resultText = response.text.trim();
+    try {
+        return JSON.parse(resultText);
+    } catch (e) {
+        console.error("Error parsing ranked article IDs from Gemini:", e);
+        return [];
+    }
+};
+
+export const analyzeProfitability = async (data: any) => {
+    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
+    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: `Analiza los siguientes datos de rentabilidad de un freelancer y proporciona un análisis JSON conciso. Datos: ${JSON.stringify(data)}`,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    summary: { type: Type.STRING, description: "Un resumen de 1-2 frases de la situación general." },
+                    topPerformers: { 
+                        type: Type.ARRAY, 
+                        items: { type: Type.STRING },
+                        description: "Lista de los 2-3 clientes o proyectos más rentables."
+                    },
+                    areasForImprovement: { 
+                        type: Type.ARRAY, 
+                        items: { type: Type.STRING },
+                        description: "Lista de 2-3 áreas de mejora o clientes/proyectos menos rentables."
+                    },
+                },
+                 required: ["summary", "topPerformers", "areasForImprovement"],
+            }
+        }
+    }), "Error analyzing profitability with Gemini");
+
+    const resultText = response.text.trim();
+    try {
+        return JSON.parse(resultText);
+    } catch (e) {
+        console.error("Error parsing profitability analysis from Gemini:", e);
+        return null;
+    }
 };
