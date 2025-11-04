@@ -3,21 +3,10 @@ import { Profile, GoogleJwtPayload } from '../../types.ts';
 import { AppState } from '../useAppStore.tsx';
 import { MOCK_DATA } from '../../lib/mock-data.ts';
 
-const FRESH_STATE = {
-    clients: [],
-    projects: [],
-    tasks: [],
-    timeEntries: [],
-    invoices: [],
-    expenses: [],
-    recurringExpenses: [],
-    budgets: [],
-    proposals: [],
-    contracts: [],
-    users: [],
-    referrals: [],
-    monthlyGoalCents: 0,
-};
+// Al registrarse un nuevo usuario, se le cargará con un estado inicial poblado
+// para que pueda explorar la aplicación con datos de ejemplo.
+// Se excluye 'profile' porque se genera dinámicamente.
+const { ...NEW_USER_STATE } = MOCK_DATA;
 
 
 export interface AuthSlice {
@@ -27,6 +16,7 @@ export interface AuthSlice {
   loginWithGoogle: (payload: GoogleJwtPayload) => void;
   logout: () => void;
   register: (name: string, email: string, pass: string) => boolean;
+  updateProfile: (newProfileData: Profile) => void;
   upgradePlan: (plan: 'Pro' | 'Teams') => void;
   purchaseCredits: (amount: number) => void;
   consumeCredits: (amount: number) => void;
@@ -44,35 +34,39 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
     loginWithGoogle: (payload) => {
         const existingProfile = get().profile;
 
-        // If a user is already in state and their email matches, just log them in.
-        // This handles re-authentication for an existing user session.
+        // Si un usuario ya está en el estado y su email coincide, simplemente se loguea.
+        // Esto maneja la re-autenticación para una sesión de usuario existente.
         if (existingProfile && existingProfile.email === payload.email) {
             set({ isAuthenticated: true });
         } else {
-            // Otherwise, it's a new user or a different user. 
-            // Create a new profile and reset the rest of the app state.
+            // De lo contrario, es un usuario nuevo o diferente.
+            // Se crea un nuevo perfil y se resetea el resto del estado de la app con datos de ejemplo.
             const newProfile: Profile = {
               id: payload.sub,
               full_name: payload.name,
               email: payload.email,
+              avatar_url: payload.picture, // Captura la imagen de Google
               business_name: `${payload.name}'s Business`,
               tax_id: '',
-              hourly_rate_cents: 0,
+              hourly_rate_cents: 7500, // 75 EUR/hr
               pdf_color: '#d9009f',
-              plan: 'Free',
-              ai_credits: 10,
+              plan: 'Pro', // Inicia en Pro para mostrar más funcionalidades
+              ai_credits: 500,
               affiliate_code: payload.name.toUpperCase().replace(/\s/g, '') + Date.now().toString().slice(-3),
+              bio: 'Desarrollador Full-Stack apasionado por crear aplicaciones web modernas y eficientes.',
+              skills: ['React', 'Node.js', 'TypeScript', 'Next.js'],
+              portfolio_url: '',
             };
             set({ 
                 isAuthenticated: true, 
                 profile: newProfile,
-                ...FRESH_STATE
+                ...NEW_USER_STATE
             });
         }
     },
     logout: () => set({
-        // Only set isAuthenticated to false. This preserves the user's data in localStorage
-        // so they can log back in with Google and find their data again.
+        // Solo se establece isAuthenticated a false. Esto preserva los datos del usuario en localStorage
+        // para que puedan volver a iniciar sesión con Google y encontrar sus datos.
         isAuthenticated: false,
     }),
     register: (name, email, pass) => {
@@ -80,22 +74,27 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
           id: `u-${Date.now()}`,
           full_name: name,
           email: email,
+          avatar_url: undefined, // Sin avatar por defecto en registro manual
           business_name: `${name}'s Business`,
           tax_id: '',
-          hourly_rate_cents: 0,
+          hourly_rate_cents: 7500, // 75 EUR/hr
           pdf_color: '#d9009f',
-          plan: 'Free',
-          ai_credits: 10,
+          plan: 'Pro', // Inicia en Pro para mostrar más funcionalidades
+          ai_credits: 500,
           affiliate_code: name.toUpperCase().replace(/\s/g, '') + Date.now().toString().slice(-3),
+          bio: 'Desarrollador Full-Stack apasionado por crear aplicaciones web modernas y eficientes.',
+          skills: ['React', 'Node.js', 'TypeScript', 'Next.js'],
+          portfolio_url: '',
         };
-         // For a new registration, always start with a completely fresh state.
+         // Para un nuevo registro, siempre empezar con un estado fresco y poblado.
         set({ 
             isAuthenticated: true,
             profile: newProfile,
-            ...FRESH_STATE
+            ...NEW_USER_STATE
         });
         return true;
     },
+    updateProfile: (newProfileData: Profile) => set({ profile: newProfileData }),
     upgradePlan: (plan) => set(state => ({ profile: state.profile ? { ...state.profile, plan } : null })),
     purchaseCredits: (amount) => set(state => ({ profile: state.profile ? { ...state.profile, ai_credits: state.profile.ai_credits + amount } : null })),
     consumeCredits: (amount) => set(state => ({ profile: state.profile ? { ...state.profile, ai_credits: Math.max(0, state.profile.ai_credits - amount) } : null })),

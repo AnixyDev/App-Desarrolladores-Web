@@ -1,78 +1,57 @@
 import React, { useState } from 'react';
-import { Users, UserPlus, Trash2, Mail, Settings, User, X, Check } from 'lucide-react';
+// FIX: Switched to the centralized Icon wrapper for consistency and added the missing User icon.
+import { Users, UserPlus, Trash2, Mail, X, User } from '../components/icons/Icon.tsx';
 import ConfirmationModal from '../components/modals/ConfirmationModal.tsx';
+import { useAppStore } from '../hooks/useAppStore.tsx';
+import { UserData } from '../types.ts';
 
-// --- TYPES ---
-interface TeamMember {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  status: 'Active' | 'Pending Invitation';
-  invitedOn: string;
-}
+const roles: UserData['role'][] = [
+  'Developer', 
+  'Manager', 
+  'Admin',
+];
 
 interface NewMember {
     name: string;
     email: string;
-    role: string;
+    role: UserData['role'];
 }
 
-const roles: string[] = [
-  'Developer Senior', 
-  'Diseñador UX/UI', 
-  'Gestor de Proyectos', 
-  'Contador/Facturación', 
-  'Admin',
-];
-
 const TeamManagementDashboard: React.FC = () => {
-  const [team, setTeam] = useState<TeamMember[]>([]);
+  const { users, inviteUser, deleteUser } = useAppStore();
+  
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null);
+  const [memberToDelete, setMemberToDelete] = useState<UserData | null>(null);
   const [newMember, setNewMember] = useState<NewMember>({ name: '', email: '', role: roles[0] });
 
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMember.name || !newMember.email) return;
-
-    const newId = team.length + 1;
-    const invitation: TeamMember = {
-      ...newMember,
-      id: newId,
-      status: 'Pending Invitation',
-      invitedOn: new Date().toISOString().slice(0, 10),
-    };
-
-    setTeam([...team, invitation]);
+    
+    inviteUser(newMember.name, newMember.email, newMember.role);
     setNewMember({ name: '', email: '', role: roles[0] });
     setShowInviteModal(false);
   };
 
-  const handleDelete = (member: TeamMember) => {
+  const handleDelete = (member: UserData) => {
     setMemberToDelete(member);
     setIsConfirmModalOpen(true);
   };
   
   const confirmDelete = () => {
       if (memberToDelete) {
-          setTeam(team.filter(member => member.id !== memberToDelete.id));
+          deleteUser(memberToDelete.id);
           setIsConfirmModalOpen(false);
           setMemberToDelete(null);
       }
   };
   
-  const handleRoleChange = (id: number, newRole: string) => {
-    setTeam(team.map(member => 
-      member.id === id ? { ...member, role: newRole } : member
-    ));
-  };
-
-  const getStatusStyle = (status: TeamMember['status']) => {
+  const getStatusStyle = (status: UserData['status']) => {
     switch (status) {
-      case 'Active': return 'bg-green-900/50 text-green-400 border border-green-700';
-      case 'Pending Invitation': return 'bg-yellow-900/50 text-yellow-400 border border-yellow-700';
+      case 'Activo': return 'bg-green-900/50 text-green-400 border border-green-700';
+      case 'Pendiente': return 'bg-yellow-900/50 text-yellow-400 border border-yellow-700';
+      case 'Inactivo': return 'bg-gray-700/50 text-gray-400 border border-gray-600';
       default: return 'bg-gray-700/50 text-gray-400 border border-gray-600';
     }
   };
@@ -110,7 +89,7 @@ const TeamManagementDashboard: React.FC = () => {
             <label className="block text-sm font-medium text-gray-300 mb-1">Rol y Permisos</label>
             <select
               value={newMember.role}
-              onChange={(e) => setNewMember({ ...newMember, role: e.target.value })}
+              onChange={(e) => setNewMember({ ...newMember, role: e.target.value as UserData['role'] })}
               className="w-full p-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-fuchsia-500 outline-none"
             >
               {roles.map(role => (
@@ -154,7 +133,7 @@ const TeamManagementDashboard: React.FC = () => {
         </header>
 
         <div className="bg-gray-900 rounded-xl p-6 shadow-xl">
-          <h2 className="text-xl font-semibold text-white mb-4 border-b border-gray-800 pb-2">Miembros del Equipo ({team.length})</h2>
+          <h2 className="text-xl font-semibold text-white mb-4 border-b border-gray-800 pb-2">Miembros del Equipo ({users.length})</h2>
 
           <div className="overflow-x-auto">
             <table className="w-full min-w-[700px] text-left">
@@ -168,7 +147,7 @@ const TeamManagementDashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {team.map(member => (
+                {users.map(member => (
                   <tr key={member.id} className="border-t border-gray-800 hover:bg-gray-800/50">
                     <td className="p-4">
                       <div className="flex items-center">
@@ -182,20 +161,14 @@ const TeamManagementDashboard: React.FC = () => {
                       </div>
                     </td>
                     <td className="p-4">
-                        <select 
-                            value={member.role}
-                            onChange={(e) => handleRoleChange(member.id, e.target.value)}
-                            className="bg-gray-700 text-white rounded-md p-2 border border-gray-600 focus:outline-none"
-                        >
-                            {roles.map(r => <option key={r} value={r}>{r}</option>)}
-                        </select>
+                        <p className="text-white">{member.role}</p>
                     </td>
                     <td className="p-4">
                       <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusStyle(member.status)}`}>
                         {member.status}
                       </span>
                     </td>
-                    <td className="p-4 text-gray-300">{member.invitedOn}</td>
+                    <td className="p-4 text-gray-300">{member.invitedOn || 'N/A'}</td>
                     <td className="p-4 text-right">
                       <button onClick={() => handleDelete(member)} className="text-gray-400 hover:text-red-500 p-2 rounded-full transition duration-200">
                         <Trash2 className="w-5 h-5" />
@@ -220,5 +193,4 @@ const TeamManagementDashboard: React.FC = () => {
   );
 };
 
-// FIX: Add default export for lazy loading.
 export default TeamManagementDashboard;

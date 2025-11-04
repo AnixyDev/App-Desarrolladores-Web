@@ -1,61 +1,62 @@
-export {
-    // General UI
-    Menu, X, Bell, LogOut, User, User as UserIcon, ChevronDown, Plus, Plus as PlusIcon, Edit, Edit as EditIcon, Trash, Copy, Copy as CopyIcon, Share2, Share2 as Share2Icon,
-    Send, Send as SendIcon, Download, Download as DownloadIcon, Save, Save as SaveIcon, Link, Link as LinkIcon, Search, Search as SearchIcon, Filter, Info,
-    RefreshCw as RefreshCwIcon,
-    XCircle as XCircleIcon,
-    CheckCircle as CheckCircleIcon,
-    AlertTriangle as AlertTriangleIcon,
-    Info as InfoIcon,
-    Check,
-
-    // Sidebar & Pages
-    LayoutDashboard,
-    Users,
-    Users as UsersIcon,
-    Briefcase,
-    Briefcase as BriefcaseIcon,
-    FileText,
-    FileText as FileTextIcon,
-    DollarSign,
-    DollarSign as DollarSignIcon,
-    MessageSquare,
-    MessageSquare as MessageSquareIcon,
-    FileSignature,
-    FileSignature as FileSignatureIcon,
-    Clock,
-    Clock as ClockIcon,
-    BarChart2,
-    Book,
-    Book as BookIcon,
-    Settings,
-    Settings as SettingsIcon,
-    Sparkles,
-    Sparkles as SparklesIcon,
-    TrendingUp,
-    TrendingUp as TrendingUpIcon,
-    ListTodo,
-    BrainCircuit as BrainCircuitIcon,
-    Zap,
-    Zap as ZapIcon,
-    Shield,
-    Shield as ShieldIcon,
-    Star as StarIcon,
-    Award as AwardIcon,
-    
-    // Specific
-    Target,
-    Target as TargetIcon,
-    Phone as PhoneIcon,
-    Mail as MailIcon,
-    ClipboardList as ClipboardListIcon,
-    Repeat as RepeatIcon,
-    Signature as SignatureIcon,
-    GitBranch,
-    Calendar,
-    Pause,
-    Play,
-    UserPlus,
-    Trash2,
-    Trash2 as TrashIcon
+// components/icons/Icon.tsx
+import React from 'react';
+import {
+    Menu, Bell, LogOut, User, FileText, Briefcase, Plus, Trash, Repeat,
+    ChevronDown, Edit, Phone, Mail, Users, CheckCircle, XCircle,
+    MessageSquare, Sparkles, Download, Clock, Send, AlertTriangle, Info,
+    Book, DollarSign, TrendingUp, Share2, Copy, FileSignature, Signature,
+    Search, RefreshCw, GitBranch, Settings, Shield, UserPlus, Trash2,
+    X, Pause, Play, BrainCircuit, Link, Zap, Star, Inbox, Save
 } from 'lucide-react';
+
+export const MenuIcon = Menu;
+export const BellIcon = Bell;
+export const LogOutIcon = LogOut;
+export const UserIcon = User;
+export const FileTextIcon = FileText;
+export const BriefcaseIcon = Briefcase;
+export const PlusIcon = Plus;
+export const TrashIcon = Trash;
+export const RepeatIcon = Repeat;
+export const ChevronDownIcon = ChevronDown;
+export const EditIcon = Edit;
+export const PhoneIcon = Phone;
+export const MailIcon = Mail;
+export const UsersIcon = Users;
+export const CheckCircleIcon = CheckCircle;
+export const XCircleIcon = XCircle;
+export const MessageSquareIcon = MessageSquare;
+export const SparklesIcon = Sparkles;
+export const DownloadIcon = Download;
+export const ClockIcon = Clock;
+export const SendIcon = Send;
+export const AlertTriangleIcon = AlertTriangle;
+export const InfoIcon = Info;
+export const BookIcon = Book;
+export const DollarSignIcon = DollarSign;
+export const TrendingUpIcon = TrendingUp;
+export const Share2Icon = Share2;
+export const CopyIcon = Copy;
+export const FileSignatureIcon = FileSignature;
+export const SignatureIcon = Signature;
+export const SearchIcon = Search;
+export const RefreshCwIcon = RefreshCw;
+export const GitBranchIcon = GitBranch;
+export const SettingsIcon = Settings;
+export const ShieldIcon = Shield;
+export const UserPlusIcon = UserPlus;
+export const Trash2Icon = Trash2;
+export const XIcon = X;
+export const PauseIcon = Pause;
+export const PlayIcon = Play;
+export const BrainCircuitIcon = BrainCircuit;
+export const LinkIcon = Link;
+export const ZapIcon = Zap;
+export const StarIcon = Star;
+export const InboxIcon = Inbox;
+// FIX: Added SaveIcon to be available for other components.
+export const SaveIcon = Save;
+
+
+// Specific named exports for components that need them
+export { Users, UserPlus, Trash2, Mail, X, User, Star };

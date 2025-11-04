@@ -1,12 +1,15 @@
 
+
 import React, { useState } from 'react';
 import { Briefcase, DollarSign, Clock, Zap, Target, Filter, ChevronDown, TrendingUp, Search, Star, InfoIcon } from 'lucide-react';
 import { Job } from '../types.ts';
 import ProposalGeneratorModal from '../components/modals/ProposalGeneratorModal.tsx';
 import Button from '../components/ui/Button.tsx';
 import { Link } from 'react-router-dom';
+import { useAppStore } from '../hooks/useAppStore.tsx';
+import EmptyState from '../components/ui/EmptyState.tsx';
 
-const JobCard: React.FC<{ job: Job, onApply: (job: Job) => void }> = ({ job, onApply }) => {
+const JobCard: React.FC<{ job: Job, onApply: (job: Job) => void, onSave: (jobId: string) => void, isSaved: boolean }> = ({ job, onApply, onSave, isSaved }) => {
   let compatibilityColor = 'text-red-400 bg-red-900/30';
   if (job.compatibilidadIA >= 80) {
     compatibilityColor = 'text-fuchsia-500 bg-fuchsia-900/30'; 
@@ -23,14 +26,19 @@ const JobCard: React.FC<{ job: Job, onApply: (job: Job) => void }> = ({ job, onA
             Destacado
         </div>
       )}
+      
+      <button onClick={() => onSave(job.id)} className={`absolute top-4 right-4 text-gray-500 hover:text-yellow-400 transition-colors ${isSaved ? 'text-yellow-400' : ''}`} aria-label="Guardar oferta">
+        <Star className={`w-6 h-6 ${isSaved ? 'fill-current' : ''}`} />
+      </button>
 
-      <div className={`absolute top-0 right-0 m-4 px-3 py-1 text-xs font-bold rounded-full flex items-center shadow-lg ${compatibilityColor}`}>
+
+      <div className={`absolute top-0 right-16 m-4 px-3 py-1 text-xs font-bold rounded-full flex items-center shadow-lg ${compatibilityColor}`}>
         <Target className="w-4 h-4 mr-1" />
         Match IA: {job.compatibilidadIA}%
       </div>
 
       <div className="md:w-3/4 pr-4">
-        <h3 className="text-xl font-bold text-white mb-2">{job.titulo}</h3>
+        <Link to={`/job-market/${job.id}`} className="text-xl font-bold text-white mb-2 hover:text-primary-400 transition-colors">{job.titulo}</Link>
         <p className="text-gray-400 mb-4">{job.descripcionCorta}</p>
         
         <div className="flex flex-wrap items-center text-sm text-gray-400 space-x-4 mb-4">
@@ -72,7 +80,7 @@ const JobCard: React.FC<{ job: Job, onApply: (job: Job) => void }> = ({ job, onA
 };
 
 const JobMarketDashboard = () => {
-  const [jobs, setJobs] = useState<Job[]>([]); // Data removed for production
+  const { jobs, savedJobIds, saveJob } = useAppStore();
   const [sort, setSort] = useState('match');
   const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -141,14 +149,15 @@ const JobMarketDashboard = () => {
         <div className="space-y-6">
           {sortedJobs.length > 0 ? (
             sortedJobs.map(job => (
-              <JobCard key={job.id} job={job} onApply={handleApplyClick} />
+              <JobCard key={job.id} job={job} onApply={handleApplyClick} onSave={saveJob} isSaved={savedJobIds.includes(job.id)} />
             ))
           ) : (
-            <div className="text-center p-12 bg-gray-900 rounded-xl border-2 border-dashed border-gray-700">
-                <Briefcase className="w-10 h-10 mx-auto text-gray-600 mb-3" />
-                <p className="text-lg text-gray-500 font-semibold">No hay ofertas de trabajo disponibles en este momento.</p>
-                <p className="text-gray-600">Vuelve a consultar más tarde.</p>
-            </div>
+            <EmptyState
+                icon={Briefcase}
+                title="No hay ofertas de trabajo"
+                message="Actualmente no hay ofertas disponibles. ¡Vuelve a consultar más tarde o publica la tuya!"
+                action={{ text: 'Publicar una Oferta', onClick: () => {} }}
+            />
           )}
         </div>
       </div>
@@ -157,8 +166,7 @@ const JobMarketDashboard = () => {
         <ProposalGeneratorModal 
             isOpen={isProposalModalOpen}
             onClose={() => setIsProposalModalOpen(false)}
-            jobTitle={selectedJob.titulo}
-            jobDescription={selectedJob.descripcionCorta}
+            job={selectedJob}
         />
       )}
     </div>

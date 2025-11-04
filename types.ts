@@ -1,29 +1,36 @@
-import { AuthSlice } from './hooks/store/authSlice.ts';
-import { ClientSlice } from './hooks/store/clientSlice.ts';
-import { ProjectSlice } from './hooks/store/projectSlice.ts';
-import { FinanceSlice } from './hooks/store/financeSlice.ts';
-import { TeamSlice } from './hooks/store/teamSlice.ts';
-import { NotificationSlice } from './hooks/store/notificationSlice.ts';
+// types.ts
 
-
-// Export Slice interfaces for combined AppState type
-export type { AuthSlice, ClientSlice, ProjectSlice, FinanceSlice, TeamSlice, NotificationSlice };
-
-export interface Notification {
+export interface Profile {
   id: string;
-  message: string;
-  link: string;
-  isRead: boolean;
-  createdAt: string;
+  full_name: string;
+  email: string;
+  business_name: string;
+  tax_id: string;
+  hourly_rate_cents: number;
+  pdf_color: string;
+  plan: 'Free' | 'Pro' | 'Teams';
+  ai_credits: number;
+  affiliate_code: string;
+  bio?: string;
+  skills?: string[];
+  portfolio_url?: string;
+  avatar_url?: string; // Nueva propiedad para la imagen de perfil
+}
+
+export interface GoogleJwtPayload {
+  email: string;
+  name: string;
+  sub: string;
+  picture?: string; // Añadido para obtener la imagen de perfil de Google
 }
 
 export interface Client {
   id: string;
   user_id: string;
   name: string;
-  company: string;
+  company?: string;
   email: string;
-  phone: string;
+  phone?: string;
   created_at: string;
 }
 export type NewClient = Omit<Client, 'id' | 'user_id' | 'created_at'>;
@@ -43,6 +50,16 @@ export interface Project {
   priority?: 'low' | 'medium' | 'high';
 }
 export type NewProject = Omit<Project, 'id' | 'user_id' | 'created_at'>;
+
+export interface Task {
+  id: string;
+  user_id: string;
+  project_id: string;
+  description: string;
+  completed: boolean;
+  invoice_id: string | null;
+  created_at: string;
+}
 
 export interface InvoiceItem {
   description: string;
@@ -73,7 +90,7 @@ export interface Expense {
   project_id: string | null;
   description: string;
   amount_cents: number;
-  tax_percent?: number;
+  tax_percent: number;
   date: string;
   category: string;
   created_at: string;
@@ -91,16 +108,6 @@ export interface RecurringExpense {
   created_at: string;
 }
 
-export interface Task {
-  id: string;
-  user_id: string;
-  project_id: string;
-  description: string;
-  completed: boolean;
-  invoice_id: string | null;
-  created_at: string;
-}
-
 export interface TimeEntry {
   id: string;
   user_id: string;
@@ -114,106 +121,108 @@ export interface TimeEntry {
 }
 export type NewTimeEntry = Omit<TimeEntry, 'id' | 'created_at'>;
 
-
 export interface Budget {
-  id: string;
-  user_id: string;
-  client_id: string;
-  description: string;
-  items: InvoiceItem[];
-  amount_cents: number;
-  status: 'pending' | 'accepted' | 'rejected';
-  created_at: string;
+    id: string;
+    user_id: string;
+    client_id: string;
+    description: string;
+    items: InvoiceItem[];
+    amount_cents: number;
+    status: 'pending' | 'accepted' | 'rejected';
+    created_at: string;
 }
 
 export interface Proposal {
-  id: string;
-  user_id: string;
-  client_id: string;
-  title: string;
-  content: string;
-  amount_cents: number;
-  status: 'draft' | 'sent' | 'accepted' | 'rejected';
-  created_at: string;
-  signed_by?: string;
-  signed_at?: string;
+    id: string;
+    user_id: string;
+    client_id: string;
+    title: string;
+    content: string;
+    amount_cents: number;
+    status: 'draft' | 'sent' | 'accepted' | 'rejected';
+    created_at: string;
+    signed_by?: string;
+    signed_at?: string;
 }
 
 export interface Contract {
-  id: string;
-  user_id: string;
-  client_id: string;
-  project_id: string;
-  content: string;
-  status: 'draft' | 'sent' | 'signed';
-  created_at: string;
-  signed_by?: string;
-  signed_at?: string;
+    id: string;
+    user_id: string;
+    client_id: string;
+    project_id: string;
+    content: string;
+    status: 'draft' | 'sent' | 'signed';
+    created_at: string;
+    signed_by?: string;
+    signed_at?: string;
 }
 
-export interface ProjectMessage {
+export interface Notification {
   id: string;
-  project_id: string;
-  user_id: string;
-  user_name: string;
-  text: string;
-  timestamp: string;
-}
-
-export interface Profile {
-  id: string;
-  full_name: string;
-  email: string;
-  business_name: string;
-  tax_id: string;
-  hourly_rate_cents: number;
-  pdf_color: string;
-  plan: 'Free' | 'Pro' | 'Teams';
-  ai_credits: number;
-  affiliate_code: string;
-}
-
-export interface GoogleJwtPayload {
-  email: string;
-  name: string;
-  picture: string;
-  sub: string;
+  message: string;
+  link: string;
+  isRead: boolean;
+  createdAt: string;
 }
 
 export interface Job {
-  id: number;
-  titulo: string;
-  descripcionCorta: string;
-  presupuesto: number;
-  duracionSemanas: number;
-  compatibilidadIA: number;
-  habilidades: string[];
-  cliente: string;
-  fechaPublicacion: string;
-  isFeatured?: boolean;
+    id: string;
+    titulo: string;
+    descripcionCorta: string;
+    descripcionLarga?: string;
+    presupuesto: number;
+    duracionSemanas: number;
+    habilidades: string[];
+    cliente: string;
+    fechaPublicacion: string;
+    compatibilidadIA: number;
+    isFeatured?: boolean;
+    postedByUserId?: string;
 }
 
-export interface KnowledgeArticle {
-  id: string;
-  title: string;
-  content: string;
-  tags: string[];
-  created_at: string;
-  updated_at: string;
+export interface JobApplication {
+    id: string;
+    jobId: string;
+    userId: string;
+    applicantName: string;
+    jobTitle: string;
+    proposalText: string;
+    status: 'sent' | 'viewed' | 'rejected' | 'accepted';
+    appliedAt: string;
+}
+
+
+export interface ProjectMessage {
+    id: string;
+    project_id: string;
+    user_id: string;
+    user_name: string;
+    text: string;
+    timestamp: string;
 }
 
 export interface UserData {
-  id: string;
-  name: string;
-  email: string;
-  role: 'Admin' | 'Manager' | 'Developer';
-  status: 'Activo' | 'Inactivo';
+    id: string;
+    name: string;
+    email: string;
+    role: 'Admin' | 'Manager' | 'Developer';
+    status: 'Activo' | 'Pendiente' | 'Inactivo';
+    invitedOn?: string;
 }
 
 export interface Referral {
     id: string;
     name: string;
     join_date: string;
-    status: 'Joined' | 'Subscribed';
+    status: 'Registered' | 'Subscribed';
     commission_cents: number;
+}
+
+export interface KnowledgeArticle {
+    id: string;
+    title: string;
+    content: string;
+    tags: string[];
+    created_at: string;
+    updated_at: string;
 }

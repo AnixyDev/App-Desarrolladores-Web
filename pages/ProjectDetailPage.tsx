@@ -1,3 +1,4 @@
+// pages/ProjectDetailPage.tsx
 import React, { useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../hooks/useAppStore.tsx';

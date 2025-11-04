@@ -8,6 +8,8 @@ const API_KEY_ERROR_MESSAGE = "Error: La clave de API para los servicios de IA n
 
 export const AI_CREDIT_COSTS = {
     generateProposal: 5,
+    refineProposal: 3,
+    summarizeApplicant: 8,
     summarizeChat: 3,
     generateDocument: 25,
     generateQuiz: 10,
@@ -79,6 +81,78 @@ export const generateProposalText = async (jobTitle: string, jobDescription: str
     }), "Error generating proposal with Gemini");
     return response.text;
 };
+
+export const refineProposalText = async (originalProposal: string, refinementType: 'formal' | 'conciso' | 'entusiasta'): Promise<string> => {
+    const prompt = `
+        Eres un experto en comunicación y redacción de propuestas.
+        Tu tarea es refinar el siguiente texto de una propuesta para que suene más **${refinementType}**.
+        Mantén el mensaje y los puntos clave, pero ajusta el tono, el vocabulario y la estructura según sea necesario.
+
+        **Texto Original:**
+        ---
+        ${originalProposal}
+        ---
+
+        Ahora, por favor, proporciona la versión refinada.
+    `;
+
+    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            temperature: 0.8,
+            maxOutputTokens: 512,
+        }
+    }), "Error refining proposal with Gemini");
+    return response.text;
+};
+
+export const summarizeApplicant = async (jobDescription: string, applicantProfile: string, applicantProposal: string): Promise<{ summary: string, pros: string[], cons: string[] }> => {
+    const prompt = `
+        Eres un director de contratación experto en tecnología. Analiza la siguiente información para evaluar a un candidato para un puesto.
+        
+        **Descripción del Puesto:**
+        ${jobDescription}
+
+        **Perfil del Candidato (resumen de su bio y habilidades):**
+        ${applicantProfile}
+
+        **Propuesta del Candidato:**
+        ${applicantProposal}
+
+        **Tu Tarea:**
+        Devuelve un análisis JSON con tres claves:
+        1.  "summary": Un resumen conciso de 2-3 frases sobre la idoneidad del candidato.
+        2.  "pros": Un array de 2-3 puntos fuertes clave (strings) que hacen que el candidato sea un buen fit.
+        3.  "cons": Un array de 1-2 posibles debilidades o puntos a aclarar (strings).
+    `;
+
+    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    summary: { type: Type.STRING },
+                    pros: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    cons: { type: Type.ARRAY, items: { type: Type.STRING } },
+                },
+                required: ["summary", "pros", "cons"],
+            },
+        },
+    }), "Error summarizing applicant with Gemini");
+
+    const resultText = response.text.trim();
+    try {
+        return JSON.parse(resultText);
+    } catch (e) {
+        console.error("Error parsing applicant summary from Gemini:", e);
+        throw new Error("La IA devolvió un formato inesperado.");
+    }
+};
+
 
 export const getAIResponse = async (
     prompt: string, 
@@ -176,9 +250,10 @@ export const generateTimeEntryDescription = async (projectName: string, projectD
 
 export const generateItemsForDocument = async (prompt: string, hourlyRate: number) => {
     // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
+    // FIX: Corrected prompt to use hourly rate in EUR, not cents.
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: "gemini-2.5-flash",
-        contents: `Basado en la siguiente descripción, genera una lista de conceptos para una factura o presupuesto. Estima las horas si es necesario y calcula el precio usando una tarifa de ${hourlyRate} EUR/hora. La descripción es: "${prompt}"`,
+        contents: `Basado en la siguiente descripción, genera una lista de conceptos para una factura o presupuesto. Estima las horas si es necesario y calcula el precio usando una tarifa de ${hourlyRate / 100} EUR/hora. La descripción es: "${prompt}"`,
         config: {
             responseMimeType: "application/json",
             responseSchema: {

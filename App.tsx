@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, lazy, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
@@ -42,6 +44,13 @@ const RoleManagement = lazy(() => import('./pages/RoleManagement.tsx'));
 const BillingPage = lazy(() => import('./pages/BillingPage.tsx'));
 const AffiliateProgramPage = lazy(() => import('./pages/AffiliateProgramPage.tsx'));
 const ForecastingPage = lazy(() => import('./pages/ForecastingPage.tsx'));
+const JobDetailPage = lazy(() => import('./pages/JobDetailPage.tsx'));
+const MyApplicationsPage = lazy(() => import('./pages/MyApplicationsPage.tsx'));
+const SavedJobsPage = lazy(() => import('./pages/SavedJobsPage.tsx'));
+const MyJobPostsPage = lazy(() => import('./pages/MyJobPostsPage.tsx'));
+const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage.tsx'));
+const JobApplicantsPage = lazy(() => import('./pages/JobApplicantsPage.tsx'));
+
 
 // Portal Pages
 const PortalLoginPage = lazy(() => import('./pages/portal/PortalLoginPage.tsx'));
@@ -149,7 +158,13 @@ const App: React.FC = () => {
                         <Route path="settings" element={<SettingsPage />} />
                         <Route path="ai-assistant" element={<AIAssistantPage />} />
                         <Route path="job-market" element={<JobMarketDashboard />} />
+                        <Route path="job-market/:jobId" element={<JobDetailPage />} />
                         <Route path="post-job" element={<JobPostForm />} />
+                        <Route path="my-job-posts" element={<MyJobPostsPage />} />
+                        <Route path="my-job-posts/:jobId/applicants" element={<JobApplicantsPage />} />
+                        <Route path="my-applications" element={<MyApplicationsPage />} />
+                        <Route path="saved-jobs" element={<SavedJobsPage />} />
+                        <Route path="public-profile" element={<PublicProfilePage />} />
                         <Route path="team" element={<TeamManagementDashboard />} />
                         <Route path="my-timesheet" element={<MyTeamTimesheet />} />
                         <Route path="knowledge-base" element={<KnowledgeBase />} />

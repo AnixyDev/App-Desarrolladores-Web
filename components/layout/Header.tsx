@@ -1,8 +1,7 @@
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../../hooks/useAppStore.tsx';
-import { Menu, Bell, LogOut, User, FileTextIcon, BriefcaseIcon } from '../icons/Icon.tsx';
+// FIX: Imported the correctly named icons and aliased them to match usage in the component.
+import { MenuIcon as Menu, BellIcon as Bell, LogOutIcon as LogOut, UserIcon as User, FileTextIcon, BriefcaseIcon } from '../icons/Icon.tsx';
 import { Link } from 'react-router-dom';
 
 const getNotificationIcon = (link: string) => {
@@ -98,7 +97,11 @@ const Header: React.FC<{ setSidebarOpen: (isOpen: boolean) => void; }> = ({ setS
 
                 <div className="relative" ref={userMenuRef}>
                     <button onClick={() => setIsUserMenuOpen(prev => !prev)} className="flex items-center space-x-2">
-                        <User className="w-8 h-8 rounded-full bg-gray-700 text-gray-300 p-1" />
+                        {profile?.avatar_url ? (
+                            <img src={profile.avatar_url} alt="Perfil" className="w-8 h-8 rounded-full object-cover" />
+                        ) : (
+                            <User className="w-8 h-8 rounded-full bg-gray-700 text-gray-300 p-1" />
+                        )}
                         <div className="hidden sm:block text-left">
                             <p className="text-sm font-semibold text-white">{profile?.full_name}</p>
                             <p className="text-xs text-gray-400">{profile?.plan} Plan</p>

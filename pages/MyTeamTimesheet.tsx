@@ -1,26 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Clock, CheckCircle, ListTodo, Calendar, Pause, Play, Plus, GitBranch } from 'lucide-react';
+import { useAppStore } from '../hooks/useAppStore.tsx';
+import { useToast } from '../hooks/useToast.ts';
+import { TimeEntry, Task } from '../types.ts';
 
-// --- TYPES ---
-interface Task {
-  id: number;
-  project: string;
-  title: string;
-  due: string;
-  status: 'In Progress' | 'To Do' | 'Completed';
-}
-
-interface TimeEntry {
-  id: number;
-  project: string;
-  description: string;
-  hours: number;
-  date: string;
-  billable: boolean;
-}
 
 interface ManualEntry {
-    project: string;
+    project_id: string;
     description: string;
     hours: string;
     date: string;
@@ -28,13 +14,26 @@ interface ManualEntry {
 }
 
 const MyTeamTimesheet: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+  const { tasks, projects, timeEntries, addTimeEntry, toggleTask } = useAppStore();
+  const { addToast } = useToast();
+
   const [currentTimer, setCurrentTimer] = useState<Task | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   
-  const [manualEntry, setManualEntry] = useState<ManualEntry>({ project: '', description: '', hours: '', date: new Date().toISOString().slice(0, 10), billable: true });
+  const initialManualEntry: ManualEntry = {
+      project_id: projects[0]?.id || '',
+      description: '',
+      hours: '',
+      date: new Date().toISOString().slice(0, 10),
+      billable: true
+  };
+  const [manualEntry, setManualEntry] = useState<ManualEntry>(initialManualEntry);
+  
+  const relevantTasks = useMemo(() => {
+    // En una app real, aquí se filtrarían las tareas asignadas al usuario actual
+    return tasks;
+  }, [tasks]);
 
   useEffect(() => {
     let interval: number | null = null;
@@ -57,17 +56,19 @@ const MyTeamTimesheet: React.FC = () => {
 
   const toggleTimer = (task: Task | null = null) => {
     if (isRunning) {
-      const hours = elapsedTime / 3600;
+      const duration_seconds = elapsedTime;
       if (currentTimer) {
-        const newEntry: TimeEntry = {
-          id: timeEntries.length + 1,
-          project: currentTimer.project,
-          description: currentTimer.title,
-          hours: parseFloat(hours.toFixed(2)),
-          date: new Date().toISOString().slice(0, 10),
-          billable: true,
-        };
-        setTimeEntries([newEntry, ...timeEntries]);
+        const start_time = new Date(Date.now() - duration_seconds * 1000).toISOString();
+        const end_time = new Date().toISOString();
+        addTimeEntry({
+          project_id: currentTimer.project_id,
+          description: currentTimer.description,
+          start_time,
+          end_time,
+          duration_seconds,
+          invoice_id: null
+        });
+        addToast(`Tiempo registrado para "${currentTimer.description}"`, 'success');
       }
       setIsRunning(false);
       setElapsedTime(0);
@@ -80,50 +81,57 @@ const MyTeamTimesheet: React.FC = () => {
 
   const handleManualEntry = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!manualEntry.project || !manualEntry.hours) return;
-
-    const newEntry: TimeEntry = {
-      id: timeEntries.length + 1,
-      ...manualEntry,
-      hours: parseFloat(manualEntry.hours),
+    if (!manualEntry.project_id || !manualEntry.hours) {
+        addToast('Por favor, selecciona un proyecto e introduce las horas.', 'error');
+        return;
     };
 
-    setTimeEntries([newEntry, ...timeEntries]);
-    setManualEntry({ project: '', description: '', hours: '', date: new Date().toISOString().slice(0, 10), billable: true });
+    const duration_seconds = parseFloat(manualEntry.hours) * 3600;
+    const entryDate = new Date(manualEntry.date);
+    const start_time = new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate(), 9, 0, 0).toISOString();
+    const end_time = new Date(new Date(start_time).getTime() + duration_seconds * 1000).toISOString();
+
+    addTimeEntry({
+        project_id: manualEntry.project_id,
+        description: manualEntry.description,
+        start_time,
+        end_time,
+        duration_seconds,
+        invoice_id: null,
+    });
+    addToast('Entrada manual añadida con éxito.', 'success');
+    setManualEntry(initialManualEntry);
   };
   
-  const toggleTaskStatus = (id: number) => {
-    setTasks(tasks.map(t => 
-      t.id === id ? { ...t, status: t.status === 'Completed' ? 'To Do' : 'Completed' } : t
-    ));
+  const handleManualInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setManualEntry(prev => ({ ...prev, [name]: value }));
   };
 
   const buttonStyle = 'px-4 py-2 font-semibold rounded-lg transition duration-200 shadow-md shadow-fuchsia-500/30 flex items-center justify-center';
 
   const TaskCard: React.FC<{ task: Task }> = ({ task }) => (
-    <div className={`bg-gray-800 p-4 rounded-xl shadow-lg border-l-4 ${task.status === 'Completed' ? 'border-gray-500' : 'border-fuchsia-500'}`}>
+    <div className={`bg-gray-800 p-4 rounded-xl shadow-lg border-l-4 ${task.completed ? 'border-gray-500' : 'border-fuchsia-500'}`}>
       <div className="flex justify-between items-start">
-        <h3 className={`font-semibold text-lg ${task.status === 'Completed' ? 'text-gray-500 line-through' : 'text-white'}`}>{task.title}</h3>
+        <h3 className={`font-semibold text-lg ${task.completed ? 'text-gray-500 line-through' : 'text-white'}`}>{task.description}</h3>
         <button 
-          onClick={() => toggleTaskStatus(task.id)}
-          className={`p-1 rounded-full transition-colors ${task.status === 'Completed' ? 'bg-gray-700 text-gray-400 hover:text-white' : 'bg-green-700 text-white hover:bg-green-600'}`}
-          aria-label={task.status === 'Completed' ? 'Marcar como Pendiente' : 'Marcar como Completada'}
+          onClick={() => toggleTask(task.id)}
+          className={`p-1 rounded-full transition-colors ${task.completed ? 'bg-gray-700 text-gray-400 hover:text-white' : 'bg-green-700 text-white hover:bg-green-600'}`}
+          aria-label={task.completed ? 'Marcar como Pendiente' : 'Marcar como Completada'}
         >
-          {task.status === 'Completed' ? <ListTodo className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
+          {task.completed ? <ListTodo className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
         </button>
       </div>
-      <p className="text-sm text-gray-400 mt-1 flex items-center"><GitBranch className="w-4 h-4 mr-2" /> {task.project}</p>
-      <p className="text-xs text-gray-500 mt-2 flex items-center"><Calendar className="w-4 h-4 mr-1" /> Vence: {task.due}</p>
+      <p className="text-sm text-gray-400 mt-1 flex items-center"><GitBranch className="w-4 h-4 mr-2" /> {projects.find(p => p.id === task.project_id)?.name}</p>
       
-      {task.status !== 'Completed' && (
+      {!task.completed && (
         <div className="mt-4 pt-3 border-t border-gray-700 flex justify-end">
           <button 
             onClick={() => toggleTimer(task)}
-            disabled={isRunning}
-            className={`w-full ${buttonStyle} ${isRunning ? 'bg-gray-600 text-gray-400' : 'bg-fuchsia-600 text-black hover:bg-fuchsia-700'}`}
+            disabled={isRunning && (!currentTimer || currentTimer.id !== task.id)}
+            className={`w-full ${buttonStyle} ${isRunning && currentTimer?.id === task.id ? 'bg-red-600 text-white hover:bg-red-700' : isRunning ? 'bg-gray-600 text-gray-400 cursor-not-allowed' : 'bg-fuchsia-600 text-black hover:bg-fuchsia-700'}`}
           >
-            <Play className="w-5 h-5 mr-2" />
-            {isRunning && currentTimer && currentTimer.id === task.id ? 'Tiempo en curso' : 'Iniciar Tiempo'}
+            {isRunning && currentTimer?.id === task.id ? <><Pause className="w-5 h-5 mr-2" /> Detener</> : <><Play className="w-5 h-5 mr-2" /> Iniciar Tiempo</>}
           </button>
         </div>
       )}
@@ -147,7 +155,7 @@ const MyTeamTimesheet: React.FC = () => {
               <p className="text-sm uppercase tracking-wider text-fuchsia-500 font-bold">Temporizador Global</p>
               <h2 className="text-4xl font-extrabold text-white mt-1">{formatTime(elapsedTime)}</h2>
               <p className="text-gray-400 text-sm mt-1">
-                {currentTimer ? `Trabajando en: ${currentTimer.title} (${currentTimer.project})` : 'Selecciona una tarea para iniciar el tiempo.'}
+                {currentTimer ? `Trabajando en: ${currentTimer.description}` : 'Selecciona una tarea para iniciar el tiempo.'}
               </p>
             </div>
             
@@ -168,13 +176,14 @@ const MyTeamTimesheet: React.FC = () => {
           <div className="lg:col-span-2">
             <h2 className="text-xl font-semibold text-white mb-4 flex items-center"><ListTodo className="w-5 h-5 mr-2 text-fuchsia-500" /> Mis Tareas Asignadas</h2>
             <div className="space-y-4">
-              {tasks.filter(t => t.status !== 'Completed').map(task => (
+              {relevantTasks.filter(t => !t.completed).map(task => (
                 <TaskCard key={task.id} task={task} />
               ))}
+              {relevantTasks.filter(t => !t.completed).length === 0 && <p className="text-gray-500 text-center py-4">¡No tienes tareas pendientes!</p>}
               <div className="mt-6 pt-4 border-t border-gray-800">
                 <h3 className="text-lg font-semibold text-gray-500 mb-3">Completadas</h3>
                 <div className="space-y-3">
-                  {tasks.filter(t => t.status === 'Completed').map(task => (
+                  {relevantTasks.filter(t => t.completed).map(task => (
                     <TaskCard key={task.id} task={task} />
                   ))}
                 </div>
@@ -187,54 +196,27 @@ const MyTeamTimesheet: React.FC = () => {
               <h2 className="text-xl font-semibold text-white mb-4 border-b border-gray-800 pb-2 flex items-center"><Plus className="w-5 h-5 mr-2 text-fuchsia-500" /> Registro Manual de Tiempo</h2>
               <form onSubmit={handleManualEntry} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Proyecto</label>
-                  <input
-                    type="text"
-                    value={manualEntry.project}
-                    onChange={(e) => setManualEntry({ ...manualEntry, project: e.target.value })}
-                    className="w-full p-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-fuchsia-500 outline-none"
-                    placeholder="Ej. App Cliente Alpha"
-                    required
-                  />
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Proyecto</label>
+                    <select name="project_id" value={manualEntry.project_id} onChange={handleManualInputChange} className="w-full p-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-fuchsia-500 outline-none" required>
+                        <option value="" disabled>Selecciona un proyecto</option>
+                        {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Descripción</label>
-                  <input
-                    type="text"
-                    value={manualEntry.description}
-                    onChange={(e) => setManualEntry({ ...manualEntry, description: e.target.value })}
-                    className="w-full p-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-fuchsia-500 outline-none"
-                    placeholder="Ej. Revisión de código"
-                  />
+                  <input name="description" type="text" value={manualEntry.description} onChange={handleManualInputChange} className="w-full p-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-fuchsia-500 outline-none" placeholder="Ej. Revisión de código" required/>
                 </div>
                 <div className="flex space-x-3">
                     <div className="flex-1">
                         <label className="block text-sm font-medium text-gray-300 mb-1">Horas</label>
-                        <input
-                            type="number"
-                            step="0.1"
-                            min="0.1"
-                            value={manualEntry.hours}
-                            onChange={(e) => setManualEntry({ ...manualEntry, hours: e.target.value })}
-                            className="w-full p-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-fuchsia-500 outline-none"
-                            required
-                        />
+                        <input name="hours" type="number" step="0.1" min="0.1" value={manualEntry.hours} onChange={handleManualInputChange} className="w-full p-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-fuchsia-500 outline-none" required/>
                     </div>
                     <div className="flex-1">
                         <label className="block text-sm font-medium text-gray-300 mb-1">Fecha</label>
-                        <input
-                            type="date"
-                            value={manualEntry.date}
-                            onChange={(e) => setManualEntry({ ...manualEntry, date: e.target.value })}
-                            className="w-full p-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-fuchsia-500 outline-none"
-                            required
-                        />
+                        <input name="date" type="date" value={manualEntry.date} onChange={handleManualInputChange} className="w-full p-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-fuchsia-500 outline-none" required/>
                     </div>
                 </div>
-                <button
-                  type="submit"
-                  className={`${buttonStyle} w-full bg-fuchsia-600 text-black hover:bg-fuchsia-700`}
-                >
+                <button type="submit" className={`${buttonStyle} w-full bg-fuchsia-600 text-black hover:bg-fuchsia-700`}>
                   <Plus className="w-5 h-5 mr-2" />
                   Añadir Registro
                 </button>
@@ -248,9 +230,9 @@ const MyTeamTimesheet: React.FC = () => {
                   <div key={entry.id} className="p-3 bg-gray-800 rounded-lg flex justify-between items-center hover:bg-gray-700 transition duration-150">
                     <div>
                       <p className="text-sm font-medium text-white">{entry.description || 'Sin descripción'}</p>
-                      <p className="text-xs text-gray-400 flex items-center"><GitBranch className="w-3 h-3 mr-1" /> {entry.project} | {entry.date}</p>
+                      <p className="text-xs text-gray-400 flex items-center"><GitBranch className="w-3 h-3 mr-1" /> {projects.find(p=>p.id === entry.project_id)?.name} | {new Date(entry.start_time).toLocaleDateString()}</p>
                     </div>
-                    <span className="text-lg font-bold text-fuchsia-500">{entry.hours}h</span>
+                    <span className="text-lg font-bold text-fuchsia-500">{(entry.duration_seconds/3600).toFixed(2)}h</span>
                   </div>
                 ))}
               </div>
