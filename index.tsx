@@ -33,13 +33,8 @@ type ErrorBoundaryProps = React.PropsWithChildren<{ fallback: React.ReactNode }>
 type ErrorBoundaryState = { hasError: boolean };
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-    // FIX: The `props` property was not being recognized.
-    // Adding a constructor and calling `super(props)` explicitly initializes `this.props`,
-    // which resolves the TypeScript error. State is also initialized here.
-    constructor(props: ErrorBoundaryProps) {
-        super(props);
-        this.state = { hasError: false };
-    }
+    // FIX: Initialize state as a class property to fix errors where `state` and `props` were not being recognized.
+    state = { hasError: false };
 
     static getDerivedStateFromError(_error: Error): ErrorBoundaryState {
         // Return a new state object to indicate an error has occurred.

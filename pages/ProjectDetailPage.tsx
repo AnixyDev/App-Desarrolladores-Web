@@ -6,7 +6,7 @@ import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 import Button from '../components/ui/Button.tsx';
 import Input from '../components/ui/Input.tsx';
 import { formatCurrency } from '../lib/utils.ts';
-import { Project, Task } from '../types.ts';
+import { Project, Task, InvoiceItem } from '../types.ts';
 import { PlusIcon, TrashIcon, ClockIcon, FileTextIcon, MessageSquareIcon, DollarSignIcon } from '../components/icons/Icon.tsx';
 
 const ProjectChat = lazy(() => import('../components/ProjectChat.tsx'));
@@ -100,6 +100,23 @@ const ProjectDetailPage: React.FC = () => {
         });
     };
     
+    const handleCreateInvoiceFromBudget = () => {
+        if (project.budget_cents > 0) {
+            const budgetItem: InvoiceItem = {
+                description: `Facturación basada en el presupuesto del proyecto: ${project.name}`,
+                quantity: 1,
+                price_cents: project.budget_cents
+            };
+            navigate('/invoices/create', {
+                state: {
+                    clientId: project.client_id,
+                    projectId: project.id,
+                    budgetItems: [budgetItem]
+                }
+            });
+        }
+    };
+
     const handleDeleteClick = (task: Task) => {
         setTaskToDelete(task);
         setIsConfirmModalOpen(true);
@@ -120,10 +137,15 @@ const ProjectDetailPage: React.FC = () => {
                     <h1 className="text-3xl font-bold text-white">{project.name}</h1>
                     <Link to={`/clients/${client.id}`} className="text-lg text-primary-400 hover:underline">{client.name}</Link>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                     <Button variant="secondary" onClick={handleCreateInvoice}>
                         <FileTextIcon className="w-4 h-4 mr-2"/> Crear Factura
                     </Button>
+                    {project.budget_cents > 0 && (
+                        <Button onClick={handleCreateInvoiceFromBudget}>
+                            <DollarSignIcon className="w-4 h-4 mr-2"/> Facturar Presupuesto
+                        </Button>
+                    )}
                 </div>
             </div>
 

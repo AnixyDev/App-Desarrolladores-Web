@@ -41,7 +41,8 @@ const CreateInvoicePage: React.FC = () => {
     const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
     
     useEffect(() => {
-        const { projectId, clientId, timeEntryIds } = location.state || {};
+        const { projectId, clientId, timeEntryIds, budgetItems } = location.state || {};
+
         if (clientId && projectId && timeEntryIds && timeEntryIds.length > 0) {
             setTimeEntryIdsToBill(timeEntryIds);
             const entriesToBill = timeEntries.filter(t => timeEntryIds.includes(t.id));
@@ -65,7 +66,16 @@ const CreateInvoicePage: React.FC = () => {
             } else {
                  setNewInvoice(prev => ({ ...prev, client_id: clientId, project_id: projectId }));
             }
+        } else if (clientId && projectId && budgetItems && budgetItems.length > 0) {
+            setNewInvoice(prev => ({
+                ...prev,
+                client_id: clientId,
+                project_id: projectId,
+                items: budgetItems,
+            }));
+            addToast('Factura pre-rellenada desde el presupuesto del proyecto.', 'info');
         }
+
         // Clear state from navigation after using it
         window.history.replaceState({}, document.title);
     }, [location.state, timeEntries, profile.hourly_rate_cents, addToast]);
