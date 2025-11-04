@@ -1,17 +1,39 @@
 // pages/PublicProfilePage.tsx
-import React from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 // FIX: Corrected the import for the Briefcase icon.
 import { MailIcon, User, BriefcaseIcon as Briefcase, LinkIcon } from '../components/icons/Icon.tsx';
 import Button from '../components/ui/Button.tsx';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+
+const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal.tsx'));
 
 const PublicProfilePage: React.FC = () => {
     const { profile } = useAppStore();
+    const navigate = useNavigate();
+    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (profile?.plan === 'Free') {
+            setIsUpgradeModalOpen(true);
+        }
+    }, [profile?.plan]);
 
     if (!profile) {
         return <div>Cargando perfil...</div>;
+    }
+
+    if (isUpgradeModalOpen) {
+        return (
+            <Suspense fallback={null}>
+                <UpgradePromptModal
+                    isOpen={isUpgradeModalOpen}
+                    onClose={() => navigate('/')}
+                    featureName="tener un perfil público de freelancer"
+                />
+            </Suspense>
+        );
     }
 
     return (

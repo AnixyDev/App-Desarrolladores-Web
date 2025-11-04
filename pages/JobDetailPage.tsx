@@ -8,12 +8,14 @@ import { DollarSign, Clock, Zap, Star, Briefcase } from 'lucide-react';
 import { Job } from '../types.ts';
 
 const ProposalGeneratorModal = lazy(() => import('../components/modals/ProposalGeneratorModal.tsx'));
+const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal.tsx'));
 
 const JobDetailPage: React.FC = () => {
     const { jobId } = useParams<{ jobId: string }>();
-    const { getJobById, saveJob, savedJobIds } = useAppStore();
+    const { getJobById, saveJob, savedJobIds, profile } = useAppStore();
     
     const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
+    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
     const [descriptionHtml, setDescriptionHtml] = useState<string | null>(null);
 
     const job = jobId ? getJobById(jobId) : null;
@@ -31,6 +33,14 @@ const JobDetailPage: React.FC = () => {
         return <div className="text-center text-red-500">Oferta de trabajo no encontrada.</div>;
     }
     
+    const handleApplyClick = () => {
+        if (profile?.plan === 'Free') {
+            setIsUpgradeModalOpen(true);
+        } else {
+            setIsProposalModalOpen(true);
+        }
+    };
+
     const isSaved = savedJobIds.includes(job.id);
 
     return (
@@ -45,7 +55,7 @@ const JobDetailPage: React.FC = () => {
                         <Star className={`w-4 h-4 mr-2 ${isSaved ? 'fill-current text-yellow-400' : ''}`} />
                         {isSaved ? 'Guardada' : 'Guardar'}
                     </Button>
-                    <Button onClick={() => setIsProposalModalOpen(true)}>
+                    <Button onClick={handleApplyClick}>
                         <Zap className="w-4 h-4 mr-2" />
                         Aplicar con IA
                     </Button>
@@ -102,6 +112,13 @@ const JobDetailPage: React.FC = () => {
                         isOpen={isProposalModalOpen}
                         onClose={() => setIsProposalModalOpen(false)}
                         job={job}
+                    />
+                )}
+                {isUpgradeModalOpen && (
+                    <UpgradePromptModal
+                        isOpen={isUpgradeModalOpen}
+                        onClose={() => setIsUpgradeModalOpen(false)}
+                        featureName="aplicar a ofertas de trabajo"
                     />
                 )}
             </Suspense>

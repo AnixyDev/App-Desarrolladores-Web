@@ -1,8 +1,9 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Briefcase, DollarSign, Clock, Hash, Send, Zap, Star } from 'lucide-react';
 import { useToast } from '../hooks/useToast.ts';
 import { redirectToCheckout } from '../services/stripeService.ts';
+import { useAppStore } from '../hooks/useAppStore.tsx';
+import { useNavigate } from 'react-router-dom';
 
 // Lista de habilidades comunes para la selección múltiple
 const commonSkills = [
@@ -10,6 +11,8 @@ const commonSkills = [
   'Java', 'Go', 'PHP (Laravel)', 'TypeScript', 'Tailwind CSS', 'AWS', 
   'GCP (Google Cloud)', 'Firebase', 'MongoDB', 'PostgreSQL', 'Docker', 'Kubernetes'
 ];
+
+const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal.tsx'));
 
 interface FormData {
     titulo: string;
@@ -39,7 +42,17 @@ const JobPostForm: React.FC = () => {
   });
   const [isFeatured, setIsFeatured] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const { addToast } = useToast();
+  const { profile } = useAppStore();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (profile?.plan === 'Free') {
+      setIsUpgradeModalOpen(true);
+    }
+  }, [profile?.plan]);
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -87,6 +100,18 @@ const JobPostForm: React.FC = () => {
         resetForm();
     }
   };
+
+  if (isUpgradeModalOpen) {
+    return (
+        <Suspense fallback={null}>
+            <UpgradePromptModal
+                isOpen={isUpgradeModalOpen}
+                onClose={() => navigate('/')}
+                featureName="publicar ofertas de trabajo"
+            />
+        </Suspense>
+    );
+  }
 
   const InputField: React.FC<InputFieldProps> = ({ label, name, type = 'text', icon: Icon, required = false }) => (
     <div className="mb-4">

@@ -1,5 +1,5 @@
 // pages/MyJobPostsPage.tsx
-import React from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 import { Building, Briefcase, EditIcon, TrashIcon, Users } from 'lucide-react';
@@ -8,6 +8,8 @@ import EmptyState from '../components/ui/EmptyState.tsx';
 import Button from '../components/ui/Button.tsx';
 import { Link, useNavigate } from 'react-router-dom';
 
+const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal.tsx'));
+
 const MyJobPostsPage: React.FC = () => {
     const { jobs, applications, profile } = useAppStore();
     const navigate = useNavigate();
@@ -15,10 +17,29 @@ const MyJobPostsPage: React.FC = () => {
     // In a real multi-user app, we would filter by `job.postedByUserId === profile.id`
     const myJobs = jobs.filter(j => j.postedByUserId === profile?.id); 
     
+    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (profile?.plan === 'Free') {
+            setIsUpgradeModalOpen(true);
+        }
+    }, [profile?.plan]);
+
     const getApplicantCount = (jobId: string) => {
         return applications.filter(app => app.jobId === jobId).length;
     };
 
+    if (isUpgradeModalOpen) {
+        return (
+            <Suspense fallback={null}>
+                <UpgradePromptModal
+                    isOpen={isUpgradeModalOpen}
+                    onClose={() => navigate('/')}
+                    featureName="gestionar tus ofertas publicadas"
+                />
+            </Suspense>
+        );
+    }
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">

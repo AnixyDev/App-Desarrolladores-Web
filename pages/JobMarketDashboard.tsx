@@ -7,6 +7,7 @@ import { useAppStore } from '../hooks/useAppStore.tsx';
 import EmptyState from '../components/ui/EmptyState.tsx';
 
 const ProposalGeneratorModal = lazy(() => import('../components/modals/ProposalGeneratorModal.tsx'));
+const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal.tsx'));
 
 const JobCard: React.FC<{ job: Job, onApply: (job: Job) => void, onSave: (jobId: string) => void, isSaved: boolean }> = ({ job, onApply, onSave, isSaved }) => {
   let compatibilityColor = 'text-red-400 bg-red-900/30';
@@ -79,14 +80,19 @@ const JobCard: React.FC<{ job: Job, onApply: (job: Job) => void, onSave: (jobId:
 };
 
 const JobMarketDashboard = () => {
-  const { jobs, savedJobIds, saveJob } = useAppStore();
+  const { jobs, savedJobIds, saveJob, profile } = useAppStore();
   const [sort, setSort] = useState('match');
   const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   const handleApplyClick = (job: Job) => {
-    setSelectedJob(job);
-    setIsProposalModalOpen(true);
+    if (profile?.plan === 'Free') {
+        setIsUpgradeModalOpen(true);
+    } else {
+        setSelectedJob(job);
+        setIsProposalModalOpen(true);
+    }
   };
 
   const sortedJobs = [...jobs].sort((a, b) => {
@@ -168,6 +174,13 @@ const JobMarketDashboard = () => {
               onClose={() => setIsProposalModalOpen(false)}
               job={selectedJob}
           />
+        )}
+        {isUpgradeModalOpen && (
+            <UpgradePromptModal
+                isOpen={isUpgradeModalOpen}
+                onClose={() => setIsUpgradeModalOpen(false)}
+                featureName="aplicar a ofertas de trabajo"
+            />
         )}
       </Suspense>
     </div>
