@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import { BookIcon, PlusIcon, SearchIcon, EditIcon, TrashIcon, SparklesIcon, FileSignatureIcon, BrainCircuitIcon } from '../components/icons/Icon.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 import Button from '../components/ui/Button.tsx';
@@ -6,10 +6,11 @@ import Input from '../components/ui/Input.tsx';
 import Modal from '../components/ui/Modal.tsx';
 import { KnowledgeArticle } from '../types.ts';
 import { useAppStore } from '../hooks/useAppStore.tsx';
-import BuyCreditsModal from '../components/modals/BuyCreditsModal.tsx';
 import { AI_CREDIT_COSTS, rankArticlesByRelevance } from '../services/geminiService.ts';
 import { useToast } from '../hooks/useToast.ts';
-import ConfirmationModal from '../components/modals/ConfirmationModal.tsx';
+
+const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal.tsx'));
+const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal.tsx'));
 
 const useDebounce = (value: string, delay: number) => {
     const [debouncedValue, setDebouncedValue] = useState(value);
@@ -218,15 +219,18 @@ const KnowledgeBase: React.FC = () => {
                 </div>
             </Modal>
             
-            <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />
-
-            <ConfirmationModal
-                isOpen={isConfirmModalOpen}
-                onClose={() => setIsConfirmModalOpen(false)}
-                onConfirm={confirmDelete}
-                title="¿Eliminar Artículo?"
-                message={`¿Estás seguro de que quieres eliminar permanentemente el artículo "${articleToDelete?.title}"?`}
-            />
+            <Suspense fallback={null}>
+                {isBuyCreditsModalOpen && <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />}
+                {isConfirmModalOpen && (
+                    <ConfirmationModal
+                        isOpen={isConfirmModalOpen}
+                        onClose={() => setIsConfirmModalOpen(false)}
+                        onConfirm={confirmDelete}
+                        title="¿Eliminar Artículo?"
+                        message={`¿Estás seguro de que quieres eliminar permanentemente el artículo "${articleToDelete?.title}"?`}
+                    />
+                )}
+            </Suspense>
         </div>
     );
 };

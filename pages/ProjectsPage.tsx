@@ -115,7 +115,7 @@ const ProjectsPage: React.FC = () => {
                                     </Link>
                                     <StatusChip type="project" status={project.status} />
                                 </div>
-                                <p className="text-sm text-gray-400">{getClientById(project.client_id)?.name}</p>
+                                <Link to={`/clients/${project.client_id}`} className="text-sm text-gray-400 hover:underline">{getClientById(project.client_id)?.name}</Link>
                             </CardHeader>
                             <CardContent className="flex-grow space-y-2 text-sm text-gray-300">
                                 <p>{project.description?.substring(0, 100) || 'Sin descripción.'}...</p>

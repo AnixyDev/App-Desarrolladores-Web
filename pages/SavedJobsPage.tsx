@@ -1,12 +1,13 @@
 // pages/SavedJobsPage.tsx
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import { Star, Briefcase } from 'lucide-react';
 import { Job } from '../types.ts';
-import ProposalGeneratorModal from '../components/modals/ProposalGeneratorModal.tsx';
 import EmptyState from '../components/ui/EmptyState.tsx';
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button.tsx';
+
+const ProposalGeneratorModal = lazy(() => import('../components/modals/ProposalGeneratorModal.tsx'));
 
 const SavedJobsPage: React.FC = () => {
     const { getSavedJobs, saveJob } = useAppStore();
@@ -53,13 +54,15 @@ const SavedJobsPage: React.FC = () => {
                 </div>
             )}
             
-            {selectedJob && (
-                <ProposalGeneratorModal 
-                    isOpen={isProposalModalOpen}
-                    onClose={() => setIsProposalModalOpen(false)}
-                    job={selectedJob}
-                />
-            )}
+            <Suspense fallback={null}>
+                {selectedJob && isProposalModalOpen && (
+                    <ProposalGeneratorModal 
+                        isOpen={isProposalModalOpen}
+                        onClose={() => setIsProposalModalOpen(false)}
+                        job={selectedJob}
+                    />
+                )}
+            </Suspense>
         </div>
     );
 };

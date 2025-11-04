@@ -1,11 +1,12 @@
 // pages/DashboardPage.tsx
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
-import IncomeExpenseChart from '../components/charts/IncomeExpenseChart.tsx';
 import { formatCurrency } from '../lib/utils.ts';
 import { Link } from 'react-router-dom';
 import { DollarSignIcon, ClockIcon, BriefcaseIcon, FileTextIcon } from '../components/icons/Icon.tsx';
+
+const IncomeExpenseChart = lazy(() => import('../components/charts/IncomeExpenseChart.tsx'));
 
 const StatCard: React.FC<{ icon: React.ElementType; title: string; value: string | number; link?: string }> = ({ icon: Icon, title, value, link }) => {
     const content = (
@@ -68,7 +69,9 @@ const DashboardPage: React.FC = () => {
                         <h2 className="text-lg font-semibold text-white">Ingresos vs. Gastos (Últimos meses)</h2>
                     </CardHeader>
                     <CardContent>
-                        <IncomeExpenseChart invoices={invoices} expenses={expenses} />
+                        <Suspense fallback={<div className="h-[300px] flex items-center justify-center text-gray-400">Cargando gráfico...</div>}>
+                            <IncomeExpenseChart invoices={invoices} expenses={expenses} />
+                        </Suspense>
                     </CardContent>
                 </Card>
 
@@ -82,7 +85,7 @@ const DashboardPage: React.FC = () => {
                                 <li key={invoice.id} className="p-4 flex justify-between items-center hover:bg-gray-800/50">
                                     <div>
                                         <p className="font-semibold text-white font-mono">{invoice.invoice_number}</p>
-                                        <p className="text-sm text-gray-400">{getClientById(invoice.client_id)?.name}</p>
+                                        <Link to={`/clients/${invoice.client_id}`} className="text-sm text-primary-400 hover:underline">{getClientById(invoice.client_id)?.name}</Link>
                                     </div>
                                     <div className="text-right">
                                         <p className="font-semibold text-white">{formatCurrency(invoice.total_cents)}</p>

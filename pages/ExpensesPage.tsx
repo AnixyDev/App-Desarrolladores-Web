@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 import Button from '../components/ui/Button.tsx';
@@ -7,7 +7,8 @@ import Input from '../components/ui/Input.tsx';
 import { Expense, RecurringExpense } from '../types.ts';
 import { formatCurrency } from '../lib/utils.ts';
 import { PlusIcon, TrashIcon, RepeatIcon } from '../components/icons/Icon.tsx';
-import ConfirmationModal from '../components/modals/ConfirmationModal.tsx';
+
+const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal.tsx'));
 
 const ExpensesPage: React.FC = () => {
     const {
@@ -216,13 +217,17 @@ const ExpensesPage: React.FC = () => {
                 </form>
             </Modal>
             
-            <ConfirmationModal 
-                isOpen={isConfirmModalOpen}
-                onClose={() => setIsConfirmModalOpen(false)}
-                onConfirm={confirmDelete}
-                title="¿Eliminar Gasto?"
-                message="Esta acción eliminará el gasto de forma permanente. ¿Estás seguro de que quieres continuar?"
-            />
+            <Suspense fallback={null}>
+                {isConfirmModalOpen && (
+                    <ConfirmationModal 
+                        isOpen={isConfirmModalOpen}
+                        onClose={() => setIsConfirmModalOpen(false)}
+                        onConfirm={confirmDelete}
+                        title="¿Eliminar Gasto?"
+                        message="Esta acción eliminará el gasto de forma permanente. ¿Estás seguro de que quieres continuar?"
+                    />
+                )}
+            </Suspense>
 
         </div>
     );

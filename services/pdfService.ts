@@ -1,15 +1,13 @@
-
-
-
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import type { Invoice, Client, Profile } from '../types.ts';
 
 const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(cents / 100);
 };
 
-export const generateInvoicePdf = (invoice: Invoice, client: Client, profile: Profile) => {
+export const generateInvoicePdf = async (invoice: Invoice, client: Client, profile: Profile) => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+
     const doc = new jsPDF();
     
     // --- Header ---

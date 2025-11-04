@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 // FIX: Switched to the centralized Icon wrapper for consistency and added the missing User icon.
 import { Users, UserPlus, Trash2, Mail, X, User } from '../components/icons/Icon.tsx';
-import ConfirmationModal from '../components/modals/ConfirmationModal.tsx';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import { UserData } from '../types.ts';
+
+const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal.tsx'));
 
 const roles: UserData['role'][] = [
   'Developer', 
@@ -182,13 +183,17 @@ const TeamManagementDashboard: React.FC = () => {
         </div>
       </div>
       
-      <ConfirmationModal
-        isOpen={isConfirmModalOpen}
-        onClose={() => setIsConfirmModalOpen(false)}
-        onConfirm={confirmDelete}
-        title="Eliminar Miembro del Equipo"
-        message={`¿Estás seguro de que quieres eliminar a ${memberToDelete?.name} del equipo? Se revocará su acceso permanentemente.`}
-      />
+      <Suspense fallback={null}>
+        {isConfirmModalOpen && (
+          <ConfirmationModal
+            isOpen={isConfirmModalOpen}
+            onClose={() => setIsConfirmModalOpen(false)}
+            onConfirm={confirmDelete}
+            title="Eliminar Miembro del Equipo"
+            message={`¿Estás seguro de que quieres eliminar a ${memberToDelete?.name} del equipo? Se revocará su acceso permanentemente.`}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };

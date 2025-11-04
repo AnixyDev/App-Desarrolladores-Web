@@ -1,5 +1,5 @@
 // pages/ProjectDetailPage.tsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
@@ -7,9 +7,10 @@ import Button from '../components/ui/Button.tsx';
 import Input from '../components/ui/Input.tsx';
 import { formatCurrency } from '../lib/utils.ts';
 import { Project, Task } from '../types.ts';
-import { PlusIcon, TrashIcon, ClockIcon, FileTextIcon, MessageSquareIcon } from '../components/icons/Icon.tsx';
-import ProjectChat from '../components/ProjectChat.tsx';
-import ConfirmationModal from '../components/modals/ConfirmationModal.tsx';
+import { PlusIcon, TrashIcon, ClockIcon, FileTextIcon, MessageSquareIcon, DollarSignIcon } from '../components/icons/Icon.tsx';
+
+const ProjectChat = lazy(() => import('../components/ProjectChat.tsx'));
+const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal.tsx'));
 
 const ProjectDetailPage: React.FC = () => {
     const { projectId } = useParams<{ projectId: string }>();
@@ -20,6 +21,8 @@ const ProjectDetailPage: React.FC = () => {
         getClientById,
         getTasksByProjectId,
         timeEntries,
+        expenses,
+        profile,
         addTask,
         toggleTask,
         deleteTask,
@@ -50,6 +53,31 @@ const ProjectDetailPage: React.FC = () => {
             hoursTracked
         };
     }, [tasks, projectTimeEntries]);
+    
+    const budgetStats = useMemo(() => {
+        if (!project || !profile || project.budget_cents <= 0) {
+            return null;
+        }
+
+        const projectExpensesCost = expenses
+            .filter(e => e.project_id === project.id)
+            .reduce((sum, e) => sum + e.amount_cents, 0);
+
+        const totalSecondsTracked = projectTimeEntries.reduce((sum, entry) => sum + entry.duration_seconds, 0);
+        const hourlyRate = profile.hourly_rate_cents;
+        const projectTimeCost = (totalSecondsTracked / 3600) * hourlyRate;
+
+        const totalCosts = projectExpensesCost + projectTimeCost;
+        const consumedPercentage = (totalCosts / project.budget_cents) * 100;
+        const remainingBudget = project.budget_cents - totalCosts;
+
+        return {
+            totalCosts,
+            consumedPercentage,
+            remainingBudget,
+        };
+    }, [project, expenses, projectTimeEntries, profile]);
+
 
     if (!project || !client) {
         return <div className="text-center text-red-500 mt-8">Proyecto o cliente no encontrado.</div>;
@@ -100,66 +128,100 @@ const ProjectDetailPage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Project Info Card */}
-                <Card className="lg:col-span-1">
-                    <CardHeader>
-                        <h2 className="text-lg font-semibold text-white">Detalles del Proyecto</h2>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <label className="text-sm font-medium text-gray-400 block">Estado</label>
-                            <select 
-                                value={project.status} 
-                                onChange={(e) => updateProjectStatus(project.id, e.target.value as Project['status'])}
-                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-600 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md bg-gray-800 text-white"
-                            >
-                                <option value="planning">Planificación</option>
-                                <option value="in-progress">En Progreso</option>
-                                <option value="completed">Completado</option>
-                                <option value="on-hold">En Pausa</option>
-                            </select>
-                        </div>
-                         <div className="grid grid-cols-2 gap-4">
+                <div className="lg:col-span-1 space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <h2 className="text-lg font-semibold text-white">Detalles del Proyecto</h2>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
                             <div>
-                                <p className="text-sm font-medium text-gray-400">Categoría</p>
-                                <p className="text-white">{project.category || 'N/A'}</p>
+                                <label className="text-sm font-medium text-gray-400 block">Estado</label>
+                                <select 
+                                    value={project.status} 
+                                    onChange={(e) => updateProjectStatus(project.id, e.target.value as Project['status'])}
+                                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-600 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md bg-gray-800 text-white"
+                                >
+                                    <option value="planning">Planificación</option>
+                                    <option value="in-progress">En Progreso</option>
+                                    <option value="completed">Completado</option>
+                                    <option value="on-hold">En Pausa</option>
+                                </select>
                             </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-400">Prioridad</p>
-                                <p className="text-white">{project.priority || 'N/A'}</p>
+                             <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-400">Categoría</p>
+                                    <p className="text-white">{project.category || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-400">Prioridad</p>
+                                    <p className="text-white">{project.priority || 'N/A'}</p>
+                                </div>
                             </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <p className="text-sm font-medium text-gray-400">Fecha de Inicio</p>
-                                <p className="text-white">{project.start_date || 'N/A'}</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-400">Fecha de Inicio</p>
+                                    <p className="text-white">{project.start_date || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-400">Fecha de Entrega</p>
+                                    <p className="text-white">{project.due_date}</p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-400">Fecha de Entrega</p>
-                                <p className="text-white">{project.due_date}</p>
+                            {project.budget_cents > 0 && (
+                                <div>
+                                    <p className="text-sm font-medium text-gray-400">Presupuesto</p>
+                                    <p className="text-white font-semibold">{formatCurrency(project.budget_cents)}</p>
+                                </div>
+                            )}
+                             <div>
+                                <p className="text-sm font-medium text-gray-400">Progreso de Tareas</p>
+                                <div className="w-full bg-gray-700 rounded-full h-2.5 mt-1">
+                                    <div className="bg-primary-600 h-2.5 rounded-full" style={{ width: `${projectStats.progress}%` }}></div>
+                                </div>
+                                 <p className="text-xs text-right text-gray-400 mt-1">{projectStats.completedTasks} de {tasks.length} completadas</p>
                             </div>
-                        </div>
-                        {project.budget_cents > 0 && (
-                            <div>
-                                <p className="text-sm font-medium text-gray-400">Presupuesto</p>
-                                <p className="text-white font-semibold">{formatCurrency(project.budget_cents)}</p>
+                             <div>
+                                <p className="text-sm font-medium text-gray-400 flex items-center gap-2"><ClockIcon className="w-4 h-4"/> Horas Registradas</p>
+                                <p className="text-2xl font-bold text-white mt-1">{projectStats.hoursTracked.toFixed(2)}h</p>
                             </div>
-                        )}
-                         <div>
-                            <p className="text-sm font-medium text-gray-400">Progreso de Tareas</p>
-                            <div className="w-full bg-gray-700 rounded-full h-2.5 mt-1">
-                                <div className="bg-primary-600 h-2.5 rounded-full" style={{ width: `${projectStats.progress}%` }}></div>
-                            </div>
-                             <p className="text-xs text-right text-gray-400 mt-1">{projectStats.completedTasks} de {tasks.length} completadas</p>
-                        </div>
-                         <div>
-                            <p className="text-sm font-medium text-gray-400 flex items-center gap-2"><ClockIcon className="w-4 h-4"/> Horas Registradas</p>
-                            <p className="text-2xl font-bold text-white mt-1">{projectStats.hoursTracked.toFixed(2)}h</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
 
-                {/* Tasks Card */}
+                    {budgetStats && project.budget_cents > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                                    <DollarSignIcon className="w-5 h-5"/> Control Presupuestario
+                                </h2>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div>
+                                    <div className="flex justify-between text-sm mb-1">
+                                        <span className="text-gray-300">Consumido</span>
+                                        <span className="font-semibold text-white">{formatCurrency(budgetStats.totalCosts)}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-700 rounded-full h-4">
+                                        <div 
+                                            className={`h-4 rounded-full text-center text-xs text-white font-bold transition-all duration-500 ${
+                                                budgetStats.consumedPercentage > 90 ? 'bg-red-600' :
+                                                budgetStats.consumedPercentage > 75 ? 'bg-yellow-500' :
+                                                'bg-green-600'
+                                            }`} 
+                                            style={{ width: `${Math.min(budgetStats.consumedPercentage, 100)}%` }}
+                                        >
+                                            {budgetStats.consumedPercentage.toFixed(0)}%
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between text-sm mt-1">
+                                        <span className="text-gray-400">Restante: {formatCurrency(budgetStats.remainingBudget)}</span>
+                                        <span className="text-gray-400">Total: {formatCurrency(project.budget_cents)}</span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+
                 <Card className="lg:col-span-2">
                     <CardHeader>
                         <h2 className="text-lg font-semibold text-white">Tareas del Proyecto</h2>
@@ -195,7 +257,6 @@ const ProjectDetailPage: React.FC = () => {
                 </Card>
             </div>
 
-            {/* Chat Card */}
             <Card>
                 <CardHeader>
                     <h2 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -203,17 +264,23 @@ const ProjectDetailPage: React.FC = () => {
                     </h2>
                 </CardHeader>
                 <CardContent>
-                    <ProjectChat projectId={project.id} />
+                    <Suspense fallback={<div className="h-[500px] flex items-center justify-center text-gray-400">Cargando chat...</div>}>
+                        <ProjectChat projectId={project.id} />
+                    </Suspense>
                 </CardContent>
             </Card>
 
-            <ConfirmationModal 
-                isOpen={isConfirmModalOpen}
-                onClose={() => setIsConfirmModalOpen(false)}
-                onConfirm={confirmDelete}
-                title="¿Eliminar Tarea?"
-                message={`¿Estás seguro de que quieres eliminar la tarea: "${taskToDelete?.description}"?`}
-            />
+            <Suspense fallback={null}>
+                {isConfirmModalOpen && (
+                    <ConfirmationModal 
+                        isOpen={isConfirmModalOpen}
+                        onClose={() => setIsConfirmModalOpen(false)}
+                        onConfirm={confirmDelete}
+                        title="¿Eliminar Tarea?"
+                        message={`¿Estás seguro de que quieres eliminar la tarea: "${taskToDelete?.description}"?`}
+                    />
+                )}
+            </Suspense>
         </div>
     );
 };

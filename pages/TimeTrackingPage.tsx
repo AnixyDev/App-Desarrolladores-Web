@@ -1,16 +1,16 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 import Button from '../components/ui/Button.tsx';
 import Input from '../components/ui/Input.tsx';
 import Modal from '../components/ui/Modal.tsx';
 import { ClockIcon, PlusIcon, SparklesIcon, RefreshCwIcon } from '../components/icons/Icon.tsx';
-import TimeDistributionChart from '../components/charts/TimeDistributionChart.tsx';
-import WeeklyHoursChart from '../components/charts/WeeklyHoursChart.tsx';
 import { useToast } from '../hooks/useToast.ts';
 import { generateTimeEntryDescription, AI_CREDIT_COSTS } from '../services/geminiService.ts';
-import BuyCreditsModal from '../components/modals/BuyCreditsModal.tsx';
+
+const TimeDistributionChart = lazy(() => import('../components/charts/TimeDistributionChart.tsx'));
+const WeeklyHoursChart = lazy(() => import('../components/charts/WeeklyHoursChart.tsx'));
+const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal.tsx'));
 
 
 interface ManualEntryForm {
@@ -155,11 +155,19 @@ const TimeTrackingPage: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                     <CardHeader><h2 className="text-lg font-semibold">Horas por Proyecto</h2></CardHeader>
-                    <CardContent><TimeDistributionChart data={timeByProject} /></CardContent>
+                    <CardContent>
+                        <Suspense fallback={<div className="h-[300px] flex items-center justify-center text-gray-400">Cargando gráfico...</div>}>
+                            <TimeDistributionChart data={timeByProject} />
+                        </Suspense>
+                    </CardContent>
                 </Card>
                  <Card>
                     <CardHeader><h2 className="text-lg font-semibold">Actividad Semanal</h2></CardHeader>
-                    <CardContent><WeeklyHoursChart data={timeByWeek} /></CardContent>
+                    <CardContent>
+                        <Suspense fallback={<div className="h-[300px] flex items-center justify-center text-gray-400">Cargando gráfico...</div>}>
+                            <WeeklyHoursChart data={timeByWeek} />
+                        </Suspense>
+                    </CardContent>
                 </Card>
             </div>
 
@@ -227,7 +235,9 @@ const TimeTrackingPage: React.FC = () => {
                 </form>
             </Modal>
             
-            <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />
+            <Suspense fallback={null}>
+                {isBuyCreditsModalOpen && <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />}
+            </Suspense>
         </div>
     );
 };

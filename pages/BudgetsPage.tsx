@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 import Button from '../components/ui/Button.tsx';
@@ -11,7 +11,8 @@ import StatusChip from '../components/ui/StatusChip.tsx';
 import EmptyState from '../components/ui/EmptyState.tsx';
 import { generateItemsForDocument, AI_CREDIT_COSTS } from '../services/geminiService.ts';
 import { useToast } from '../hooks/useToast.ts';
-import BuyCreditsModal from '../components/modals/BuyCreditsModal.tsx';
+
+const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal.tsx'));
 
 
 const BudgetsPage: React.FC = () => {
@@ -208,7 +209,9 @@ const BudgetsPage: React.FC = () => {
                 </div>
             </Modal>
             
-            <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />
+            <Suspense fallback={null}>
+                {isBuyCreditsModalOpen && <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />}
+            </Suspense>
 
         </div>
     );

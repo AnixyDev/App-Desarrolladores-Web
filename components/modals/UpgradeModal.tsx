@@ -15,7 +15,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) => {
         <div className="text-center p-4 bg-gray-800 rounded-lg">
           <ZapIcon className="w-10 h-10 text-yellow-400 mx-auto mb-2" />
           <p className="text-2xl font-bold text-white">¡Desbloquea el poder del trabajo en equipo!</p>
-          <p className="text-gray-400">Pasa de 19€/mes a 49€/mes.</p>
+          <p className="text-gray-400">Pasa a Teams por solo 35,95€ por persona/mes.</p>
         </div>
         
         <div className="space-y-2">

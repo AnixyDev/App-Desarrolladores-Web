@@ -8,7 +8,6 @@ import { FinanceSlice, createFinanceSlice } from './store/financeSlice.ts';
 import { NotificationSlice, createNotificationSlice } from './store/notificationSlice.ts';
 import { TeamSlice, createTeamSlice } from './store/teamSlice.ts';
 import { JobSlice, createJobSlice } from './store/jobSlice.ts';
-import { MOCK_DATA } from '../lib/mock-data.ts';
 
 export type AppState = AuthSlice & ClientSlice & ProjectSlice & FinanceSlice & NotificationSlice & TeamSlice & JobSlice;
 
@@ -22,8 +21,6 @@ export const useAppStore = create<AppState>()(
       ...createNotificationSlice(...a),
       ...createTeamSlice(...a),
       ...createJobSlice(...a),
-      // Initialize with mock data
-      ...MOCK_DATA,
     }),
     {
       name: 'devfreelancer-storage', // unique name

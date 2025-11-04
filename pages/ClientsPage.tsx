@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
@@ -9,8 +9,9 @@ import { Client, NewClient } from '../types.ts';
 import { EditIcon, TrashIcon, PhoneIcon, MailIcon, UsersIcon } from '../components/icons/Icon.tsx';
 import { useToast } from '../hooks/useToast.ts';
 import EmptyState from '../components/ui/EmptyState.tsx';
-import UpgradePromptModal from '../components/modals/UpgradePromptModal.tsx';
-import ConfirmationModal from '../components/modals/ConfirmationModal.tsx';
+
+const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal.tsx'));
+const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal.tsx'));
 
 
 const initialClientState: NewClient = {
@@ -143,19 +144,24 @@ const ClientsPage: React.FC = () => {
                 </form>
             </Modal>
             
-            <UpgradePromptModal 
-                isOpen={isUpgradeModalOpen} 
-                onClose={() => setIsUpgradeModalOpen(false)}
-                featureName="clientes"
-            />
-            
-            <ConfirmationModal 
-                isOpen={isConfirmModalOpen}
-                onClose={() => setIsConfirmModalOpen(false)}
-                onConfirm={confirmDelete}
-                title="¿Eliminar Cliente?"
-                message={`¿Estás seguro? Se eliminarán permanentemente todos los datos asociados a "${clientToDelete?.name}", incluyendo proyectos, facturas y gastos. Esta acción no se puede deshacer.`}
-            />
+            <Suspense fallback={null}>
+                {isUpgradeModalOpen && (
+                    <UpgradePromptModal 
+                        isOpen={isUpgradeModalOpen} 
+                        onClose={() => setIsUpgradeModalOpen(false)}
+                        featureName="clientes"
+                    />
+                )}
+                {isConfirmModalOpen && (
+                    <ConfirmationModal 
+                        isOpen={isConfirmModalOpen}
+                        onClose={() => setIsConfirmModalOpen(false)}
+                        onConfirm={confirmDelete}
+                        title="¿Eliminar Cliente?"
+                        message={`¿Estás seguro? Se eliminarán permanentemente todos los datos asociados a "${clientToDelete?.name}", incluyendo proyectos, facturas y gastos. Esta acción no se puede deshacer.`}
+                    />
+                )}
+            </Suspense>
         </div>
     );
 };

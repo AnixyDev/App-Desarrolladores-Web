@@ -33,6 +33,7 @@ export const SendIcon = Send;
 export const AlertTriangleIcon = AlertTriangle;
 export const InfoIcon = Info;
 export const BookIcon = Book;
+// FIX: Added DollarSignIcon to be available for other components.
 export const DollarSignIcon = DollarSign;
 export const TrendingUpIcon = TrendingUp;
 export const Share2Icon = Share2;

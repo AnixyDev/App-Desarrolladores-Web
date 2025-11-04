@@ -1,15 +1,15 @@
-
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import { formatCurrency } from '../lib/utils.ts';
-import ClientIncomeChart from '../components/charts/ClientIncomeChart.tsx';
 import { BriefcaseIcon, FileTextIcon, EditIcon, TrashIcon, PhoneIcon, MailIcon } from '../components/icons/Icon.tsx';
 import Button from '../components/ui/Button.tsx';
 import Modal from '../components/ui/Modal.tsx';
 import Input from '../components/ui/Input.tsx';
 import { Client, NewClient } from '../types.ts';
+
+const ClientIncomeChart = lazy(() => import('../components/charts/ClientIncomeChart.tsx'));
 
 const ClientDetailPage: React.FC = () => {
     const { clientId } = useParams<{ clientId: string }>();
@@ -91,7 +91,9 @@ const ClientDetailPage: React.FC = () => {
                     <Card>
                         <CardHeader><h2 className="text-lg font-semibold">Resumen de Ingresos</h2></CardHeader>
                         <CardContent>
-                            <ClientIncomeChart invoices={clientInvoices} />
+                            <Suspense fallback={<div className="h-[300px] flex items-center justify-center text-gray-400">Cargando gráfico...</div>}>
+                                <ClientIncomeChart invoices={clientInvoices} />
+                            </Suspense>
                         </CardContent>
                     </Card>
                 </div>

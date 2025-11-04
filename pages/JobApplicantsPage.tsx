@@ -1,5 +1,5 @@
 // pages/JobApplicantsPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
@@ -10,8 +10,9 @@ import { JobApplication } from '../types.ts';
 import EmptyState from '../components/ui/EmptyState.tsx';
 import { summarizeApplicant, AI_CREDIT_COSTS } from '../services/geminiService.ts';
 import { useToast } from '../hooks/useToast.ts';
-import BuyCreditsModal from '../components/modals/BuyCreditsModal.tsx';
-import UpgradePromptModal from '../components/modals/UpgradePromptModal.tsx';
+
+const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal.tsx'));
+const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal.tsx'));
 
 interface ApplicantSummary {
     summary: string;
@@ -29,6 +30,7 @@ const JobApplicantsPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
+    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
     const job = jobId ? getJobById(jobId) : null;
     const applications = jobId ? getApplicationsByJobId(jobId) : [];
@@ -39,8 +41,18 @@ const JobApplicantsPage: React.FC = () => {
         }
     }, [selectedApplication, viewApplication]);
 
-    if (profile?.plan === 'Free') {
-        return <UpgradePromptModal isOpen={true} onClose={() => {}} featureName="gestión de candidatos" />;
+    useEffect(() => {
+        if (profile?.plan === 'Free') {
+            setIsUpgradeModalOpen(true);
+        }
+    }, [profile?.plan]);
+    
+    if (isUpgradeModalOpen) {
+        return (
+            <Suspense fallback={null}>
+                <UpgradePromptModal isOpen={true} onClose={() => setIsUpgradeModalOpen(false)} featureName="gestión de candidatos" />
+            </Suspense>
+        );
     }
     
     if (!job) {
@@ -48,12 +60,12 @@ const JobApplicantsPage: React.FC = () => {
     }
 
     const handleGenerateSummary = async (app: JobApplication) => {
-        setSelectedApplication(app);
         if (profile.ai_credits < AI_CREDIT_COSTS.summarizeApplicant) {
             setIsBuyCreditsModalOpen(true);
             return;
         }
         
+        setSelectedApplication(app);
         setIsLoading(true);
         setIsModalOpen(true);
         setSummary(null);
@@ -155,7 +167,9 @@ const JobApplicantsPage: React.FC = () => {
                 ) : null}
             </Modal>
             
-            <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />
+            <Suspense fallback={null}>
+                {isBuyCreditsModalOpen && <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />}
+            </Suspense>
         </div>
     );
 };

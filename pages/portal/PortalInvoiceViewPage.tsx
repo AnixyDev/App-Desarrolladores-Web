@@ -1,16 +1,16 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAppStore } from '../../hooks/useAppStore.tsx';
 import Card, { CardHeader, CardContent, CardFooter } from '../../components/ui/Card.tsx';
 import { formatCurrency } from '../../lib/utils.ts';
 import Button from '../../components/ui/Button.tsx';
 import { generateInvoicePdf } from '../../services/pdfService.ts';
-import { DownloadIcon } from '../../components/icons/Icon.tsx';
+import { DownloadIcon, RefreshCwIcon } from '../../components/icons/Icon.tsx';
 
 const PortalInvoiceViewPage: React.FC = () => {
     const { invoiceId } = useParams<{ invoiceId: string }>();
     const { invoices, getClientById, profile } = useAppStore();
+    const [isDownloading, setIsDownloading] = useState(false);
 
     const invoice = invoices.find(i => i.id === invoiceId);
 
@@ -20,10 +20,12 @@ const PortalInvoiceViewPage: React.FC = () => {
     
     const client = getClientById(invoice.client_id);
 
-    const handleDownload = () => {
+    const handleDownload = async () => {
+        setIsDownloading(true);
         if (client && profile) {
-            generateInvoicePdf(invoice, client, profile);
+            await generateInvoicePdf(invoice, client, profile);
         }
+        setIsDownloading(false);
     };
 
     return (
@@ -33,7 +35,10 @@ const PortalInvoiceViewPage: React.FC = () => {
                     <h2 className="text-2xl font-bold text-white">Factura {invoice.invoice_number}</h2>
                     <p className="text-gray-400">Fecha de emisión: {invoice.issue_date}</p>
                 </div>
-                <Button onClick={handleDownload}><DownloadIcon className='w-4 h-4 mr-2'/> Descargar PDF</Button>
+                <Button onClick={handleDownload} disabled={isDownloading}>
+                    {isDownloading ? <RefreshCwIcon className='w-4 h-4 mr-2 animate-spin'/> : <DownloadIcon className='w-4 h-4 mr-2'/>}
+                    {isDownloading ? 'Generando...' : 'Descargar PDF'}
+                </Button>
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-8">

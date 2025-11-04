@@ -1,13 +1,12 @@
-
-
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Briefcase, DollarSign, Clock, Zap, Target, Filter, ChevronDown, TrendingUp, Search, Star, InfoIcon } from 'lucide-react';
 import { Job } from '../types.ts';
-import ProposalGeneratorModal from '../components/modals/ProposalGeneratorModal.tsx';
 import Button from '../components/ui/Button.tsx';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import EmptyState from '../components/ui/EmptyState.tsx';
+
+const ProposalGeneratorModal = lazy(() => import('../components/modals/ProposalGeneratorModal.tsx'));
 
 const JobCard: React.FC<{ job: Job, onApply: (job: Job) => void, onSave: (jobId: string) => void, isSaved: boolean }> = ({ job, onApply, onSave, isSaved }) => {
   let compatibilityColor = 'text-red-400 bg-red-900/30';
@@ -162,13 +161,15 @@ const JobMarketDashboard = () => {
         </div>
       </div>
       
-      {selectedJob && (
-        <ProposalGeneratorModal 
-            isOpen={isProposalModalOpen}
-            onClose={() => setIsProposalModalOpen(false)}
-            job={selectedJob}
-        />
-      )}
+      <Suspense fallback={null}>
+        {selectedJob && isProposalModalOpen && (
+          <ProposalGeneratorModal 
+              isOpen={isProposalModalOpen}
+              onClose={() => setIsProposalModalOpen(false)}
+              job={selectedJob}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };

@@ -1,29 +1,37 @@
 // pages/JobDetailPage.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 import Button from '../components/ui/Button.tsx';
 import { DollarSign, Clock, Zap, Star, Briefcase } from 'lucide-react';
 import { Job } from '../types.ts';
-import ProposalGeneratorModal from '../components/modals/ProposalGeneratorModal.tsx';
-import { marked } from 'marked';
+
+const ProposalGeneratorModal = lazy(() => import('../components/modals/ProposalGeneratorModal.tsx'));
 
 const JobDetailPage: React.FC = () => {
     const { jobId } = useParams<{ jobId: string }>();
     const { getJobById, saveJob, savedJobIds } = useAppStore();
     
     const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
+    const [descriptionHtml, setDescriptionHtml] = useState<string | null>(null);
 
     const job = jobId ? getJobById(jobId) : null;
     
+    useEffect(() => {
+        if (job) {
+            import('marked').then(markedModule => {
+                const html = markedModule.marked.parse(job.descripcionLarga || job.descripcionCorta) as string;
+                setDescriptionHtml(html);
+            });
+        }
+    }, [job]);
+
     if (!job) {
         return <div className="text-center text-red-500">Oferta de trabajo no encontrada.</div>;
     }
     
     const isSaved = savedJobIds.includes(job.id);
-    
-    const descriptionHtml = marked.parse(job.descripcionLarga || job.descripcionCorta) as string;
 
     return (
         <div className="space-y-6">
@@ -49,7 +57,11 @@ const JobDetailPage: React.FC = () => {
                     <Card>
                         <CardHeader><h2 className="text-xl font-semibold">Descripción del Proyecto</h2></CardHeader>
                         <CardContent>
-                            <div className="prose prose-invert max-w-none text-gray-300" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
+                            {descriptionHtml === null ? (
+                                <p className="text-gray-400">Cargando descripción...</p>
+                            ) : (
+                                <div className="prose prose-invert max-w-none text-gray-300" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
+                            )}
                         </CardContent>
                     </Card>
                 </div>
@@ -84,13 +96,15 @@ const JobDetailPage: React.FC = () => {
                 </div>
             </div>
             
-             {job && (
-                <ProposalGeneratorModal 
-                    isOpen={isProposalModalOpen}
-                    onClose={() => setIsProposalModalOpen(false)}
-                    job={job}
-                />
-            )}
+            <Suspense fallback={null}>
+                {job && isProposalModalOpen && (
+                    <ProposalGeneratorModal 
+                        isOpen={isProposalModalOpen}
+                        onClose={() => setIsProposalModalOpen(false)}
+                        job={job}
+                    />
+                )}
+            </Suspense>
         </div>
     );
 };

@@ -1,13 +1,6 @@
 import { StateCreator } from 'zustand';
-import { Profile, GoogleJwtPayload } from '../../types.ts';
+import { Profile, GoogleJwtPayload, UserData } from '../../types.ts';
 import { AppState } from '../useAppStore.tsx';
-import { MOCK_DATA } from '../../lib/mock-data.ts';
-
-// Al registrarse un nuevo usuario, se le cargará con un estado inicial poblado
-// para que pueda explorar la aplicación con datos de ejemplo.
-// Se excluye 'profile' porque se genera dinámicamente.
-const { ...NEW_USER_STATE } = MOCK_DATA;
-
 
 export interface AuthSlice {
   isAuthenticated: boolean;
@@ -22,51 +15,77 @@ export interface AuthSlice {
   consumeCredits: (amount: number) => void;
 }
 
+const createCleanState = (newProfile: Profile) => {
+    const newUserData: UserData = {
+        id: newProfile.id,
+        name: `${newProfile.full_name} (Tú)`,
+        email: newProfile.email,
+        role: 'Admin',
+        status: 'Activo'
+    };
+    return {
+        isAuthenticated: true,
+        profile: newProfile,
+        clients: [],
+        projects: [],
+        tasks: [],
+        invoices: [],
+        expenses: [],
+        recurringExpenses: [],
+        timeEntries: [],
+        budgets: [],
+        proposals: [],
+        contracts: [],
+        users: [newUserData],
+        referrals: [],
+        articles: [],
+        jobs: [],
+        applications: [],
+        savedJobIds: [],
+        monthlyGoalCents: 500000,
+    };
+};
+
 export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, get) => ({
     isAuthenticated: false,
     profile: null,
     login: (email, pass) => {
-        // El inicio de sesión con email/contraseña no está implementado en este prototipo.
-        // Los usuarios deben usar el inicio de sesión de Google o registrar una nueva cuenta.
-        console.error("El inicio de sesión con email/contraseña no está implementado en este prototipo.");
+        // Simulación de login para prototipo:
+        // Comprueba si el email coincide con el perfil guardado en localStorage.
+        // No comprueba la contraseña.
+        const storedProfile = get().profile;
+        if (storedProfile && storedProfile.email.toLowerCase() === email.toLowerCase()) {
+            set({ isAuthenticated: true });
+            return true;
+        }
         return false;
     },
     loginWithGoogle: (payload) => {
         const existingProfile = get().profile;
 
-        // Si un usuario ya está en el estado y su email coincide, simplemente se loguea.
-        // Esto maneja la re-autenticación para una sesión de usuario existente.
         if (existingProfile && existingProfile.email === payload.email) {
             set({ isAuthenticated: true });
         } else {
-            // De lo contrario, es un usuario nuevo o diferente.
-            // Se crea un nuevo perfil y se resetea el resto del estado de la app con datos de ejemplo.
             const newProfile: Profile = {
               id: payload.sub,
               full_name: payload.name,
               email: payload.email,
-              avatar_url: payload.picture, // Captura la imagen de Google
+              avatar_url: payload.picture,
               business_name: `${payload.name}'s Business`,
               tax_id: '',
-              hourly_rate_cents: 7500, // 75 EUR/hr
+              hourly_rate_cents: 7500,
               pdf_color: '#d9009f',
-              plan: 'Pro', // Inicia en Pro para mostrar más funcionalidades
+              plan: 'Pro',
               ai_credits: 500,
               affiliate_code: payload.name.toUpperCase().replace(/\s/g, '') + Date.now().toString().slice(-3),
               bio: 'Desarrollador Full-Stack apasionado por crear aplicaciones web modernas y eficientes.',
               skills: ['React', 'Node.js', 'TypeScript', 'Next.js'],
               portfolio_url: '',
             };
-            set({ 
-                isAuthenticated: true, 
-                profile: newProfile,
-                ...NEW_USER_STATE
-            });
+            set(createCleanState(newProfile));
         }
     },
     logout: () => set({
-        // Solo se establece isAuthenticated a false. Esto preserva los datos del usuario en localStorage
-        // para que puedan volver a iniciar sesión con Google y encontrar sus datos.
         isAuthenticated: false,
     }),
     register: (name, email, pass) => {
@@ -74,24 +93,19 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
           id: `u-${Date.now()}`,
           full_name: name,
           email: email,
-          avatar_url: undefined, // Sin avatar por defecto en registro manual
+          avatar_url: undefined,
           business_name: `${name}'s Business`,
           tax_id: '',
-          hourly_rate_cents: 7500, // 75 EUR/hr
+          hourly_rate_cents: 7500,
           pdf_color: '#d9009f',
-          plan: 'Pro', // Inicia en Pro para mostrar más funcionalidades
+          plan: 'Pro',
           ai_credits: 500,
           affiliate_code: name.toUpperCase().replace(/\s/g, '') + Date.now().toString().slice(-3),
           bio: 'Desarrollador Full-Stack apasionado por crear aplicaciones web modernas y eficientes.',
           skills: ['React', 'Node.js', 'TypeScript', 'Next.js'],
           portfolio_url: '',
         };
-         // Para un nuevo registro, siempre empezar con un estado fresco y poblado.
-        set({ 
-            isAuthenticated: true,
-            profile: newProfile,
-            ...NEW_USER_STATE
-        });
+        set(createCleanState(newProfile));
         return true;
     },
     updateProfile: (newProfileData: Profile) => set({ profile: newProfileData }),

@@ -6,7 +6,7 @@ import Button from '../../components/ui/Button.tsx';
 import { useAppStore } from '../../hooks/useAppStore.tsx';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { GoogleJwtPayload } from '../../types.ts';
-import { AlertTriangleIcon, InfoIcon } from '../../components/icons/Icon.tsx';
+import { AlertTriangleIcon } from '../../components/icons/Icon.tsx';
 import { jwtDecode } from '../../lib/utils.ts';
 
 const LoginPage: React.FC = () => {
@@ -21,12 +21,11 @@ const LoginPage: React.FC = () => {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        setShowGoogleConfigError(false);
         const success = login(email, password);
         if (success) {
             navigate('/');
         } else {
-            setError('Credenciales incorrectas. Inténtalo de nuevo.');
+            setError('Email no encontrado o incorrecto. Por favor, regístrate o usa Google.');
         }
     };
 
@@ -72,7 +71,7 @@ const LoginPage: React.FC = () => {
                     </div>
                 </div>
             )}
-            
+
             <form onSubmit={handleSubmit} className="space-y-6">
                 <Input 
                     label="Email" 

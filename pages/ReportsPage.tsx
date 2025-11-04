@@ -1,15 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 import Button from '../components/ui/Button.tsx';
 import { formatCurrency } from '../lib/utils.ts';
 import { DownloadIcon, DollarSignIcon, TrendingUpIcon, UsersIcon, ClockIcon, SparklesIcon, RefreshCwIcon } from '../components/icons/Icon.tsx';
-import ProfitabilityByClientChart from '../components/charts/ProfitabilityByClientChart.tsx';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { analyzeProfitability, AI_CREDIT_COSTS } from '../services/geminiService.ts';
-import BuyCreditsModal from '../components/modals/BuyCreditsModal.tsx';
 import { useToast } from '../hooks/useToast.ts';
+
+const ProfitabilityByClientChart = lazy(() => import('../components/charts/ProfitabilityByClientChart.tsx'));
+const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal.tsx'));
 
 interface FinancialAnalysis {
     summary: string;
@@ -82,7 +81,10 @@ const ReportsPage: React.FC = () => {
     };
   }, [filteredData, clients, projects]);
   
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+    
     const doc = new jsPDF();
     doc.setFontSize(18);
     doc.text(`Reporte Financiero (${startDate} a ${endDate})`, 14, 22);
@@ -184,14 +186,18 @@ const ReportsPage: React.FC = () => {
         <CardHeader><h2 className="text-lg font-semibold text-white flex items-center gap-2"><UsersIcon className="w-5 h-5"/> Rentabilidad por Cliente</h2></CardHeader>
         <CardContent>
             {reportKpis.clientProfitability.length > 0 ? (
-                <ProfitabilityByClientChart data={reportKpis.clientProfitability} />
+                <Suspense fallback={<div className="h-[300px] flex items-center justify-center text-gray-400">Cargando gráfico...</div>}>
+                    <ProfitabilityByClientChart data={reportKpis.clientProfitability} />
+                </Suspense>
             ) : (
                 <p className="text-gray-400 text-center py-8">No hay suficientes datos de ingresos para mostrar este gráfico.</p>
             )}
         </CardContent>
       </Card>
       
-       <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />
+        <Suspense fallback={null}>
+            {isBuyCreditsModalOpen && <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />}
+        </Suspense>
     </div>
   );
 };

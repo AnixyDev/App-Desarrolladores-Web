@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
@@ -6,11 +6,12 @@ import Button from '../components/ui/Button.tsx';
 import { Invoice } from '../types.ts';
 import { formatCurrency } from '../lib/utils.ts';
 import { generateInvoicePdf } from '../services/pdfService.ts';
-import { DownloadIcon, TrashIcon, CheckCircleIcon, ClockIcon } from '../components/icons/Icon.tsx';
+import { DownloadIcon, TrashIcon, CheckCircleIcon, ClockIcon, RefreshCwIcon } from '../components/icons/Icon.tsx';
 import StatusChip from '../components/ui/StatusChip.tsx';
-import UpgradePromptModal from '../components/modals/UpgradePromptModal.tsx';
-import InvoiceFromTimeModal from '../components/modals/InvoiceFromTimeModal.tsx';
-import ConfirmationModal from '../components/modals/ConfirmationModal.tsx';
+
+const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal.tsx'));
+const InvoiceFromTimeModal = lazy(() => import('../components/modals/InvoiceFromTimeModal.tsx'));
+const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal.tsx'));
 
 
 const InvoicesPage: React.FC = () => {
@@ -27,6 +28,7 @@ const InvoicesPage: React.FC = () => {
     const [isTimeInvoiceModalOpen, setIsTimeInvoiceModalOpen] = useState(false);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
+    const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
     const monthlyInvoiceCount = useMemo(() => {
         const today = new Date();
@@ -46,11 +48,13 @@ const InvoicesPage: React.FC = () => {
         }
     };
 
-    const handleDownloadPdf = (invoice: Invoice) => {
+    const handleDownloadPdf = async (invoice: Invoice) => {
+        setIsDownloading(invoice.id);
         const client = getClientById(invoice.client_id);
         if (client) {
-            generateInvoicePdf(invoice, client, profile);
+            await generateInvoicePdf(invoice, client, profile);
         }
+        setIsDownloading(null);
     };
     
     const handleGenerateFromTime = (clientId: string, projectId: string, timeEntryIds: string[]) => {
@@ -104,14 +108,16 @@ const InvoicesPage: React.FC = () => {
                                 {invoices.map(invoice => (
                                     <tr key={invoice.id} className="border-b border-gray-800 hover:bg-gray-800/50">
                                         <td className="p-4 font-mono text-white">{invoice.invoice_number}</td>
-                                        <td className="p-4 text-primary-400"><Link to={`/clients/${invoice.client_id}`}>{getClientById(invoice.client_id)?.name}</Link></td>
+                                        <td className="p-4 text-primary-400"><Link to={`/clients/${invoice.client_id}`} className="hover:underline">{getClientById(invoice.client_id)?.name}</Link></td>
                                         <td className="p-4 text-gray-300">{invoice.issue_date}</td>
                                         <td className="p-4 text-white font-semibold">{formatCurrency(invoice.total_cents)}</td>
                                         <td className="p-4"><StatusChip type="invoice" status={invoice.paid ? 'paid' : 'pending'} dueDate={invoice.due_date} /></td>
                                         <td className="p-4">
                                             <div className="flex gap-2">
                                                 {!invoice.paid && <Button size="sm" variant="secondary" title="Marcar como pagada" aria-label={`Marcar como pagada la factura ${invoice.invoice_number}`} onClick={() => markInvoiceAsPaid(invoice.id)}><CheckCircleIcon className="w-4 h-4 text-green-400"/></Button>}
-                                                <Button size="sm" variant="secondary" title="Descargar PDF" aria-label={`Descargar PDF de la factura ${invoice.invoice_number}`} onClick={() => handleDownloadPdf(invoice)}><DownloadIcon className="w-4 h-4" /></Button>
+                                                <Button size="sm" variant="secondary" title="Descargar PDF" aria-label={`Descargar PDF de la factura ${invoice.invoice_number}`} onClick={() => handleDownloadPdf(invoice)} disabled={isDownloading === invoice.id}>
+                                                    {isDownloading === invoice.id ? <RefreshCwIcon className="w-4 h-4 animate-spin" /> : <DownloadIcon className="w-4 h-4" />}
+                                                </Button>
                                                 <Button size="sm" variant="danger" title="Eliminar" aria-label={`Eliminar factura ${invoice.invoice_number}`} onClick={() => handleDeleteClick(invoice)}><TrashIcon className="w-4 h-4" /></Button>
                                             </div>
                                         </td>
@@ -123,25 +129,31 @@ const InvoicesPage: React.FC = () => {
                 </CardContent>
             </Card>
 
-            <UpgradePromptModal 
-                isOpen={isUpgradeModalOpen} 
-                onClose={() => setIsUpgradeModalOpen(false)}
-                featureName="facturas este mes"
-            />
-            
-            <InvoiceFromTimeModal
-                isOpen={isTimeInvoiceModalOpen}
-                onClose={() => setIsTimeInvoiceModalOpen(false)}
-                onGenerate={handleGenerateFromTime}
-            />
-            
-            <ConfirmationModal 
-                isOpen={isConfirmModalOpen}
-                onClose={() => setIsConfirmModalOpen(false)}
-                onConfirm={confirmDelete}
-                title="¿Eliminar Factura?"
-                message={`¿Estás seguro de que quieres eliminar la factura #${invoiceToDelete?.invoice_number}? Esta acción no se puede deshacer.`}
-            />
+            <Suspense fallback={null}>
+                {isUpgradeModalOpen && (
+                    <UpgradePromptModal 
+                        isOpen={isUpgradeModalOpen} 
+                        onClose={() => setIsUpgradeModalOpen(false)}
+                        featureName="facturas este mes"
+                    />
+                )}
+                {isTimeInvoiceModalOpen && (
+                    <InvoiceFromTimeModal
+                        isOpen={isTimeInvoiceModalOpen}
+                        onClose={() => setIsTimeInvoiceModalOpen(false)}
+                        onGenerate={handleGenerateFromTime}
+                    />
+                )}
+                {isConfirmModalOpen && (
+                    <ConfirmationModal 
+                        isOpen={isConfirmModalOpen}
+                        onClose={() => setIsConfirmModalOpen(false)}
+                        onConfirm={confirmDelete}
+                        title="¿Eliminar Factura?"
+                        message={`¿Estás seguro de que quieres eliminar la factura #${invoiceToDelete?.invoice_number}? Esta acción no se puede deshacer.`}
+                    />
+                )}
+            </Suspense>
         </div>
     );
 };
