@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, lazy, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
@@ -28,6 +29,7 @@ const ProposalsPage = lazy(() => import('./pages/ProposalsPage.tsx'));
 const ContractsPage = lazy(() => import('./pages/ContractsPage.tsx'));
 const TimeTrackingPage = lazy(() => import('./pages/TimeTrackingPage.tsx'));
 const ReportsPage = lazy(() => import('./pages/ReportsPage.tsx'));
+const ProfitabilityReportPage = lazy(() => import('./pages/ProfitabilityReportPage.tsx'));
 const TaxLedgerPage = lazy(() => import('./pages/TaxLedgerPage.tsx'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage.tsx'));
 const AIAssistantPage = lazy(() => import('./pages/AIAssistantPage.tsx'));
@@ -154,6 +156,7 @@ const App: React.FC = () => {
                         <Route path="contracts" element={<ContractsPage />} />
                         <Route path="time-tracking" element={<TimeTrackingPage />} />
                         <Route path="reports" element={<ReportsPage />} />
+                        <Route path="reports/profitability" element={<ProfitabilityReportPage />} />
                         <Route path="tax-ledger" element={<TaxLedgerPage />} />
                         <Route path="settings" element={<SettingsPage />} />
                         <Route path="ai-assistant" element={<AIAssistantPage />} />

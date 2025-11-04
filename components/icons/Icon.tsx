@@ -6,7 +6,8 @@ import {
     MessageSquare, Sparkles, Download, Clock, Send, AlertTriangle, Info,
     Book, DollarSign, TrendingUp, Share2, Copy, FileSignature, Signature,
     Search, RefreshCw, GitBranch, Settings, Shield, UserPlus, Trash2,
-    X, Pause, Play, BrainCircuit, Link, Zap, Star, Inbox, Save
+    X, Pause, Play, BrainCircuit, Link, Zap, Star, Inbox, Save,
+    ArrowUpCircle, ArrowDownCircle, ChevronUp
 } from 'lucide-react';
 
 export const MenuIcon = Menu;
@@ -57,6 +58,9 @@ export const StarIcon = Star;
 export const InboxIcon = Inbox;
 // FIX: Added SaveIcon to be available for other components.
 export const SaveIcon = Save;
+export const ArrowUpCircleIcon = ArrowUpCircle;
+export const ArrowDownCircleIcon = ArrowDownCircle;
+export const ChevronUpIcon = ChevronUp;
 
 
 // Specific named exports for components that need them

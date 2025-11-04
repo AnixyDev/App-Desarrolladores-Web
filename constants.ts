@@ -18,7 +18,10 @@ export const SIDEBAR_STRUCTURE = [
         { href: '/contracts', label: 'Contratos', icon: BookOpen },
     ]},
     { type: 'link', href: '/time-tracking', label: 'Time Tracking', icon: Clock },
-    { type: 'link', href: '/reports', label: 'Reportes', icon: TrendingUp },
+    { type: 'group', label: 'Reportes', icon: TrendingUp, items: [
+        { href: '/reports', label: 'Resumen General', icon: TrendingUp },
+        { href: '/reports/profitability', label: 'Rentabilidad', icon: DollarSign },
+    ]},
     { type: 'link', href: '/tax-ledger', label: 'Libro Fiscal', icon: BookOpen },
     { type: 'link', href: '/ai-assistant', label: 'Asistente IA', icon: Sparkles },
     { type: 'group', label: 'Marketplace', icon: TrendingUp, items: [
