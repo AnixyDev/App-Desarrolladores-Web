@@ -6,7 +6,7 @@ import Button from '../components/ui/Button.tsx';
 import Input from '../components/ui/Input.tsx';
 import Modal from '../components/ui/Modal.tsx';
 import { InvoiceItem } from '../types.ts';
-import { PlusIcon, TrashIcon, SparklesIcon } from '../components/icons/Icon.tsx';
+import { PlusIcon, TrashIcon, SparklesIcon, RepeatIcon } from '../components/icons/Icon.tsx';
 import { useToast } from '../hooks/useToast.ts';
 import { generateItemsForDocument, AI_CREDIT_COSTS } from '../services/geminiService.ts';
 import BuyCreditsModal from '../components/modals/BuyCreditsModal.tsx';
@@ -19,6 +19,7 @@ const CreateInvoicePage: React.FC = () => {
         timeEntries, 
         profile, 
         addInvoice,
+        addRecurringInvoice,
         consumeCredits
     } = useAppStore();
     const navigate = useNavigate();
@@ -31,7 +32,10 @@ const CreateInvoicePage: React.FC = () => {
         issue_date: new Date().toISOString().split('T')[0],
         due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         items: [{ description: '', quantity: 1, price_cents: 0 }],
-        tax_percent: 21
+        tax_percent: 21,
+        isRecurring: false,
+        frequency: 'monthly' as 'monthly' | 'yearly',
+        start_date: new Date().toISOString().split('T')[0],
     };
     const [newInvoice, setNewInvoice] = useState(initialInvoiceState);
     const [timeEntryIdsToBill, setTimeEntryIdsToBill] = useState<string[]>([]);
@@ -87,8 +91,13 @@ const CreateInvoicePage: React.FC = () => {
 
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setNewInvoice(prev => ({ ...prev, [name]: value }));
+        const { name, value, type } = e.target;
+        if (type === 'checkbox') {
+             const { checked } = e.target as HTMLInputElement;
+             setNewInvoice(prev => ({ ...prev, [name]: checked }));
+        } else {
+            setNewInvoice(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleItemChange = (index: number, field: keyof InvoiceItem, value: string | number) => {
@@ -119,8 +128,27 @@ const CreateInvoicePage: React.FC = () => {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        addInvoice(newInvoice, timeEntryIdsToBill);
-        addToast('Factura creada con éxito', 'success');
+        if (newInvoice.isRecurring) {
+            addRecurringInvoice({
+                client_id: newInvoice.client_id,
+                project_id: newInvoice.project_id,
+                items: newInvoice.items,
+                tax_percent: newInvoice.tax_percent,
+                frequency: newInvoice.frequency,
+                start_date: newInvoice.start_date,
+            });
+            addToast('Factura recurrente creada. La primera factura se generará ahora.', 'success');
+        } else {
+            addInvoice({
+                 client_id: newInvoice.client_id,
+                 project_id: newInvoice.project_id,
+                 issue_date: newInvoice.issue_date,
+                 due_date: newInvoice.due_date,
+                 items: newInvoice.items,
+                 tax_percent: newInvoice.tax_percent,
+            }, timeEntryIdsToBill);
+            addToast('Factura creada con éxito', 'success');
+        }
         navigate('/invoices');
     };
     
@@ -172,10 +200,30 @@ const CreateInvoicePage: React.FC = () => {
                         </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <Input wrapperClassName="sm:col-span-1" label="Fecha de Emisión" name="issue_date" type="date" value={newInvoice.issue_date} onChange={handleInputChange} />
-                        <Input wrapperClassName="sm:col-span-1" label="Fecha de Vencimiento" name="due_date" type="date" value={newInvoice.due_date} onChange={handleInputChange} />
+                        <Input wrapperClassName="sm:col-span-1" label="Fecha de Emisión" name="issue_date" type="date" value={newInvoice.issue_date} onChange={handleInputChange} disabled={newInvoice.isRecurring} />
+                        <Input wrapperClassName="sm:col-span-1" label="Fecha de Vencimiento" name="due_date" type="date" value={newInvoice.due_date} onChange={handleInputChange} disabled={newInvoice.isRecurring} />
                         <Input wrapperClassName="sm:col-span-1" label="IVA (%)" name="tax_percent" type="number" value={newInvoice.tax_percent} onChange={handleInputChange} />
                     </div>
+
+                    <div className="pt-4 border-t border-gray-700">
+                        <div className="flex items-center gap-3">
+                             <input type="checkbox" id="isRecurring" name="isRecurring" checked={newInvoice.isRecurring} onChange={handleInputChange} className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-primary-600 focus:ring-primary-500"/>
+                            <label htmlFor="isRecurring" className="font-medium text-gray-200 flex items-center gap-2"><RepeatIcon className="w-4 h-4" /> Hacer esta factura recurrente</label>
+                        </div>
+                        {newInvoice.isRecurring && (
+                            <div className="grid grid-cols-2 gap-4 mt-4 p-4 bg-gray-800/50 rounded-lg">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Frecuencia</label>
+                                    <select name="frequency" value={newInvoice.frequency} onChange={handleInputChange} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
+                                        <option value="monthly">Mensual</option>
+                                        <option value="yearly">Anual</option>
+                                    </select>
+                                </div>
+                                 <Input label="Fecha de Inicio" name="start_date" type="date" value={newInvoice.start_date} onChange={handleInputChange} />
+                            </div>
+                        )}
+                    </div>
+
                 </CardContent>
             </Card>
 

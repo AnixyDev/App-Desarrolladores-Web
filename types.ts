@@ -15,6 +15,9 @@ export interface Profile {
   skills?: string[];
   portfolio_url?: string;
   avatar_url?: string; // Nueva propiedad para la imagen de perfil
+  payment_reminders_enabled: boolean;
+  reminder_template_upcoming: string;
+  reminder_template_overdue: string;
 }
 
 export interface GoogleJwtPayload {
@@ -83,6 +86,20 @@ export interface Invoice {
   payment_date: string | null;
   created_at: string;
 }
+
+export interface RecurringInvoice {
+  id: string;
+  user_id: string;
+  client_id: string;
+  project_id: string | null;
+  items: InvoiceItem[];
+  tax_percent: number;
+  frequency: 'monthly' | 'yearly';
+  start_date: string;
+  next_due_date: string;
+  created_at: string;
+}
+
 
 export interface Expense {
   id: string;

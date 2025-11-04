@@ -1,9 +1,10 @@
 import { StateCreator } from 'zustand';
-import { Invoice, Expense, RecurringExpense, Budget, Proposal, Contract } from '../../types.ts';
+import { Invoice, Expense, RecurringExpense, Budget, Proposal, Contract, RecurringInvoice } from '../../types.ts';
 import { AppState } from '../useAppStore.tsx';
 
 export interface FinanceSlice {
   invoices: Invoice[];
+  recurringInvoices: RecurringInvoice[];
   expenses: Expense[];
   recurringExpenses: RecurringExpense[];
   budgets: Budget[];
@@ -13,6 +14,9 @@ export interface FinanceSlice {
   addInvoice: (invoiceData: any, timeEntryIdsToBill?: string[]) => void;
   deleteInvoice: (id: string) => void;
   markInvoiceAsPaid: (id: string) => void;
+  addRecurringInvoice: (recurringData: any) => void;
+  deleteRecurringInvoice: (id: string) => void;
+  checkAndGenerateRecurringInvoices: () => void;
   addExpense: (expense: Omit<Expense, 'id'|'user_id'|'created_at'>) => void;
   deleteExpense: (id: string) => void;
   addRecurringExpense: (expense: Omit<RecurringExpense, 'id'|'user_id'|'created_at'|'next_due_date'>) => void;
@@ -28,6 +32,7 @@ export interface FinanceSlice {
 
 export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = (set, get) => ({
     invoices: [],
+    recurringInvoices: [],
     expenses: [],
     recurringExpenses: [],
     budgets: [],
@@ -66,6 +71,51 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
              get().addNotification(`La factura #${invoice.invoice_number} ha sido pagada.`, '/invoices');
         }
         set(state => ({ invoices: state.invoices.map(i => i.id === id ? { ...i, paid: true, payment_date: new Date().toISOString().split('T')[0] } : i) }));
+    },
+    addRecurringInvoice: (recurringData) => {
+        const newRecurring: RecurringInvoice = {
+            ...recurringData,
+            id: `rec-inv-${Date.now()}`,
+            user_id: 'u-1',
+            next_due_date: recurringData.start_date,
+            created_at: new Date().toISOString(),
+        };
+        set(state => ({ recurringInvoices: [...state.recurringInvoices, newRecurring] }));
+        get().checkAndGenerateRecurringInvoices(); // Check immediately to create the first one
+    },
+    deleteRecurringInvoice: (id) => set(state => ({ recurringInvoices: state.recurringInvoices.filter(ri => ri.id !== id) })),
+    checkAndGenerateRecurringInvoices: () => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const recurringInvoices = get().recurringInvoices;
+        const newInvoices: Invoice[] = [];
+        const updatedRecurringInvoices = recurringInvoices.map(rec => {
+            const nextDueDate = new Date(rec.next_due_date);
+            if (nextDueDate <= today) {
+                // Generate a new invoice
+                const newInvoiceData = {
+                    client_id: rec.client_id,
+                    project_id: rec.project_id,
+                    issue_date: new Date().toISOString().split('T')[0],
+                    due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    items: rec.items,
+                    tax_percent: rec.tax_percent,
+                };
+                get().addInvoice(newInvoiceData);
+                
+                // Calculate next due date
+                let newNextDueDate = new Date(rec.next_due_date);
+                if (rec.frequency === 'monthly') {
+                    newNextDueDate.setMonth(newNextDueDate.getMonth() + 1);
+                } else { // yearly
+                    newNextDueDate.setFullYear(newNextDueDate.getFullYear() + 1);
+                }
+                return { ...rec, next_due_date: newNextDueDate.toISOString().split('T')[0] };
+            }
+            return rec;
+        });
+
+        set({ recurringInvoices: updatedRecurringInvoices });
     },
     addExpense: (expense) => set(state => ({ expenses: [{ ...expense, id: `e-${Date.now()}`, user_id: 'u-1', created_at: new Date().toISOString() }, ...state.expenses] })),
     deleteExpense: (id) => set(state => ({ expenses: state.expenses.filter(e => e.id !== id) })),

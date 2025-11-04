@@ -81,6 +81,9 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
               bio: 'Desarrollador Full-Stack apasionado por crear aplicaciones web modernas y eficientes.',
               skills: ['React', 'Node.js', 'TypeScript', 'Next.js'],
               portfolio_url: '',
+              payment_reminders_enabled: true,
+              reminder_template_upcoming: 'Hola [ClientName],\n\nEste es un recordatorio amistoso de que la factura #[InvoiceNumber] por un total de [Amount] vence pronto, el [DueDate].\n\nGracias,\n[YourName]',
+              reminder_template_overdue: 'Hola [ClientName],\n\nNuestros registros indican que la factura #[InvoiceNumber] por [Amount] ha vencido. Agradeceríamos tu pago lo antes posible.\n\nGracias,\n[YourName]',
             };
             set(createCleanState(newProfile));
         }
@@ -104,6 +107,9 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
           bio: 'Desarrollador Full-Stack apasionado por crear aplicaciones web modernas y eficientes.',
           skills: ['React', 'Node.js', 'TypeScript', 'Next.js'],
           portfolio_url: '',
+          payment_reminders_enabled: true,
+          reminder_template_upcoming: 'Hola [ClientName],\n\nEste es un recordatorio amistoso de que la factura #[InvoiceNumber] por un total de [Amount] vence pronto, el [DueDate].\n\nGracias,\n[YourName]',
+          reminder_template_overdue: 'Hola [ClientName],\n\nNuestros registros indican que la factura #[InvoiceNumber] por [Amount] ha vencido. Agradeceríamos tu pago lo antes posible.\n\nGracias,\n[YourName]',
         };
         set(createCleanState(newProfile));
         return true;
