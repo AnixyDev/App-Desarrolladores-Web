@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -64,10 +65,10 @@ const PortalContractViewPage = lazy(() => import('./pages/portal/PortalContractV
 
 const GOOGLE_CLIENT_ID = "102738470388-s392h3093q9j7q3j9q3j9q3j9q3j9q3j.apps.googleusercontent.com"; // Placeholder Client ID
 
-// FIX: Changed children type to React.ReactNode to resolve JSX namespace error.
-const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
+// FIX: Refactored PrivateRoute to be a self-contained layout route element, resolving a 'children' prop error.
+const PrivateRoute = () => {
     const isAuthenticated = useAppStore(state => state.isAuthenticated);
-    return isAuthenticated ? children : <Navigate to="/auth/login" />;
+    return isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" />;
 };
 
 const MainLayout = () => {
@@ -148,7 +149,7 @@ function App() {
                     
                     <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
                     
-                    <Route path="/" element={<PrivateRoute><MainLayout /></PrivateRoute>}>
+                    <Route path="/" element={<PrivateRoute />}>
                         <Route index element={<DashboardPage />} />
                         <Route path="clients" element={<ClientsPage />} />
                         <Route path="clients/:clientId" element={<ClientDetailPage />} />

@@ -51,4 +51,5 @@ export {
   X,
   Save as SaveIcon,
   GitBranch,
+  ShoppingBag,
 } from 'lucide-react';
