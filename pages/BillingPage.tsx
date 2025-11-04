@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
@@ -6,6 +7,18 @@ import Button from '../components/ui/Button.tsx';
 import { SparklesIcon, CheckCircleIcon, StarIcon } from '../components/icons/Icon.tsx';
 import { useToast } from '../hooks/useToast.ts';
 import { redirectToCheckout, STRIPE_ITEMS } from '../services/stripeService.ts';
+
+interface Plan {
+    name: string;
+    price: string;
+    priceSuffix?: string;
+    annualPrice?: string;
+    description: string;
+    features: string[];
+    itemKey: keyof typeof STRIPE_ITEMS | null;
+    isCurrent: boolean;
+    recommended?: boolean;
+}
 
 const BillingPage: React.FC = () => {
     const { profile } = useAppStore();
@@ -25,7 +38,7 @@ const BillingPage: React.FC = () => {
         }
     };
     
-    const plans = [
+    const plans: Plan[] = [
         {
             name: 'Free',
             price: '0€',
@@ -42,7 +55,7 @@ const BillingPage: React.FC = () => {
         },
         {
             name: 'Pro',
-            price: '19€',
+            price: '3,95€',
             priceSuffix: '/ mes',
             description: 'Para freelancers que buscan crecer y profesionalizarse.',
             features: [
@@ -59,8 +72,9 @@ const BillingPage: React.FC = () => {
         },
         {
             name: 'Teams',
-            price: 'Desde 49€',
-            priceSuffix: '/ mes',
+            price: '35,95€',
+            priceSuffix: ' por persona/mes',
+            annualPrice: 'o 295,00€/año',
             description: 'Para equipos y agencias que necesitan colaborar.',
             features: [
                 'Todo en Pro, y además:',
@@ -121,6 +135,7 @@ const BillingPage: React.FC = () => {
                             <div className="mt-4">
                                 <span className="text-4xl font-extrabold text-white">{plan.price}</span>
                                 {plan.priceSuffix && <span className="text-gray-400">{plan.priceSuffix}</span>}
+                                {plan.annualPrice && <p className="text-sm text-gray-500 mt-1">{plan.annualPrice}</p>}
                             </div>
                         </CardHeader>
                         <CardContent className="flex-grow">
