@@ -1,13 +1,15 @@
 
+
 import React, { useState, useMemo, useEffect } from 'react';
-import { useAppStore } from '../hooks/useAppStore.tsx';
-import Card, { CardContent } from '../components/ui/Card.tsx';
-import Button from '../components/ui/Button.tsx';
-import Modal from '../components/ui/Modal.tsx';
-import { Contract } from '../types.ts';
-import { formatCurrency } from '../lib/utils.ts';
-import { SendIcon, FileSignatureIcon } from '../components/icons/Icon.tsx';
-import StatusChip from '../components/ui/StatusChip.tsx';
+// FIX: Remove .tsx and .ts extensions from imports to fix module resolution errors.
+import { useAppStore } from '../hooks/useAppStore';
+import Card, { CardContent } from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
+import { Contract } from '../types';
+import { formatCurrency } from '../lib/utils';
+import { SendIcon, FileSignatureIcon } from '../components/icons/Icon';
+import StatusChip from '../components/ui/StatusChip';
 
 const CONTRACT_TEMPLATE = `CONTRATO DE PRESTACIÓN DE SERVICIOS FREELANCE
 

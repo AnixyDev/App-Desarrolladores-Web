@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useAppStore } from '../../hooks/useAppStore.tsx';
-import Card, { CardHeader, CardContent, CardFooter } from '../../components/ui/Card.tsx';
-import { formatCurrency } from '../../lib/utils.ts';
-import Button from '../../components/ui/Button.tsx';
-import { generateInvoicePdf } from '../../services/pdfService.ts';
-import { DownloadIcon, RefreshCwIcon } from '../../components/icons/Icon.tsx';
+// FIX: Remove .tsx extensions from imports to fix module resolution errors.
+import { useAppStore } from '../../hooks/useAppStore';
+import Card, { CardHeader, CardContent, CardFooter } from '../../components/ui/Card';
+import { formatCurrency } from '../../lib/utils';
+import Button from '../../components/ui/Button';
+import { generateInvoicePdf } from '../../services/pdfService';
+import { DownloadIcon, RefreshCwIcon } from '../../components/icons/Icon';
 
 const PortalInvoiceViewPage: React.FC = () => {
     const { invoiceId } = useParams<{ invoiceId: string }>();

@@ -1,7 +1,9 @@
 
+
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import type { Invoice, Expense } from '../../types.ts';
+// FIX: Remove .ts extension from import to fix module resolution error.
+import type { Invoice, Expense } from '../../types';
 
 interface ChartProps {
   invoices: Invoice[];

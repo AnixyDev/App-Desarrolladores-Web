@@ -1,73 +1,66 @@
-
 import React from 'react';
-import { useParams } from 'react-router-dom';
-import { useAppStore } from '../../hooks/useAppStore.tsx';
-import Card, { CardHeader, CardContent } from '../../components/ui/Card.tsx';
-import { formatCurrency } from '../../lib/utils.ts';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import Card, { CardContent, CardHeader } from '../../components/ui/Card';
+import { useAppStore } from '../../hooks/useAppStore';
+import { formatCurrency } from '../../lib/utils';
+import { BriefcaseIcon, FileTextIcon } from '../../components/icons/Icon';
 
 const PortalDashboardPage: React.FC = () => {
     const { clientId } = useParams<{ clientId: string }>();
-    const { clients, invoices, budgets, proposals } = useAppStore();
+    const { getClientById, projects, invoices } = useAppStore();
 
-    const client = clients.find(c => c.id === clientId);
+    const client = clientId ? getClientById(clientId) : undefined;
+    const clientProjects = projects.filter(p => p.client_id === clientId);
     const clientInvoices = invoices.filter(i => i.client_id === clientId);
-    const clientBudgets = budgets.filter(b => b.client_id === clientId);
-    const clientProposals = proposals.filter(p => p.client_id === clientId);
 
     if (!client) {
-        return <div className="text-center text-red-500">Cliente no encontrado.</div>;
+        return <div className="text-center text-red-500">Acceso no válido o cliente no encontrado.</div>;
     }
 
     return (
-        <div className="space-y-8">
-            <h2 className="text-3xl font-bold text-white">Bienvenido, {client.name}</h2>
+        <div className="space-y-6">
+            <h1 className="text-3xl font-bold text-white">Bienvenido, {client.name}</h1>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
-                    <CardHeader><h3 className="text-lg font-semibold text-white">Facturas</h3></CardHeader>
-                    <CardContent>
-                        {clientInvoices.length > 0 ? (
-                             <ul className='space-y-2'>
-                                {clientInvoices.map(inv => (
-                                    <li key={inv.id} className='flex justify-between'>
-                                        <Link to={`/portal/invoice/${inv.id}`} className="text-primary-400 hover:underline">{inv.invoice_number}</Link>
-                                        <span>{formatCurrency(inv.total_cents)}</span>
-                                        <span className={inv.paid ? 'text-green-400' : 'text-yellow-400'}>{inv.paid ? 'Pagada' : 'Pendiente'}</span>
-                                    </li>
-                                ))}
-                             </ul>
-                        ) : <p className="text-gray-400">No hay facturas.</p>}
+                    <CardHeader><h2 className="text-lg font-semibold text-white flex items-center gap-2"><BriefcaseIcon className="w-5 h-5"/> Mis Proyectos</h2></CardHeader>
+                    <CardContent className="p-0">
+                        <ul className="divide-y divide-gray-800">
+                            {clientProjects.length > 0 ? clientProjects.map(p => (
+                                <li key={p.id} className="p-4">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className="font-semibold text-white">{p.name}</p>
+                                            <p className="text-sm text-gray-400">Vence: {p.due_date}</p>
+                                        </div>
+                                        <span className="px-2 py-0.5 rounded-full text-xs capitalize bg-purple-500/20 text-purple-400">{p.status}</span>
+                                    </div>
+                                </li>
+                            )) : <p className="p-4 text-gray-400">No tienes proyectos activos.</p>}
+                        </ul>
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader><h3 className="text-lg font-semibold text-white">Presupuestos</h3></CardHeader>
-                    <CardContent>
-                        {clientBudgets.length > 0 ? (
-                             <ul className='space-y-2'>
-                                {clientBudgets.map(b => (
-                                    <li key={b.id} className='flex justify-between'>
-                                         <Link to={`/portal/budget/${b.id}`} className="text-primary-400 hover:underline">{b.description}</Link>
-                                         <span className='capitalize'>{b.status}</span>
-                                    </li>
-                                ))}
-                             </ul>
-                        ) : <p className="text-gray-400">No hay presupuestos.</p>}
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader><h3 className="text-lg font-semibold text-white">Propuestas</h3></CardHeader>
-                    <CardContent>
-                        {clientProposals.length > 0 ? (
-                             <ul className='space-y-2'>
-                                {clientProposals.map(p => (
-                                    <li key={p.id} className='flex justify-between'>
-                                        <Link to={`/portal/proposal/${p.id}`} className="text-primary-400 hover:underline">{p.title}</Link>
-                                        <span className='capitalize'>{p.status}</span>
-                                    </li>
-                                ))}
-                             </ul>
-                        ) : <p className="text-gray-400">No hay propuestas.</p>}
+                    <CardHeader><h2 className="text-lg font-semibold text-white flex items-center gap-2"><FileTextIcon className="w-5 h-5"/> Mis Facturas</h2></CardHeader>
+                    <CardContent className="p-0">
+                        <ul className="divide-y divide-gray-800">
+                             {clientInvoices.length > 0 ? clientInvoices.map(i => (
+                                <li key={i.id} className="p-4 hover:bg-gray-800/50">
+                                    <Link to={`/portal/invoice/${i.id}`} className="flex justify-between items-center">
+                                        <div>
+                                            <p className="font-semibold text-white font-mono">{i.invoice_number}</p>
+                                            <p className="text-sm text-gray-400">Emitida: {i.issue_date}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-semibold text-white">{formatCurrency(i.total_cents)}</p>
+                                            <span className={`px-2 py-0.5 rounded-full text-xs ${i.paid ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                                                {i.paid ? 'Pagada' : 'Pendiente'}
+                                            </span>
+                                        </div>
+                                    </Link>
+                                </li>
+                            )) : <p className="p-4 text-gray-400">No tienes facturas.</p>}
+                        </ul>
                     </CardContent>
                 </Card>
             </div>

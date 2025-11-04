@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { useAppStore } from '../hooks/useAppStore.tsx';
-import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card.tsx';
-import Input from '../components/ui/Input.tsx';
-import Button from '../components/ui/Button.tsx';
+// FIX: Remove .tsx and .ts extensions from imports to resolve module resolution errors.
+import { useAppStore } from '../hooks/useAppStore';
+import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card';
+import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
 import { Link } from 'react-router-dom';
-import { UserIcon } from '../components/icons/Icon.tsx';
-import { useToast } from '../hooks/useToast.ts';
+import { UserIcon } from '../components/icons/Icon';
+import { useToast } from '../hooks/useToast';
 
 
 const SettingsPage: React.FC = () => {

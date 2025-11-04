@@ -1,15 +1,16 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
-import { useAppStore } from '../hooks/useAppStore.tsx';
-import { formatCurrency } from '../lib/utils.ts';
-import { BriefcaseIcon, FileTextIcon, EditIcon, TrashIcon, PhoneIcon, MailIcon } from '../components/icons/Icon.tsx';
-import Button from '../components/ui/Button.tsx';
-import Modal from '../components/ui/Modal.tsx';
-import Input from '../components/ui/Input.tsx';
-import { Client, NewClient } from '../types.ts';
+import Card, { CardContent, CardHeader } from '../components/ui/Card';
+// FIX: Remove .tsx extensions from imports to fix module resolution errors.
+import { useAppStore } from '../hooks/useAppStore';
+import { formatCurrency } from '../lib/utils';
+import { BriefcaseIcon, FileTextIcon, EditIcon, TrashIcon, PhoneIcon, MailIcon } from '../components/icons/Icon';
+import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
+import Input from '../components/ui/Input';
+import { Client, NewClient } from '../types';
 
-const ClientIncomeChart = lazy(() => import('../components/charts/ClientIncomeChart.tsx'));
+const ClientIncomeChart = lazy(() => import('../components/charts/ClientIncomeChart'));
 
 const ClientDetailPage: React.FC = () => {
     const { clientId } = useParams<{ clientId: string }>();

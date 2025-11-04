@@ -96,6 +96,7 @@ export const refineProposalText = async (originalProposal: string, refinementTyp
         Ahora, por favor, proporciona la versión refinada.
     `;
 
+    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
@@ -127,6 +128,7 @@ export const summarizeApplicant = async (jobDescription: string, applicantProfil
         3.  "cons": Un array de 1-2 posibles debilidades o puntos a aclarar (strings).
     `;
 
+    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: prompt,

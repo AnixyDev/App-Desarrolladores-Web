@@ -1,13 +1,13 @@
 // pages/PublicProfilePage.tsx
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { useAppStore } from '../hooks/useAppStore.tsx';
-import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
+import { useAppStore } from '../hooks/useAppStore';
+import Card, { CardContent, CardHeader } from '../components/ui/Card';
 // FIX: Corrected the import for the Briefcase icon.
-import { MailIcon, User, BriefcaseIcon as Briefcase, LinkIcon } from '../components/icons/Icon.tsx';
-import Button from '../components/ui/Button.tsx';
+import { MailIcon, UserIcon as User, BriefcaseIcon as Briefcase, LinkIcon } from '../components/icons/Icon';
+import Button from '../components/ui/Button';
 import { Link, useNavigate } from 'react-router-dom';
 
-const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal.tsx'));
+const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal'));
 
 const PublicProfilePage: React.FC = () => {
     const { profile } = useAppStore();

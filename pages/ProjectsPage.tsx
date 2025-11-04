@@ -1,17 +1,19 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useAppStore } from '../hooks/useAppStore.tsx';
-import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
-import Button from '../components/ui/Button.tsx';
-import Modal from '../components/ui/Modal.tsx';
-import Input from '../components/ui/Input.tsx';
-import { Project, NewProject, NewClient } from '../types.ts';
-import { formatCurrency } from '../lib/utils.ts';
-import StatusChip from '../components/ui/StatusChip.tsx';
-import EmptyState from '../components/ui/EmptyState.tsx';
-import { BriefcaseIcon, PlusIcon } from '../components/icons/Icon.tsx';
-import { useToast } from '../hooks/useToast.ts';
+// FIX: Remove .tsx and .ts extensions from imports to resolve module resolution errors.
+import { useAppStore } from '../hooks/useAppStore';
+import Card, { CardContent, CardHeader } from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
+import Input from '../components/ui/Input';
+import { Project, NewProject, NewClient } from '../types';
+import { formatCurrency } from '../lib/utils';
+import StatusChip from '../components/ui/StatusChip';
+import EmptyState from '../components/ui/EmptyState';
+import { BriefcaseIcon, PlusIcon } from '../components/icons/Icon';
+import { useToast } from '../hooks/useToast';
 
 const ProjectsPage: React.FC = () => {
     const { projects, clients, addProject, getClientById, addClient } = useAppStore();

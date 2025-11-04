@@ -1,18 +1,19 @@
 import React, { useState, useMemo, lazy, Suspense } from 'react';
-import { useAppStore } from '../hooks/useAppStore.tsx';
-import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
-import Button from '../components/ui/Button.tsx';
-import Modal from '../components/ui/Modal.tsx';
-import Input from '../components/ui/Input.tsx';
-import { Budget, InvoiceItem } from '../types.ts';
-import { formatCurrency } from '../lib/utils.ts';
-import { PlusIcon, TrashIcon, CheckCircleIcon, XCircleIcon, MessageSquareIcon, SparklesIcon } from '../components/icons/Icon.tsx';
-import StatusChip from '../components/ui/StatusChip.tsx';
-import EmptyState from '../components/ui/EmptyState.tsx';
-import { generateItemsForDocument, AI_CREDIT_COSTS } from '../services/geminiService.ts';
-import { useToast } from '../hooks/useToast.ts';
+// FIX: Remove .tsx and .ts extensions from imports to fix module resolution errors.
+import { useAppStore } from '../hooks/useAppStore';
+import Card, { CardContent, CardHeader } from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
+import Input from '../components/ui/Input';
+import { Budget, InvoiceItem } from '../types';
+import { formatCurrency } from '../lib/utils';
+import { PlusIcon, TrashIcon, CheckCircleIcon, XCircleIcon, MessageSquareIcon, SparklesIcon } from '../components/icons/Icon';
+import StatusChip from '../components/ui/StatusChip';
+import EmptyState from '../components/ui/EmptyState';
+import { generateItemsForDocument, AI_CREDIT_COSTS } from '../services/geminiService';
+import { useToast } from '../hooks/useToast';
 
-const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal.tsx'));
+const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal'));
 
 
 const BudgetsPage: React.FC = () => {

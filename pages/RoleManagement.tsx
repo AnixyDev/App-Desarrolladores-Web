@@ -1,9 +1,9 @@
 import React, { useState, lazy, Suspense } from 'react';
-import { useAppStore } from '../hooks/useAppStore.tsx';
-import { UsersIcon, UserIcon, ShieldIcon, BriefcaseIcon, EditIcon, SaveIcon, TrashIcon } from '../components/icons/Icon.tsx';
-import { UserData } from '../types.ts';
+import { useAppStore } from '../hooks/useAppStore';
+import { Users as UsersIcon, UserIcon, ShieldIcon, BriefcaseIcon, EditIcon, SaveIcon, TrashIcon } from '../components/icons/Icon';
+import { UserData } from '../types';
 
-const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal.tsx'));
+const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal'));
 
 interface Role {
     id: 'Admin' | 'Manager' | 'Developer';

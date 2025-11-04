@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useAppStore } from '../../hooks/useAppStore.tsx';
+// FIX: Remove .tsx extensions from imports to resolve module resolution errors.
+import { useAppStore } from '../../hooks/useAppStore';
 // FIX: Imported the correctly named icons and aliased them to match usage in the component.
-import { MenuIcon as Menu, BellIcon as Bell, LogOutIcon as LogOut, UserIcon as User, FileTextIcon, BriefcaseIcon } from '../icons/Icon.tsx';
+import { MenuIcon as Menu, BellIcon as Bell, LogOutIcon as LogOut, UserIcon as User, FileTextIcon, BriefcaseIcon } from '../icons/Icon';
 import { Link } from 'react-router-dom';
 
 const getNotificationIcon = (link: string) => {

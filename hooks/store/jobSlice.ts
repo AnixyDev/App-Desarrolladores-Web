@@ -7,6 +7,7 @@ export interface JobSlice {
   jobs: Job[];
   applications: JobApplication[];
   savedJobIds: string[];
+  notifiedJobIds: string[];
   getJobById: (id: string) => Job | undefined;
   getApplicationsByUserId: (userId: string) => JobApplication[];
   getApplicationsByJobId: (jobId: string) => JobApplication[];
@@ -15,12 +16,14 @@ export interface JobSlice {
   applyForJob: (jobId: string, userId: string, proposalText: string) => void;
   viewApplication: (applicationId: string) => void;
   saveJob: (jobId: string) => void;
+  markJobAsNotified: (jobId: string) => void;
 }
 
 export const createJobSlice: StateCreator<AppState, [], [], JobSlice> = (set, get) => ({
     jobs: [],
     applications: [],
     savedJobIds: [],
+    notifiedJobIds: [],
     getJobById: (id) => get().jobs.find(j => j.id === id),
     getApplicationsByUserId: (userId) => get().applications.filter(app => app.userId === userId),
     getApplicationsByJobId: (jobId) => get().applications.filter(app => app.jobId === jobId),
@@ -69,5 +72,10 @@ export const createJobSlice: StateCreator<AppState, [], [], JobSlice> = (set, ge
         } else {
             set({ savedJobIds: [...savedJobIds, jobId] });
         }
+    },
+    markJobAsNotified: (jobId) => {
+        set(state => ({
+            notifiedJobIds: [...new Set([...state.notifiedJobIds, jobId])]
+        }));
     }
 });

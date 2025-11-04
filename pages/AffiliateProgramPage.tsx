@@ -1,10 +1,10 @@
 import React from 'react';
-import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
-import Button from '../components/ui/Button.tsx';
-import { useAppStore } from '../hooks/useAppStore.tsx';
-import { useToast } from '../hooks/useToast.ts';
-import { Share2Icon, CopyIcon, UsersIcon, DollarSignIcon, CheckCircleIcon } from '../components/icons/Icon.tsx';
-import { formatCurrency } from '../lib/utils.ts';
+import Card, { CardContent, CardHeader } from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import { useAppStore } from '../hooks/useAppStore';
+import { useToast } from '../hooks/useToast';
+import { Share2Icon, CopyIcon, Users as UsersIcon, DollarSignIcon, CheckCircleIcon } from '../components/icons/Icon';
+import { formatCurrency } from '../lib/utils';
 
 const AffiliateProgramPage: React.FC = () => {
     const { profile, referrals } = useAppStore();

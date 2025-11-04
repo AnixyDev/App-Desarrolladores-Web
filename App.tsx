@@ -1,148 +1,154 @@
 
+import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { HashRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import { useAppStore } from './hooks/useAppStore';
+import { useToast } from './hooks/useToast';
+import { STRIPE_ITEMS } from './services/stripeService';
+import Sidebar from './components/layout/Sidebar';
+import Header from './components/layout/Header';
+import ToastContainer from './components/ui/Toast';
 
+// Layouts
+import AuthLayout from './pages/auth/AuthLayout';
+import PortalLayout from './pages/portal/PortalLayout';
 
+// Auth Pages
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 
-import React, { useState, lazy, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
-
-import { useAppStore } from './hooks/useAppStore.tsx';
-import Sidebar from './components/layout/Sidebar.tsx';
-import Header from './components/layout/Header.tsx';
-import AuthLayout from './pages/auth/AuthLayout.tsx';
-import PortalLayout from './pages/portal/PortalLayout.tsx';
-import ToastContainer from './components/ui/Toast.tsx';
-import { useToast } from './hooks/useToast.ts';
-import { STRIPE_ITEMS } from './services/stripeService.ts';
-
-
-// Lazy load pages for better performance
-const DashboardPage = lazy(() => import('./pages/DashboardPage.tsx'));
-const ClientsPage = lazy(() => import('./pages/ClientsPage.tsx'));
-const ClientDetailPage = lazy(() => import('./pages/ClientDetailPage.tsx'));
-const ProjectsPage = lazy(() => import('./pages/ProjectsPage.tsx'));
-const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage.tsx'));
-const InvoicesPage = lazy(() => import('./pages/InvoicesPage.tsx'));
-const CreateInvoicePage = lazy(() => import('./pages/CreateInvoicePage.tsx'));
-const ExpensesPage = lazy(() => import('./pages/ExpensesPage.tsx'));
-const BudgetsPage = lazy(() => import('./pages/BudgetsPage.tsx'));
-const ProposalsPage = lazy(() => import('./pages/ProposalsPage.tsx'));
-const ContractsPage = lazy(() => import('./pages/ContractsPage.tsx'));
-const TimeTrackingPage = lazy(() => import('./pages/TimeTrackingPage.tsx'));
-const ReportsPage = lazy(() => import('./pages/ReportsPage.tsx'));
-const ProfitabilityReportPage = lazy(() => import('./pages/ProfitabilityReportPage.tsx'));
-const TaxLedgerPage = lazy(() => import('./pages/TaxLedgerPage.tsx'));
-const SettingsPage = lazy(() => import('./pages/SettingsPage.tsx'));
-const AIAssistantPage = lazy(() => import('./pages/AIAssistantPage.tsx'));
-const LoginPage = lazy(() => import('./pages/auth/LoginPage.tsx'));
-const RegisterPage = lazy(() => import('./pages/auth/RegisterPage.tsx'));
-const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage.tsx'));
-const JobMarketDashboard = lazy(() => import('./pages/JobMarketDashboard.tsx'));
-const JobPostForm = lazy(() => import('./pages/JobPostForm.tsx'));
-const TeamManagementDashboard = lazy(() => import('./pages/TeamManagementDashboard.tsx'));
-const MyTeamTimesheet = lazy(() => import('./pages/MyTeamTimesheet.tsx'));
-const KnowledgeBase = lazy(() => import('./pages/KnowledgeBase.tsx'));
-const IntegrationsManager = lazy(() => import('./pages/IntegrationsManager.tsx'));
-const RoleManagement = lazy(() => import('./pages/RoleManagement.tsx'));
-const BillingPage = lazy(() => import('./pages/BillingPage.tsx'));
-const AffiliateProgramPage = lazy(() => import('./pages/AffiliateProgramPage.tsx'));
-const ForecastingPage = lazy(() => import('./pages/ForecastingPage.tsx'));
-const JobDetailPage = lazy(() => import('./pages/JobDetailPage.tsx'));
-const MyApplicationsPage = lazy(() => import('./pages/MyApplicationsPage.tsx'));
-const SavedJobsPage = lazy(() => import('./pages/SavedJobsPage.tsx'));
-const MyJobPostsPage = lazy(() => import('./pages/MyJobPostsPage.tsx'));
-const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage.tsx'));
-const JobApplicantsPage = lazy(() => import('./pages/JobApplicantsPage.tsx'));
-
+// Main App Pages
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const ClientsPage = lazy(() => import('./pages/ClientsPage'));
+const ClientDetailPage = lazy(() => import('./pages/ClientDetailPage'));
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
+const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'));
+const InvoicesPage = lazy(() => import('./pages/InvoicesPage'));
+const CreateInvoicePage = lazy(() => import('./pages/CreateInvoicePage'));
+const ExpensesPage = lazy(() => import('./pages/ExpensesPage'));
+const BudgetsPage = lazy(() => import('./pages/BudgetsPage'));
+const ProposalsPage = lazy(() => import('./pages/ProposalsPage'));
+const ContractsPage = lazy(() => import('./pages/ContractsPage'));
+const TimeTrackingPage = lazy(() => import('./pages/TimeTrackingPage'));
+const ReportsPage = lazy(() => import('./pages/ReportsPage'));
+const ProfitabilityReportPage = lazy(() => import('./pages/ProfitabilityReportPage'));
+const TaxLedgerPage = lazy(() => import('./pages/TaxLedgerPage'));
+const AIAssistantPage = lazy(() => import('./pages/AIAssistantPage'));
+const JobMarketDashboard = lazy(() => import('./pages/JobMarketDashboard'));
+const JobDetailPage = lazy(() => import('./pages/JobDetailPage'));
+const JobPostForm = lazy(() => import('./pages/JobPostForm'));
+const MyJobPostsPage = lazy(() => import('./pages/MyJobPostsPage'));
+const JobApplicantsPage = lazy(() => import('./pages/JobApplicantsPage'));
+const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
+const MyApplicationsPage = lazy(() => import('./pages/MyApplicationsPage'));
+const SavedJobsPage = lazy(() => import('./pages/SavedJobsPage'));
+const TeamManagementDashboard = lazy(() => import('./pages/TeamManagementDashboard'));
+const MyTeamTimesheet = lazy(() => import('./pages/MyTeamTimesheet'));
+const KnowledgeBase = lazy(() => import('./pages/KnowledgeBase'));
+const RoleManagement = lazy(() => import('./pages/RoleManagement'));
+const IntegrationsManager = lazy(() => import('./pages/IntegrationsManager'));
+const ForecastingPage = lazy(() => import('./pages/ForecastingPage'));
+const AffiliateProgramPage = lazy(() => import('./pages/AffiliateProgramPage'));
+const BillingPage = lazy(() => import('./pages/BillingPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 // Portal Pages
-const PortalLoginPage = lazy(() => import('./pages/portal/PortalLoginPage.tsx'));
-const PortalDashboardPage = lazy(() => import('./pages/portal/PortalDashboardPage.tsx'));
-const PortalInvoiceViewPage = lazy(() => import('./pages/portal/PortalInvoiceViewPage.tsx'));
-const PortalBudgetViewPage = lazy(() => import('./pages/portal/PortalBudgetViewPage.tsx'));
-const PortalProposalViewPage = lazy(() => import('./pages/portal/PortalProposalViewPage.tsx'));
-const PortalContractViewPage = lazy(() => import('./pages/portal/PortalContractViewPage.tsx'));
+const PortalLoginPage = lazy(() => import('./pages/portal/PortalLoginPage'));
+const PortalDashboardPage = lazy(() => import('./pages/portal/PortalDashboardPage'));
+const PortalInvoiceViewPage = lazy(() => import('./pages/portal/PortalInvoiceViewPage'));
+const PortalBudgetViewPage = lazy(() => import('./pages/portal/PortalBudgetViewPage'));
+const PortalProposalViewPage = lazy(() => import('./pages/portal/PortalProposalViewPage'));
+const PortalContractViewPage = lazy(() => import('./pages/portal/PortalContractViewPage'));
 
 
-const MainLayout: React.FC = () => {
+const GOOGLE_CLIENT_ID = "102738470388-s392h3093q9j7q3j9q3j9q3j9q3j9q3j.apps.googleusercontent.com"; // Placeholder Client ID
+
+// FIX: Changed children type to React.ReactNode to resolve JSX namespace error.
+const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
+    const isAuthenticated = useAppStore(state => state.isAuthenticated);
+    return isAuthenticated ? children : <Navigate to="/auth/login" />;
+};
+
+const MainLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     return (
         <div className="flex h-screen bg-gray-950 text-gray-100">
             <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
             <div className="flex-1 flex flex-col overflow-hidden">
                 <Header setSidebarOpen={setSidebarOpen} />
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-950 p-4 sm:p-6">
-                    <Outlet />
+                <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 lg:p-8">
+                    <Suspense fallback={<div className="text-center p-8">Cargando página...</div>}>
+                        <Outlet />
+                    </Suspense>
                 </main>
             </div>
         </div>
     );
 };
 
-const PrivateRoute: React.FC = () => {
-    const isAuthenticated = useAppStore(state => state.isAuthenticated);
-    const profile = useAppStore(state => state.profile);
-    return isAuthenticated && profile ? <MainLayout /> : <Navigate to="/auth/login" />;
-};
-
-const HandlePaymentRedirects: React.FC = () => {
+const PaymentHandler = () => {
+    const [searchParams] = useSearchParams();
     const { addToast } = useToast();
-    const navigate = useNavigate();
-    const location = useLocation();
     const { upgradePlan, purchaseCredits } = useAppStore();
 
     useEffect(() => {
-        // Stripe success redirect will have search params on the root URL
-        const rootParams = new URLSearchParams(window.location.search);
-        if (rootParams.get('payment') === 'success') {
-            addToast('¡Pago completado con éxito!', 'success');
+        const paymentStatus = searchParams.get('payment');
+        const itemKey = searchParams.get('item') as keyof typeof STRIPE_ITEMS | null;
 
-            const purchasedItemKey = rootParams.get('item');
-            if (purchasedItemKey) {
-                const item = STRIPE_ITEMS[purchasedItemKey as keyof typeof STRIPE_ITEMS];
-                if (item) {
-                    if (item.mode === 'subscription') {
-                        if (purchasedItemKey.toLowerCase().includes('pro')) {
-                            upgradePlan('Pro');
-                            addToast('¡Has mejorado al plan Pro!', 'success');
-                        } else if (purchasedItemKey.toLowerCase().includes('teams')) {
-                            upgradePlan('Teams');
-                            addToast('¡Has mejorado al plan Teams!', 'success');
-                        }
-                    } else if (item.mode === 'payment') {
-                        const credits = (item as { credits?: number }).credits || 0;
-                        if (credits > 0) {
-                            purchaseCredits(credits);
-                            addToast(`${credits.toLocaleString('es-ES')} créditos añadidos a tu cuenta.`, 'success');
-                        }
+        if (paymentStatus === 'success' && itemKey) {
+            const item = STRIPE_ITEMS[itemKey];
+            if (item) {
+                if (item.mode === 'subscription') {
+                    if (itemKey === 'proPlan') {
+                        upgradePlan('Pro');
+                        addToast('¡Felicidades! Has actualizado al Plan Pro.', 'success');
+                    } else if (itemKey.includes('teams')) {
+                        upgradePlan('Teams');
+                        addToast('¡Bienvenido a Teams! Ya puedes invitar a tu equipo.', 'success');
                     }
+                } else if (item.mode === 'payment' && 'credits' in item) {
+                    purchaseCredits(item.credits);
+                    addToast(`¡Has comprado ${item.credits} créditos de IA!`, 'success');
+                } else if (itemKey === 'featuredJobPost') {
+                    addToast('¡Tu oferta ha sido destacada y publicada con éxito!', 'success');
                 }
             }
-            // Limpia los parámetros de la URL para evitar reprocesamiento en recargas.
-            const cleanUrl = window.location.pathname + window.location.hash;
-            window.history.replaceState(null, '', cleanUrl);
+        } else if (paymentStatus === 'cancelled') {
+            addToast('El proceso de pago fue cancelado.', 'info');
         }
+        // This effect should only run once on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-        // Stripe cancel redirect will have search params inside the hash
-        const hashParams = new URLSearchParams(location.search);
-        if (hashParams.get('payment') === 'cancelled') {
-            addToast('El pago fue cancelado.', 'info');
-            // Clean URL
-            navigate(location.pathname, { replace: true });
-        }
-    }, [addToast, navigate, location, upgradePlan, purchaseCredits]);
-
-    return null; // This component doesn't render anything
-};
+    return null;
+}
 
 
-const App: React.FC = () => {
+function App() {
     return (
-        <>
-            <Router>
-                <HandlePaymentRedirects />
+        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+            <HashRouter>
+                <ToastContainer />
+                <PaymentHandler />
                 <Routes>
-                    {/* Main Application Routes */}
-                    <Route path="/" element={<PrivateRoute />}>
+                    <Route path="/auth" element={<AuthLayout />}>
+                        <Route path="login" element={<LoginPage />} />
+                        <Route path="register" element={<RegisterPage />} />
+                    </Route>
+                    
+                    <Route path="/portal" element={<PortalLayout />}>
+                        <Route path="login" element={<PortalLoginPage />} />
+                        <Route path="dashboard/:clientId" element={<PortalDashboardPage />} />
+                        <Route path="invoice/:invoiceId" element={<PortalInvoiceViewPage />} />
+                        <Route path="budget/:budgetId" element={<PortalBudgetViewPage />} />
+                        <Route path="proposal/:proposalId" element={<PortalProposalViewPage />} />
+                        <Route path="contract/:contractId" element={<PortalContractViewPage />} />
+                    </Route>
+                    
+                    <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                    
+                    <Route path="/" element={<PrivateRoute><MainLayout /></PrivateRoute>}>
                         <Route index element={<DashboardPage />} />
                         <Route path="clients" element={<ClientsPage />} />
                         <Route path="clients/:clientId" element={<ClientDetailPage />} />
@@ -158,52 +164,34 @@ const App: React.FC = () => {
                         <Route path="reports" element={<ReportsPage />} />
                         <Route path="reports/profitability" element={<ProfitabilityReportPage />} />
                         <Route path="tax-ledger" element={<TaxLedgerPage />} />
-                        <Route path="settings" element={<SettingsPage />} />
                         <Route path="ai-assistant" element={<AIAssistantPage />} />
+
                         <Route path="job-market" element={<JobMarketDashboard />} />
                         <Route path="job-market/:jobId" element={<JobDetailPage />} />
                         <Route path="post-job" element={<JobPostForm />} />
                         <Route path="my-job-posts" element={<MyJobPostsPage />} />
                         <Route path="my-job-posts/:jobId/applicants" element={<JobApplicantsPage />} />
+                        <Route path="public-profile" element={<PublicProfilePage />} />
                         <Route path="my-applications" element={<MyApplicationsPage />} />
                         <Route path="saved-jobs" element={<SavedJobsPage />} />
-                        <Route path="public-profile" element={<PublicProfilePage />} />
+
                         <Route path="team" element={<TeamManagementDashboard />} />
                         <Route path="my-timesheet" element={<MyTeamTimesheet />} />
                         <Route path="knowledge-base" element={<KnowledgeBase />} />
-                        <Route path="integrations" element={<IntegrationsManager />} />
                         <Route path="roles" element={<RoleManagement />} />
-                        <Route path="billing" element={<BillingPage />} />
-                        <Route path="affiliate" element={<AffiliateProgramPage />} />
+                        
+                        <Route path="integrations" element={<IntegrationsManager />} />
                         <Route path="forecasting" element={<ForecastingPage />} />
+                        <Route path="affiliate" element={<AffiliateProgramPage />} />
+                        <Route path="billing" element={<BillingPage />} />
+                        <Route path="settings" element={<SettingsPage />} />
+                        
+                        <Route path="*" element={<Navigate to="/" />} />
                     </Route>
-
-                    {/* Auth Routes */}
-                    <Route path="/auth" element={<AuthLayout />}>
-                        <Route path="login" element={<LoginPage />} />
-                        <Route path="register" element={<RegisterPage />} />
-                    </Route>
-                    
-                    {/* Public Routes */}
-                    <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-                    
-                    {/* Client Portal Routes */}
-                    <Route path="/portal" element={<PortalLayout />}>
-                        <Route path="login" element={<PortalLoginPage />} />
-                        <Route path="dashboard/:clientId" element={<PortalDashboardPage />} />
-                        <Route path="invoice/:invoiceId" element={<PortalInvoiceViewPage />} />
-                        <Route path="budget/:budgetId" element={<PortalBudgetViewPage />} />
-                        <Route path="proposal/:proposalId" element={<PortalProposalViewPage />} />
-                        <Route path="contract/:contractId" element={<PortalContractViewPage />} />
-                    </Route>
-
-                    {/* Redirect root to dashboard if authenticated, else to login */}
-                    <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
-            </Router>
-            <ToastContainer />
-        </>
+            </HashRouter>
+        </GoogleOAuthProvider>
     );
-};
+}
 
 export default App;

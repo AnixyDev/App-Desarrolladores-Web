@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
-import Input from '../components/ui/Input.tsx';
-import Button from '../components/ui/Button.tsx';
-import { SendIcon, SparklesIcon, UserIcon } from '../components/icons/Icon.tsx';
-import { getAIResponse } from '../services/geminiService.ts';
-import { useAppStore } from '../hooks/useAppStore.tsx';
+import Card, { CardContent, CardHeader } from '../components/ui/Card';
+import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
+// FIX: Remove .tsx extensions from imports to fix module resolution errors.
+import { SendIcon, SparklesIcon, UserIcon } from '../components/icons/Icon';
+import { getAIResponse } from '../services/geminiService';
+import { useAppStore } from '../hooks/useAppStore';
 import { FunctionDeclaration, Type, GenerateContentResponse } from '@google/genai';
-import { useToast } from '../hooks/useToast.ts';
+import { useToast } from '../hooks/useToast';
 
 
 interface Message {

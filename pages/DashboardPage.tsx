@@ -1,12 +1,13 @@
 // pages/DashboardPage.tsx
 import React, { lazy, Suspense } from 'react';
-import { useAppStore } from '../hooks/useAppStore.tsx';
-import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
-import { formatCurrency } from '../lib/utils.ts';
+// FIX: Remove .tsx extensions from imports to resolve module resolution errors.
+import { useAppStore } from '../hooks/useAppStore';
+import Card, { CardContent, CardHeader } from '../components/ui/Card';
+import { formatCurrency } from '../lib/utils';
 import { Link } from 'react-router-dom';
-import { DollarSignIcon, ClockIcon, BriefcaseIcon, FileTextIcon } from '../components/icons/Icon.tsx';
+import { DollarSignIcon, ClockIcon, BriefcaseIcon, FileTextIcon } from '../components/icons/Icon';
 
-const IncomeExpenseChart = lazy(() => import('../components/charts/IncomeExpenseChart.tsx'));
+const IncomeExpenseChart = lazy(() => import('../components/charts/IncomeExpenseChart'));
 
 const StatCard: React.FC<{ icon: React.ElementType; title: string; value: string | number; link?: string }> = ({ icon: Icon, title, value, link }) => {
     const content = (

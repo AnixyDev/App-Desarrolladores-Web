@@ -1,10 +1,12 @@
 
+
 import React, { useState, useMemo } from 'react';
-import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
-import { useAppStore } from '../hooks/useAppStore.tsx';
-import { formatCurrency } from '../lib/utils.ts';
-import { BookIcon } from '../components/icons/Icon.tsx';
-import Input from '../components/ui/Input.tsx';
+import Card, { CardContent, CardHeader } from '../components/ui/Card';
+// FIX: Remove .tsx extensions from imports to fix module resolution errors.
+import { useAppStore } from '../hooks/useAppStore';
+import { formatCurrency } from '../lib/utils';
+import { BookIcon } from '../components/icons/Icon';
+import Input from '../components/ui/Input';
 
 const TaxLedgerPage: React.FC = () => {
     const { invoices, expenses } = useAppStore();

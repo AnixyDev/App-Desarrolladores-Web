@@ -1,18 +1,19 @@
 import React, { useState, useMemo, lazy, Suspense, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAppStore } from '../hooks/useAppStore.tsx';
-import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
-import Button from '../components/ui/Button.tsx';
-import { Invoice, RecurringInvoice } from '../types.ts';
-import { formatCurrency } from '../lib/utils.ts';
-import { generateInvoicePdf } from '../services/pdfService.ts';
-import { DownloadIcon, TrashIcon, CheckCircleIcon, ClockIcon, RefreshCwIcon, SendIcon, RepeatIcon } from '../components/icons/Icon.tsx';
-import StatusChip from '../components/ui/StatusChip.tsx';
-import { useToast } from '../hooks/useToast.ts';
+// FIX: Remove .tsx and .ts extensions from imports to fix module resolution errors.
+import { useAppStore } from '../hooks/useAppStore';
+import Card, { CardContent, CardHeader } from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import { Invoice, RecurringInvoice } from '../types';
+import { formatCurrency } from '../lib/utils';
+import { generateInvoicePdf } from '../services/pdfService';
+import { DownloadIcon, TrashIcon, CheckCircleIcon, ClockIcon, RefreshCwIcon, SendIcon, RepeatIcon } from '../components/icons/Icon';
+import StatusChip from '../components/ui/StatusChip';
+import { useToast } from '../hooks/useToast';
 
-const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal.tsx'));
-const InvoiceFromTimeModal = lazy(() => import('../components/modals/InvoiceFromTimeModal.tsx'));
-const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal.tsx'));
+const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal'));
+const InvoiceFromTimeModal = lazy(() => import('../components/modals/InvoiceFromTimeModal'));
+const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal'));
 
 
 const InvoicesPage: React.FC = () => {

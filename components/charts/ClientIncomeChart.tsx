@@ -1,7 +1,9 @@
 
+
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import type { Invoice } from '../../types.ts';
+// FIX: Remove .ts extension from import to fix module resolution error.
+import type { Invoice } from '../../types';
 
 interface ChartProps {
   invoices: Invoice[];
@@ -16,36 +18,4 @@ const processChartData = (invoices: Invoice[]) => {
     invoices.forEach(invoice => {
         if (invoice.paid && invoice.payment_date) {
             const date = new Date(invoice.payment_date);
-            const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-            if (!dataByMonth[monthKey]) {
-                dataByMonth[monthKey] = { name: monthNames[date.getMonth()], ingresos: 0 };
-            }
-            dataByMonth[monthKey].ingresos += invoice.total_cents;
-        }
-    });
-
-    return Object.values(dataByMonth).sort((a,b) => monthNames.indexOf(a.name) - monthNames.indexOf(b.name));
-};
-
-const ClientIncomeChart: React.FC<ChartProps> = ({ invoices }) => {
-  const data = processChartData(invoices);
-
-  return (
-    <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2c" vertical={false} />
-        <XAxis dataKey="name" tick={{ fill: '#a0a0a0' }} />
-        <YAxis tickFormatter={(value) => `€${Number(value) / 100}`} tick={{ fill: '#a0a0a0' }}/>
-        <Tooltip
-            contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #2c2c2c' }}
-            cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }}
-            formatter={(value: number) => formatCurrency(value)} 
-        />
-        <Legend wrapperStyle={{ color: '#a0a0a0' }}/>
-        <Bar dataKey="ingresos" fill="#f000b8" name="Ingresos" />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-};
-
-export default ClientIncomeChart;
+            const monthKey = `${date.getFullYear()}-${
