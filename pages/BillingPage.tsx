@@ -3,24 +3,43 @@ import React, { useState } from 'react';
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import { CheckCircleIcon, SparklesIcon, CreditCard, Users } from '../components/icons/Icon';
+import { CheckCircleIcon, SparklesIcon, CreditCard, Users, RefreshCwIcon, LinkIcon } from '../components/icons/Icon';
 import { redirectToCheckout, StripeItemKey } from '../services/stripeService';
 import { useToast } from '../hooks/useToast';
 
 const BillingPage: React.FC = () => {
-    const { profile } = useAppStore();
+    const { profile, updateStripeConnection } = useAppStore();
     const { addToast } = useToast();
     const [isLoading, setIsLoading] = useState<string | null>(null);
+    const [isConnectingStripe, setIsConnectingStripe] = useState(false);
 
     const handlePurchase = async (itemKey: StripeItemKey) => {
         setIsLoading(itemKey);
         try {
             await redirectToCheckout(itemKey);
-            // The user will be redirected, so no further action is needed here on success.
         } catch (error) {
             addToast((error as Error).message, 'error');
             setIsLoading(null);
         }
+    };
+
+    const handleStripeConnect = async () => {
+        setIsConnectingStripe(true);
+        addToast('Redirigiendo a Stripe para la conexión de tu cuenta...', 'info');
+        // Simulación de una llamada a un backend para crear una cuenta de Stripe Connect
+        setTimeout(() => {
+            const simulatedAccountId = `acct_${Date.now()}`;
+            // Simulación de la redirección a la URL de onboarding de Stripe.
+            // En una app real, esta URL vendría de tu backend.
+            console.log("Simulating redirect to Stripe Onboarding...");
+            
+            // Simulación del regreso del usuario a la app y actualización del estado.
+            setTimeout(() => {
+                updateStripeConnection(simulatedAccountId, true);
+                addToast('¡Tu cuenta de Stripe ha sido conectada con éxito!', 'success');
+                setIsConnectingStripe(false);
+            }, 2000); // Simula el tiempo que el usuario pasa en la página de Stripe
+        }, 1500);
     };
 
     const isPro = profile.plan === 'Pro';
@@ -64,6 +83,31 @@ const BillingPage: React.FC = () => {
                 <h1 className="text-3xl font-bold text-white">Facturación y Planes</h1>
                 <p className="text-gray-400 mt-2">Tu plan actual es: <span className="font-semibold text-primary-400">{profile.plan}</span></p>
             </div>
+
+            <Card>
+                <CardHeader>
+                    <h2 className="text-xl font-semibold text-white">Métodos de Pago y Cobro</h2>
+                </CardHeader>
+                <CardContent>
+                    <div className="p-4 bg-gray-800/50 rounded-lg flex flex-col sm:flex-row justify-between items-center">
+                        <div>
+                             <h3 className="font-semibold text-white">Recibe pagos con Stripe</h3>
+                             <p className="text-sm text-gray-400">Conecta tu cuenta de Stripe para que tus clientes puedan pagarte con tarjeta de crédito directamente desde sus facturas.</p>
+                        </div>
+                        {profile.stripe_onboarding_complete ? (
+                             <div className="text-center mt-4 sm:mt-0">
+                                <p className="flex items-center gap-2 text-green-400 font-semibold"><CheckCircleIcon/> Conectado</p>
+                                <Button variant="secondary" size="sm" className="mt-2">Gestionar cuenta</Button>
+                             </div>
+                        ) : (
+                            <Button onClick={handleStripeConnect} disabled={isConnectingStripe} className="mt-4 sm:mt-0">
+                                {isConnectingStripe ? <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin" /> : <LinkIcon className="w-4 h-4 mr-2" />}
+                                {isConnectingStripe ? 'Conectando...' : 'Conectar con Stripe'}
+                            </Button>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <PlanCard

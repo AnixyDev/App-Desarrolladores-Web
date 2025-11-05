@@ -1,11 +1,11 @@
-import { Client, Project, Task, Invoice, Expense, RecurringExpense, TimeEntry, Budget, Proposal, Contract, UserData, Referral, KnowledgeArticle, Job, JobApplication } from '../types';
+import { Client, Project, Task, Invoice, Expense, RecurringExpense, TimeEntry, Budget, Proposal, Contract, UserData, Referral, KnowledgeArticle, Job, JobApplication, ProjectFile } from '../types';
 
 const USER_ID = 'u-1';
 const OTHER_USER_ID = 'u-2'; // For simulating other applicants
 
 // --- Clientes ---
 const clients: Client[] = [
-    { id: 'c-1', user_id: USER_ID, name: 'InnovateCorp', company: 'InnovateCorp LLC', email: 'contact@innovatecorp.com', phone: '123-456-7890', created_at: '2024-10-01' }
+    { id: 'c-1', user_id: USER_ID, name: 'InnovateCorp', company: 'InnovateCorp LLC', email: 'contact@innovatecorp.com', phone: '123-456-7890', created_at: '2024-10-01', payment_method_on_file: true }
 ];
 
 // --- Proyectos ---
@@ -118,6 +118,8 @@ const referrals: Referral[] = [];
 const budgets: Budget[] = [];
 const proposals: Proposal[] = [];
 const contracts: Contract[] = [];
+const projectFiles: ProjectFile[] = [];
+const projectComments: any[] = [];
 
 export const MOCK_DATA = {
     clients,
@@ -135,5 +137,7 @@ export const MOCK_DATA = {
     articles,
     jobs,
     applications,
+    projectFiles,
+    projectComments,
     monthlyGoalCents: 0,
 };

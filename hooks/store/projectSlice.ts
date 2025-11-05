@@ -11,8 +11,8 @@ export interface ProjectSlice {
   addProject: (project: NewProject) => void;
   updateProjectStatus: (id: string, status: Project['status']) => void;
   getTasksByProjectId: (projectId: string) => Task[];
-  addTask: (task: Omit<Task, 'id'|'user_id'|'created_at'|'completed'|'invoice_id'>) => void;
-  toggleTask: (id: string) => void;
+  addTask: (task: Omit<Task, 'id'|'user_id'|'created_at'|'status'|'invoice_id'>) => void;
+  updateTaskStatus: (id: string, status: Task['status']) => void;
   deleteTask: (id: string) => void;
   addTimeEntry: (entry: Omit<NewTimeEntry, 'user_id'>) => void;
 }
@@ -41,8 +41,8 @@ export const createProjectSlice: StateCreator<AppState, [], [], ProjectSlice> = 
         set(state => ({ projects: state.projects.map(p => p.id === id ? { ...p, status } : p) }));
     },
     getTasksByProjectId: (projectId) => get().tasks.filter(t => t.project_id === projectId),
-    addTask: (task) => set(state => ({ tasks: [...state.tasks, { ...task, id: `t-${Date.now()}`, user_id: 'u-1', created_at: new Date().toISOString(), completed: false, invoice_id: null }]})),
-    toggleTask: (id) => set(state => ({ tasks: state.tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t) })),
+    addTask: (task) => set(state => ({ tasks: [...state.tasks, { ...task, id: `t-${Date.now()}`, user_id: 'u-1', created_at: new Date().toISOString(), status: 'todo', invoice_id: null }]})),
+    updateTaskStatus: (id, status) => set(state => ({ tasks: state.tasks.map(t => t.id === id ? { ...t, status } : t) })),
     deleteTask: (id) => set(state => ({ tasks: state.tasks.filter(t => t.id !== id) })),
     addTimeEntry: (entry) => {
         const newEntry: TimeEntry = {

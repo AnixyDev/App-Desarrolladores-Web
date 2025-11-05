@@ -9,6 +9,7 @@ export interface ClientSlice {
   addClient: (client: NewClient) => Client;
   updateClient: (client: Client) => void;
   deleteClient: (id: string) => void;
+  setClientPaymentMethodStatus: (clientId: string, hasMethod: boolean) => void;
 }
 
 export const createClientSlice: StateCreator<AppState, [], [], ClientSlice> = (set, get) => ({
@@ -26,4 +27,9 @@ export const createClientSlice: StateCreator<AppState, [], [], ClientSlice> = (s
         projects: state.projects.filter(p => p.client_id !== id),
         invoices: state.invoices.filter(i => i.client_id !== id),
     })),
+    setClientPaymentMethodStatus: (clientId, hasMethod) => {
+        set(state => ({
+            clients: state.clients.map(c => c.id === clientId ? { ...c, payment_method_on_file: hasMethod } : c)
+        }));
+    }
 });

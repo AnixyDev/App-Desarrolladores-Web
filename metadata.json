@@ -1,5 +1,7 @@
 {
   "name": "DevFreelancer",
   "description": "A professional SaaS application for freelancers to manage clients, create quotes, generate invoices, track expenses, and view business analytics, with AI-powered features.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "camera"
+  ]
 }

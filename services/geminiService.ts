@@ -23,6 +23,7 @@ export const AI_CREDIT_COSTS = {
     searchKnowledgeBase: 2,
     analyzeProfitability: 15,
     generateInvoiceItems: 8,
+    getDashboardInsights: 2,
 };
 
 // Función auxiliar para gestionar las llamadas a la API de forma segura
@@ -329,3 +330,60 @@ export const analyzeProfitability = async (data: any) => {
         return null;
     }
 };
+
+export const analyzeReceipt = async (imageDataBase64: string): Promise<{ description: string, amount: number, date: string, category: string }> => {
+    const prompt = `Analiza la imagen de este recibo y extrae la siguiente información en formato JSON: la descripción o nombre del comercio (description), el importe total (amount as a number), la fecha (date en formato YYYY-MM-DD), y una categoría sugerida (category, ej: "Software", "Transporte", "Comida", "Material de oficina").`;
+
+    const imagePart = {
+        inlineData: {
+            mimeType: 'image/jpeg',
+            data: imageDataBase64,
+        },
+    };
+
+    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: { parts: [imagePart, { text: prompt }] },
+        config: { responseMimeType: "application/json" }
+    }), "Error analyzing receipt with Gemini");
+
+    const resultText = response.text.trim();
+    try {
+        const parsedResult = JSON.parse(resultText);
+        return {
+            description: parsedResult.description || '',
+            amount: parseFloat(parsedResult.amount) || 0,
+            date: parsedResult.date || '',
+            category: parsedResult.category || 'Varios',
+        };
+    } catch (e) {
+        console.error("Error parsing receipt analysis from Gemini:", e, "Response was:", resultText);
+        throw new Error("La IA no pudo procesar la imagen del recibo.");
+    }
+};
+
+export const getDashboardInsights = async (summaryData: any): Promise<string[]> => {
+    const prompt = `
+        Eres un coach de negocios para freelancers. Basado en este resumen de datos, genera un array JSON de 2 o 3 sugerencias cortas y accionables.
+        Datos: ${JSON.stringify(summaryData)}
+        Ejemplos de sugerencias: "Tienes X horas sin facturar. Considera crear una factura.", "La factura #123 para Cliente Y está vencida. Deberías enviar un recordatorio.", "Tus gastos en software han aumentado. Revisa tus suscripciones."
+        Sé conciso y directo. Devuelve solo un array de strings.
+    `;
+    
+     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } },
+        },
+    }), "Error getting dashboard insights from Gemini");
+
+    const resultText = response.text.trim();
+    try {
+        return JSON.parse(resultText);
+    } catch (e) {
+        console.error("Error parsing dashboard insights from Gemini:", e);
+        return ["Hubo un problema al generar las sugerencias."];
+    }
+}

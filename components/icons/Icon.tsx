@@ -54,4 +54,6 @@ export {
   ShoppingBag,
   CreditCard,
   Filter as FilterIcon,
+  // FIX: Export 'Camera' icon to be used in ExpensesPage.
+  Camera,
 } from 'lucide-react';

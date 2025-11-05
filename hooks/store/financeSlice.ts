@@ -11,7 +11,7 @@ export interface FinanceSlice {
   proposals: Proposal[];
   contracts: Contract[];
   monthlyGoalCents: number;
-  addInvoice: (invoiceData: any, timeEntryIdsToBill?: string[]) => void;
+  addInvoice: (invoiceData: any, timeEntryIdsToBill?: string[]) => Invoice;
   deleteInvoice: (id: string) => void;
   markInvoiceAsPaid: (id: string) => void;
   addRecurringInvoice: (recurringData: any) => void;
@@ -26,7 +26,7 @@ export interface FinanceSlice {
   addProposal: (proposal: any) => void;
   addContract: (contract: any) => void;
   sendContract: (id: string) => void;
-  signContract: (id: string, signerName: string) => void;
+  signContract: (id: string, signerName: string, signature: string) => void;
   setContractExpiration: (id: string, expiresAt: string) => void;
   setMonthlyGoal: (goal: number) => void;
 }
@@ -43,7 +43,7 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
     addInvoice: (invoiceData, timeEntryIdsToBill) => {
         const subtotal = invoiceData.items.reduce((sum: number, item: any) => sum + item.price_cents * item.quantity, 0);
         const total = subtotal * (1 + (invoiceData.tax_percent || 0) / 100);
-        const newInvoice = {
+        const newInvoice: Invoice = {
             ...invoiceData,
             id: `inv-${Date.now()}`,
             user_id: 'u-1',
@@ -64,14 +64,15 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
             );
             set({ timeEntries: updatedTimeEntries });
         }
+        return newInvoice;
     },
     deleteInvoice: (id) => set(state => ({ invoices: state.invoices.filter(i => i.id !== id) })),
     markInvoiceAsPaid: (id) => {
         const invoice = get().invoices.find(i => i.id === id);
-        if(invoice) {
+        if(invoice && !invoice.paid) {
              get().addNotification(`La factura #${invoice.invoice_number} ha sido pagada.`, '/invoices');
+             set(state => ({ invoices: state.invoices.map(i => i.id === id ? { ...i, paid: true, payment_date: new Date().toISOString().split('T')[0] } : i) }));
         }
-        set(state => ({ invoices: state.invoices.map(i => i.id === id ? { ...i, paid: true, payment_date: new Date().toISOString().split('T')[0] } : i) }));
     },
     addRecurringInvoice: (recurringData) => {
         const newRecurring: RecurringInvoice = {
@@ -89,11 +90,9 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const recurringInvoices = get().recurringInvoices;
-        const newInvoices: Invoice[] = [];
         const updatedRecurringInvoices = recurringInvoices.map(rec => {
             const nextDueDate = new Date(rec.next_due_date);
             if (nextDueDate <= today) {
-                // Generate a new invoice
                 const newInvoiceData = {
                     client_id: rec.client_id,
                     project_id: rec.project_id,
@@ -102,9 +101,14 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
                     items: rec.items,
                     tax_percent: rec.tax_percent,
                 };
-                get().addInvoice(newInvoiceData);
+                const newInvoice = get().addInvoice(newInvoiceData);
                 
-                // Calculate next due date
+                const client = get().getClientById(rec.client_id);
+                if(client?.payment_method_on_file){
+                    get().markInvoiceAsPaid(newInvoice.id);
+                    get().addNotification(`Factura recurrente #${newInvoice.invoice_number} generada y cobrada automáticamente.`, '/invoices');
+                }
+                
                 let newNextDueDate = new Date(rec.next_due_date);
                 if (rec.frequency === 'monthly') {
                     newNextDueDate.setMonth(newNextDueDate.getMonth() + 1);
@@ -172,7 +176,7 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
         set(state => ({ contracts: [newContract, ...state.contracts] }));
     },
     sendContract: (id) => set(state => ({ contracts: state.contracts.map(c => c.id === id ? { ...c, status: 'sent' } : c) })),
-    signContract: (id, signerName) => set(state => ({ contracts: state.contracts.map(c => c.id === id ? { ...c, status: 'signed', signed_by: signerName, signed_at: new Date().toISOString() } : c) })),
+    signContract: (id, signerName, signature) => set(state => ({ contracts: state.contracts.map(c => c.id === id ? { ...c, status: 'signed', signed_by: signerName, signed_at: new Date().toISOString(), signature } : c) })),
     setContractExpiration: (id, expiresAt) => set(state => ({
         contracts: state.contracts.map(c => c.id === id ? { ...c, expires_at: expiresAt } : c)
     })),

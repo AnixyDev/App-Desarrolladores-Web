@@ -4,7 +4,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import { useAppStore } from '../hooks/useAppStore';
 import { formatCurrency } from '../lib/utils';
-import { BriefcaseIcon, FileTextIcon, EditIcon, TrashIcon, PhoneIcon, MailIcon, DollarSignIcon, UserIcon, Building } from '../components/icons/Icon';
+import { BriefcaseIcon, FileTextIcon, EditIcon, TrashIcon, PhoneIcon, MailIcon, DollarSignIcon, UserIcon, Building, CreditCard, CheckCircleIcon } from '../components/icons/Icon';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { Client, NewClient, Invoice } from '../types';
@@ -20,7 +20,7 @@ const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationMo
 const ClientDetailPage: React.FC = () => {
     const { clientId } = useParams<{ clientId: string }>();
     const navigate = useNavigate();
-    const { getClientById, projects, invoices, updateClient, deleteClient } = useAppStore();
+    const { getClientById, projects, invoices, updateClient, deleteClient, setClientPaymentMethodStatus } = useAppStore();
     const { addToast } = useToast();
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -71,6 +71,11 @@ const ClientDetailPage: React.FC = () => {
         addToast(`Cliente "${client.name}" eliminado`, 'info');
         navigate('/clients');
     };
+
+    const togglePaymentMethod = () => {
+        setClientPaymentMethodStatus(client.id, !client.payment_method_on_file);
+        addToast(`Método de pago ${client.payment_method_on_file ? 'eliminado' : 'añadido'} (simulación).`, 'success');
+    }
 
     const InvoiceList: React.FC<{invoices: Invoice[]}> = ({ invoices }) => (
         <ul className="divide-y divide-gray-800">
@@ -201,6 +206,21 @@ const ClientDetailPage: React.FC = () => {
                             <div>
                                 <p className="text-sm text-gray-400">Pendiente de Cobro</p>
                                 <p className="text-2xl font-bold text-yellow-400">{formatCurrency(financialSummary.totalPending)}</p>
+                            </div>
+                             <div className="pt-4 border-t border-gray-800">
+                                <p className="text-sm text-gray-400 flex items-center gap-2"><CreditCard/> Método de pago</p>
+                                {client.payment_method_on_file ? (
+                                    <div className="flex items-center justify-between mt-2">
+                                        <p className="text-sm text-green-400 flex items-center gap-2"><CheckCircleIcon/> Guardado</p>
+                                        <Button size="sm" variant="danger" onClick={togglePaymentMethod}>Eliminar</Button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-between mt-2">
+                                        <p className="text-sm text-gray-500">No guardado</p>
+                                        <Button size="sm" variant="secondary" onClick={togglePaymentMethod}>Añadir</Button>
+                                    </div>
+                                )}
+                                <p className="text-xs text-gray-500 mt-2">Activa esta opción para simular el cobro automático de facturas recurrentes.</p>
                             </div>
                             <Suspense fallback={<div className="h-[200px] flex items-center justify-center text-gray-400">Cargando gráfico...</div>}>
                                 <ClientIncomeChart invoices={clientInvoices} />

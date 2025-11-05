@@ -21,7 +21,6 @@ export interface Profile {
   reminder_template_overdue: string;
   // --- Affiliate Program ---
   affiliate_code: string;
-  // FIX: Add Stripe Connect fields to Profile type
   // --- Stripe Connect ---
   stripe_account_id: string;
   stripe_onboarding_complete: boolean;
@@ -35,6 +34,7 @@ export interface Client {
   email: string;
   phone: string;
   created_at: string;
+  payment_method_on_file?: boolean;
 }
 export type NewClient = Omit<Client, 'id' | 'user_id' | 'created_at'>;
 
@@ -60,7 +60,7 @@ export interface Task {
   user_id: string;
   project_id: string;
   description: string;
-  completed: boolean;
+  status: 'todo' | 'in-progress' | 'completed';
   created_at: string;
   invoice_id: string | null;
 }
@@ -173,6 +173,7 @@ export interface Contract {
     signed_by?: string;
     signed_at?: string;
     expires_at?: string;
+    signature?: string;
 }
 
 export interface UserData {
@@ -244,6 +245,16 @@ export interface ProjectMessage {
   text: string;
   timestamp: string;
 }
+
+export interface ProjectFile {
+    id: string;
+    project_id: string;
+    fileName: string;
+    fileType: string;
+    url: string; // For mock, this will just be a placeholder
+    uploadedAt: string;
+}
+
 
 export interface GoogleJwtPayload {
   name: string;

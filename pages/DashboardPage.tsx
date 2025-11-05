@@ -1,10 +1,11 @@
 // pages/DashboardPage.tsx
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import { formatCurrency } from '../lib/utils';
 import { Link } from 'react-router-dom';
-import { DollarSignIcon, ClockIcon, BriefcaseIcon, FileTextIcon } from '../components/icons/Icon';
+import { DollarSignIcon, ClockIcon, BriefcaseIcon, FileTextIcon, SparklesIcon, RefreshCwIcon, AlertTriangleIcon } from '../components/icons/Icon';
+import { getDashboardInsights } from '../services/geminiService';
 
 const IncomeExpenseChart = lazy(() => import('../components/charts/IncomeExpenseChart'));
 
@@ -26,6 +27,62 @@ const StatCard: React.FC<{ icon: React.ElementType; title: string; value: string
     }
     return <Card>{content}</Card>;
 };
+
+const AICoachWidget: React.FC = () => {
+    const { invoices, timeEntries, expenses } = useAppStore();
+    const [insights, setInsights] = useState<string[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchInsights = async () => {
+            setIsLoading(true);
+            try {
+                const unbilledHours = timeEntries
+                    .filter(t => !t.invoice_id)
+                    .reduce((sum, t) => sum + t.duration_seconds, 0) / 3600;
+
+                const overdueInvoices = invoices.filter(i => !i.paid && new Date(i.due_date) < new Date());
+
+                const summaryData = {
+                    unbilledHours: unbilledHours.toFixed(2),
+                    overdueInvoicesCount: overdueInvoices.length,
+                    totalPending: invoices.filter(i => !i.paid).reduce((sum, i) => sum + i.total_cents, 0) / 100,
+                };
+
+                const result = await getDashboardInsights(summaryData);
+                setInsights(result);
+            } catch (error) {
+                console.error("Failed to get AI insights:", error);
+                setInsights(["No se pudieron cargar las sugerencias de la IA."]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchInsights();
+    }, [invoices, timeEntries, expenses]);
+    
+    return (
+        <Card>
+            <CardHeader><h2 className="text-lg font-semibold text-white flex items-center gap-2"><SparklesIcon className="text-purple-400"/> Perspectivas de la IA</h2></CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <div className="flex items-center gap-2 text-gray-400"><RefreshCwIcon className="w-4 h-4 animate-spin" /> Analizando tu negocio...</div>
+                ) : (
+                    <ul className="space-y-2">
+                        {insights.map((insight, index) => (
+                            <li key={index} className="flex items-start gap-2 text-sm text-gray-300">
+                                <AlertTriangleIcon className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
+                                <span>{insight}</span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
 
 const DashboardPage: React.FC = () => {
     const { invoices, expenses, projects, timeEntries, profile, getClientById, monthlyGoalCents } = useAppStore();
@@ -61,6 +118,8 @@ const DashboardPage: React.FC = () => {
                 <StatCard icon={BriefcaseIcon} title="Proyectos Activos" value={stats.activeProjects} />
                 <StatCard icon={ClockIcon} title="Horas (Últimos 7 días)" value={`${stats.hoursThisWeek.toFixed(1)}h`} />
             </div>
+
+            <AICoachWidget />
 
             <Card>
                 <CardHeader>
