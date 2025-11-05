@@ -1,7 +1,8 @@
 import React from 'react';
-import Modal from '../ui/Modal.tsx';
-import Button from '../ui/Button.tsx';
-import { AlertTriangleIcon } from '../icons/Icon.tsx';
+// FIX: Removed .tsx extensions for consistency.
+import Modal from '../ui/Modal';
+import Button from '../ui/Button';
+import { AlertTriangleIcon } from '../icons/Icon';
 
 interface ConfirmationModalProps {
   isOpen: boolean;

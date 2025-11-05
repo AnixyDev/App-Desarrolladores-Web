@@ -1,3 +1,4 @@
+// pages/ClientsPage.tsx
 import React, { useState, lazy, Suspense, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../hooks/useAppStore';
@@ -6,7 +7,7 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import { Client, NewClient } from '../types';
-import { EditIcon, TrashIcon, PhoneIcon, MailIcon, Users as UsersIcon, SearchIcon } from '../components/icons/Icon';
+import { EditIcon, TrashIcon, PhoneIcon, MailIcon, Users as UsersIcon, SearchIcon, DownloadIcon } from '../components/icons/Icon';
 import { useToast } from '../hooks/useToast';
 import EmptyState from '../components/ui/EmptyState';
 
@@ -96,20 +97,69 @@ const ClientsPage: React.FC = () => {
         }
     };
 
+    const handleExportCSV = () => {
+        if (filteredClients.length === 0) {
+            addToast('No hay clientes para exportar.', 'info');
+            return;
+        }
+
+        const sortedClients = [...filteredClients].sort((a, b) => a.name.localeCompare(b.name));
+
+        const headers = ['id', 'name', 'company', 'email', 'phone'];
+        
+        const escapeCSV = (field: string | null | undefined): string => {
+            if (field === null || field === undefined) return '';
+            const str = String(field);
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+
+        const csvContent = [
+            headers.join(','),
+            ...sortedClients.map(client => 
+                [
+                    escapeCSV(client.id),
+                    escapeCSV(client.name),
+                    escapeCSV(client.company),
+                    escapeCSV(client.email),
+                    escapeCSV(client.phone),
+                ].join(',')
+            )
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        const date = new Date().toISOString().split('T')[0];
+        link.setAttribute('download', `clientes_devfreelancer_${date}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        addToast('Lista de clientes exportada a CSV.', 'success');
+    };
+
     return (
         <div>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div className="flex-1">
                     <h1 className="text-2xl font-semibold text-white">Clientes</h1>
                 </div>
-                <div className="flex items-center gap-4 w-full md:w-auto">
+                <div className="flex items-center gap-2 w-full md:w-auto">
                      <Input 
                         wrapperClassName="flex-1"
-                        placeholder="Buscar cliente por nombre o empresa..."
+                        placeholder="Buscar cliente..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         icon={<SearchIcon className="w-5 h-5 text-gray-400" />}
                     />
+                    <Button variant="secondary" onClick={handleExportCSV} aria-label="Exportar a CSV">
+                        <DownloadIcon className="w-4 h-4" />
+                    </Button>
                     <Button onClick={handleOpenAddModal}>Añadir Cliente</Button>
                 </div>
             </div>

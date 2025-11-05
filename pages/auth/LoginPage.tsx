@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import AuthCard from '../../components/auth/AuthCard.tsx';
-import Input from '../../components/ui/Input.tsx';
-import Button from '../../components/ui/Button.tsx';
-import { useAppStore } from '../../hooks/useAppStore.tsx';
+// FIX: Removed .tsx/.ts extensions from imports for consistency.
+import AuthCard from '../../components/auth/AuthCard';
+import Input from '../../components/ui/Input';
+import Button from '../../components/ui/Button';
+import { useAppStore } from '../../hooks/useAppStore';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
-import { GoogleJwtPayload } from '../../types.ts';
-import { AlertTriangleIcon } from '../../components/icons/Icon.tsx';
-import { jwtDecode } from '../../lib/utils.ts';
+import { GoogleJwtPayload } from '../../types';
+import { AlertTriangleIcon } from '../../components/icons/Icon';
+import { jwtDecode } from '../../lib/utils';
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();

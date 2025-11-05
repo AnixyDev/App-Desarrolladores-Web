@@ -1,16 +1,17 @@
 import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
-import { BookIcon, PlusIcon, SearchIcon, EditIcon, TrashIcon, SparklesIcon, FileSignatureIcon, BrainCircuitIcon } from '../components/icons/Icon.tsx';
-import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
-import Button from '../components/ui/Button.tsx';
-import Input from '../components/ui/Input.tsx';
-import Modal from '../components/ui/Modal.tsx';
-import { KnowledgeArticle } from '../types.ts';
-import { useAppStore } from '../hooks/useAppStore.tsx';
-import { AI_CREDIT_COSTS, rankArticlesByRelevance } from '../services/geminiService.ts';
-import { useToast } from '../hooks/useToast.ts';
+// FIX: Removed .tsx/.ts extensions from imports for consistency.
+import { BookIcon, PlusIcon, SearchIcon, EditIcon, TrashIcon, SparklesIcon, FileSignatureIcon, BrainCircuitIcon } from '../components/icons/Icon';
+import Card, { CardContent, CardHeader } from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import Modal from '../components/ui/Modal';
+import { KnowledgeArticle } from '../types';
+import { useAppStore } from '../hooks/useAppStore';
+import { AI_CREDIT_COSTS, rankArticlesByRelevance } from '../services/geminiService';
+import { useToast } from '../hooks/useToast';
 
-const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal.tsx'));
-const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal.tsx'));
+const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal'));
+const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal'));
 
 const useDebounce = (value: string, delay: number) => {
     const [debouncedValue, setDebouncedValue] = useState(value);

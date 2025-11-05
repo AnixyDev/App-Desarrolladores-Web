@@ -1,8 +1,10 @@
 import React, { useState, lazy, Suspense } from 'react';
 // FIX: Switched to the centralized Icon wrapper for consistency and added the missing User icon.
-import { Users, UserPlus, Trash2, MailIcon as Mail, X, UserIcon as User } from '../components/icons/Icon';
+// FIX: Correctly import RefreshCwIcon as it is the exported member, not RefreshCw.
+import { Users, UserPlus, Trash2, MailIcon as Mail, X, UserIcon as User, RefreshCwIcon } from '../components/icons/Icon';
 import { useAppStore } from '../hooks/useAppStore';
 import { UserData } from '../types';
+import { useToast } from '../hooks/useToast';
 
 const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal'));
 
@@ -20,19 +22,39 @@ interface NewMember {
 
 const TeamManagementDashboard: React.FC = () => {
   const { users, inviteUser, deleteUser } = useAppStore();
+  const { addToast } = useToast();
   
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<UserData | null>(null);
   const [newMember, setNewMember] = useState<NewMember>({ name: '', email: '', role: roles[0] });
+  const [isSending, setIsSending] = useState(false);
 
-  const handleInvite = (e: React.FormEvent) => {
+  const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMember.name || !newMember.email) return;
     
-    inviteUser(newMember.name, newMember.email, newMember.role);
-    setNewMember({ name: '', email: '', role: roles[0] });
-    setShowInviteModal(false);
+    setIsSending(true);
+    try {
+      // En una aplicación real, aquí haríamos una llamada a nuestro backend:
+      // const response = await fetch('/api/send-invitation', { /* ... */ });
+      // if (!response.ok) throw new Error('El servidor de correo no respondió.');
+      
+      // Para esta simulación, simulamos la llamada a la API y el retraso de red.
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Si la llamada (simulada) tiene éxito, actualizamos el estado de la app.
+      inviteUser(newMember.name, newMember.email, newMember.role);
+      addToast(`Invitación enviada a ${newMember.email}`, 'success');
+      
+      setNewMember({ name: '', email: '', role: roles[0] });
+      setShowInviteModal(false);
+
+    } catch (error) {
+      addToast('Error al enviar la invitación. Por favor, inténtalo de nuevo.', 'error');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleDelete = (member: UserData) => {
@@ -103,10 +125,15 @@ const TeamManagementDashboard: React.FC = () => {
           <div className="pt-4 flex justify-end">
             <button
               type="submit"
-              className="px-6 py-3 font-semibold rounded-lg transition duration-200 bg-fuchsia-600 text-black hover:bg-fuchsia-700 shadow-lg shadow-fuchsia-500/50 flex items-center"
+              disabled={isSending}
+              className="px-6 py-3 font-semibold rounded-lg transition duration-200 bg-fuchsia-600 text-black hover:bg-fuchsia-700 shadow-lg shadow-fuchsia-500/50 flex items-center disabled:bg-fuchsia-800/50 disabled:cursor-not-allowed"
             >
-              <Mail className="w-5 h-5 mr-2" />
-              Enviar Invitación
+              {isSending ? (
+                <RefreshCwIcon className="w-5 h-5 mr-2 animate-spin" />
+              ) : (
+                <Mail className="w-5 h-5 mr-2" />
+              )}
+              {isSending ? 'Enviando...' : 'Enviar Invitación'}
             </button>
           </div>
         </form>

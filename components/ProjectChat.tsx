@@ -1,10 +1,12 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
-import { useAppStore } from '../hooks/useAppStore.tsx';
-import { SendIcon, SparklesIcon, UserIcon } from './icons/Icon.tsx';
-import { ProjectMessage } from '../types.ts';
-import Input from './ui/Input.tsx';
-import Button from './ui/Button.tsx';
+// FIX: Removed .tsx/.ts extensions from imports for consistency.
+import { useAppStore } from '../hooks/useAppStore';
+import { SendIcon, SparklesIcon, UserIcon } from './icons/Icon';
+import { ProjectMessage } from '../types';
+import Input from './ui/Input';
+import Button from './ui/Button';
 
 interface ProjectChatProps {
     projectId: string;

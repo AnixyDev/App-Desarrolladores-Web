@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import Modal from '../ui/Modal.tsx';
-import Button from '../ui/Button.tsx';
-import { SparklesIcon } from '../icons/Icon.tsx';
+// FIX: Removed .tsx extensions for consistency.
+import Modal from '../ui/Modal';
+import Button from '../ui/Button';
+import { SparklesIcon } from '../icons/Icon';
 
 interface BuyCreditsModalProps {
   isOpen: boolean;

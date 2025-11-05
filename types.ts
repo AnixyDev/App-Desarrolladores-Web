@@ -172,6 +172,7 @@ export interface Contract {
     created_at: string;
     signed_by?: string;
     signed_at?: string;
+    expires_at?: string;
 }
 
 export interface UserData {

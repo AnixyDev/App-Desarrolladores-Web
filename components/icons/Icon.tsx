@@ -53,4 +53,5 @@ export {
   GitBranch,
   ShoppingBag,
   CreditCard,
+  Filter as FilterIcon,
 } from 'lucide-react';

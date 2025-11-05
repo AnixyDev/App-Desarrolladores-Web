@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
-import { Invoice, Expense, RecurringExpense, Budget, Proposal, Contract, RecurringInvoice } from '../../types.ts';
-import { AppState } from '../useAppStore.tsx';
+import { Invoice, Expense, RecurringExpense, Budget, Proposal, Contract, RecurringInvoice } from '../../types';
+import { AppState } from '../useAppStore';
 
 export interface FinanceSlice {
   invoices: Invoice[];
@@ -27,6 +27,7 @@ export interface FinanceSlice {
   addContract: (contract: any) => void;
   sendContract: (id: string) => void;
   signContract: (id: string, signerName: string) => void;
+  setContractExpiration: (id: string, expiresAt: string) => void;
   setMonthlyGoal: (goal: number) => void;
 }
 
@@ -172,5 +173,8 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
     },
     sendContract: (id) => set(state => ({ contracts: state.contracts.map(c => c.id === id ? { ...c, status: 'sent' } : c) })),
     signContract: (id, signerName) => set(state => ({ contracts: state.contracts.map(c => c.id === id ? { ...c, status: 'signed', signed_by: signerName, signed_at: new Date().toISOString() } : c) })),
+    setContractExpiration: (id, expiresAt) => set(state => ({
+        contracts: state.contracts.map(c => c.id === id ? { ...c, expires_at: expiresAt } : c)
+    })),
     setMonthlyGoal: (goal) => set({ monthlyGoalCents: goal }),
 });

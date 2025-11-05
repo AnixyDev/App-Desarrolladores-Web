@@ -34,7 +34,7 @@ Firmado a [CURRENT_DATE].
 `;
 
 const ContractsPage: React.FC = () => {
-    const { profile, contracts, clients, projects, addContract, sendContract, getClientById, getProjectById } = useAppStore();
+    const { profile, contracts, clients, projects, addContract, sendContract, getClientById, getProjectById, setContractExpiration } = useAppStore();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const [selectedClientId, setSelectedClientId] = useState<string>(clients[0]?.id || '');
@@ -129,6 +129,17 @@ const ContractsPage: React.FC = () => {
                                     <div className="text-sm space-y-2 text-gray-400 border-t border-gray-700 pt-3 mt-3">
                                         <p className='flex justify-between'><span>Fecha:</span> <span className="text-gray-200">{new Date(contract.created_at).toLocaleDateString()}</span></p>
                                     </div>
+                                    {contract.status === 'draft' && (
+                                        <div className="mt-3 pt-3 border-t border-gray-700">
+                                            <label className="block text-xs font-medium text-gray-400 mb-1">Fecha de Vencimiento</label>
+                                            <input
+                                                type="date"
+                                                value={contract.expires_at || ''}
+                                                onChange={(e) => setContractExpiration(contract.id, e.target.value)}
+                                                className="w-full px-2 py-1 border border-gray-600 rounded-md bg-gray-700 text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                            />
+                                        </div>
+                                    )}
                                     <div className="flex justify-end mt-4">
                                         {contract.status === 'draft' && (
                                             <Button size="sm" variant="secondary" onClick={() => handleSendEmail(contract)} title="Enviar por Email">
@@ -150,6 +161,7 @@ const ContractsPage: React.FC = () => {
                                     <th className="p-4 font-semibold whitespace-nowrap">Cliente</th>
                                     <th className="p-4 font-semibold whitespace-nowrap">Fecha</th>
                                     <th className="p-4 font-semibold whitespace-nowrap">Estado</th>
+                                    <th className="p-4 font-semibold whitespace-nowrap">Vencimiento</th>
                                     <th className="p-4 font-semibold whitespace-nowrap">Acciones</th>
                                 </tr>
                             </thead>
@@ -164,6 +176,18 @@ const ContractsPage: React.FC = () => {
                                             <td className="p-4 text-gray-300">{new Date(contract.created_at).toLocaleDateString()}</td>
                                             <td className="p-4">
                                                 <StatusChip type="contract" status={contract.status} />
+                                            </td>
+                                            <td className="p-4">
+                                                {contract.status === 'draft' ? (
+                                                    <input
+                                                        type="date"
+                                                        value={contract.expires_at || ''}
+                                                        onChange={(e) => setContractExpiration(contract.id, e.target.value)}
+                                                        className="px-2 py-1 border border-gray-600 rounded-md bg-gray-700 text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                                    />
+                                                ) : (
+                                                    <span className="text-gray-500">N/A</span>
+                                                )}
                                             </td>
                                             <td className="p-4">
                                                 {contract.status === 'draft' && (
