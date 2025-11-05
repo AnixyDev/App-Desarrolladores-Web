@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, lazy, Suspense, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 // FIX: Remove .tsx and .ts extensions from imports to resolve module resolution errors.
 import { useAppStore } from '../hooks/useAppStore';
@@ -8,7 +8,7 @@ import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import { Client, NewClient } from '../types';
 // FIX: Aliased Users to UsersIcon to match usage.
-import { EditIcon, TrashIcon, PhoneIcon, MailIcon, Users as UsersIcon } from '../components/icons/Icon';
+import { EditIcon, TrashIcon, PhoneIcon, MailIcon, Users as UsersIcon, SearchIcon } from '../components/icons/Icon';
 import { useToast } from '../hooks/useToast';
 import EmptyState from '../components/ui/EmptyState';
 
@@ -32,6 +32,16 @@ const ClientsPage: React.FC = () => {
     const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
     const [formData, setFormData] = useState<NewClient | Client>(initialClientState);
     const [editingClient, setEditingClient] = useState<Client | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredClients = useMemo(() => {
+        if (!searchTerm) return clients;
+        return clients.filter(client => 
+            client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            client.company.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [clients, searchTerm]);
+
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -91,13 +101,31 @@ const ClientsPage: React.FC = () => {
     return (
         <div>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                <h1 className="text-2xl font-semibold text-white">Clientes</h1>
-                <Button onClick={handleOpenAddModal}>Añadir Cliente</Button>
+                <div className="flex-1">
+                    <h1 className="text-2xl font-semibold text-white">Clientes</h1>
+                </div>
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                     <Input 
+                        wrapperClassName="flex-1"
+                        placeholder="Buscar cliente por nombre o empresa..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        icon={<SearchIcon className="w-5 h-5 text-gray-400" />}
+                    />
+                    <Button onClick={handleOpenAddModal}>Añadir Cliente</Button>
+                </div>
             </div>
             
-            {clients.length > 0 ? (
+            {clients.length === 0 ? (
+                 <EmptyState
+                    icon={UsersIcon}
+                    title="No tienes clientes"
+                    message="Aún no has añadido ningún cliente. ¡Empieza por añadir el primero para organizar tus proyectos!"
+                    action={{ text: 'Añadir Cliente', onClick: handleOpenAddModal }}
+                />
+            ) : filteredClients.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {clients.map(client => (
+                    {filteredClients.map(client => (
                         <Card key={client.id} className="flex flex-col">
                             <CardHeader>
                                 <Link to={`/clients/${client.id}`} className="text-primary-400 text-lg font-semibold hover:underline">
@@ -126,10 +154,9 @@ const ClientsPage: React.FC = () => {
                 </div>
             ) : (
                 <EmptyState
-                    icon={UsersIcon}
-                    title="No tienes clientes"
-                    message="Aún no has añadido ningún cliente. ¡Empieza por añadir el primero para organizar tus proyectos!"
-                    action={{ text: 'Añadir Cliente', onClick: handleOpenAddModal }}
+                    icon={SearchIcon}
+                    title="No se encontraron clientes"
+                    message={`No hay clientes que coincidan con "${searchTerm}".`}
                 />
             )}
 

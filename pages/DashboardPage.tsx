@@ -30,22 +30,34 @@ const StatCard: React.FC<{ icon: React.ElementType; title: string; value: string
 
 const DashboardPage: React.FC = () => {
     const { invoices, expenses, projects, timeEntries, profile, getClientById, monthlyGoalCents } = useAppStore();
+    
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
 
     const stats = {
         pendingInvoices: invoices.filter(i => !i.paid).reduce((sum, i) => sum + i.total_cents, 0),
         activeProjects: projects.filter(p => p.status === 'in-progress').length,
         hoursThisWeek: timeEntries.filter(t => new Date(t.start_time) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).reduce((sum, t) => sum + t.duration_seconds, 0) / 3600,
-        monthlyIncome: invoices.filter(i => i.paid && i.payment_date && new Date(i.payment_date).getMonth() === new Date().getMonth()).reduce((sum, i) => sum + i.subtotal_cents, 0)
+        paidThisMonth: invoices
+            .filter(i => i.paid && i.payment_date && new Date(i.payment_date).getMonth() === currentMonth && new Date(i.payment_date).getFullYear() === currentYear)
+            .reduce((sum, i) => sum + i.total_cents, 0),
+        issuedThisMonth: invoices
+            .filter(i => {
+                const issueDate = new Date(i.issue_date);
+                return issueDate.getMonth() === currentMonth && issueDate.getFullYear() === currentYear;
+            })
+            .reduce((sum, i) => sum + i.total_cents, 0),
     };
     
-    const goalProgress = monthlyGoalCents > 0 ? (stats.monthlyIncome / monthlyGoalCents) * 100 : 0;
+    const goalProgress = monthlyGoalCents > 0 ? (stats.paidThisMonth / monthlyGoalCents) * 100 : 0;
 
     return (
         <div className="space-y-6">
             <h1 className="text-2xl font-semibold text-white">Hola, {profile?.full_name?.split(' ')[0]}</h1>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard icon={DollarSignIcon} title="Ingresos este Mes" value={formatCurrency(stats.monthlyIncome)} />
+                <StatCard icon={DollarSignIcon} title="Ingresos este Mes" value={formatCurrency(stats.paidThisMonth)} />
                 <StatCard icon={FileTextIcon} title="Pendiente de Cobro" value={formatCurrency(stats.pendingInvoices)} />
                 <StatCard icon={BriefcaseIcon} title="Proyectos Activos" value={stats.activeProjects} />
                 <StatCard icon={ClockIcon} title="Horas (Últimos 7 días)" value={`${stats.hoursThisWeek.toFixed(1)}h`} />
@@ -53,12 +65,30 @@ const DashboardPage: React.FC = () => {
 
             <Card>
                 <CardHeader>
-                    <h2 className="text-lg font-semibold text-white">Progreso hacia tu Meta Mensual ({formatCurrency(monthlyGoalCents)})</h2>
+                    <h2 className="text-lg font-semibold text-white">Resumen Mensual</h2>
                 </CardHeader>
-                <CardContent>
-                    <div className="w-full bg-gray-700 rounded-full h-4">
-                        <div className="bg-primary-600 h-4 rounded-full text-center text-xs text-white font-bold" style={{ width: `${Math.min(goalProgress, 100)}%` }}>
-                           {goalProgress.toFixed(0)}%
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                            <p className="text-sm text-gray-400">Facturado</p>
+                            <p className="text-xl font-bold text-blue-400">{formatCurrency(stats.issuedThisMonth)}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-400">Cobrado</p>
+                            <p className="text-xl font-bold text-green-400">{formatCurrency(stats.paidThisMonth)}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-400">Meta</p>
+                            <p className="text-xl font-bold text-white">{formatCurrency(monthlyGoalCents)}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <div className="flex justify-between text-xs text-gray-400 mb-1">
+                            <span>Progreso de la Meta ({formatCurrency(monthlyGoalCents)})</span>
+                            <span>{goalProgress.toFixed(0)}%</span>
+                        </div>
+                        <div className="w-full bg-gray-700 rounded-full h-2.5">
+                            <div className="bg-primary-600 h-2.5 rounded-full" style={{ width: `${Math.min(goalProgress, 100)}%` }}></div>
                         </div>
                     </div>
                 </CardContent>
