@@ -55,6 +55,13 @@ export const createJobSlice: StateCreator<AppState, [], [], JobSlice> = (set, ge
             appliedAt: new Date().toISOString(),
         };
         set(state => ({ applications: [newApplication, ...state.applications] }));
+        
+        const { addNotification } = get();
+        // Simulación: Notificamos al usuario actual como si fuera el publicador de la oferta.
+        // En una app multi-usuario, esta notificación se enviaría al `job.postedByUserId`.
+        const message = `¡Nuevo candidato para tu oferta "${job.titulo}"!`;
+        const link = `/my-job-posts/${job.id}/applicants`;
+        addNotification(message, link);
     },
     viewApplication: (applicationId: string) => {
         set(state => ({

@@ -2,12 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 // FIX: Remove .tsx extensions from imports to resolve module resolution errors.
 import { useAppStore } from '../../hooks/useAppStore';
 // FIX: Imported the correctly named icons and aliased them to match usage in the component.
-import { MenuIcon as Menu, BellIcon as Bell, LogOutIcon as LogOut, UserIcon as User, FileTextIcon, BriefcaseIcon } from '../icons/Icon';
+import { MenuIcon as Menu, BellIcon as Bell, LogOutIcon as LogOut, UserIcon as User, FileTextIcon, BriefcaseIcon, Users as UsersIcon } from '../icons/Icon';
 import { Link } from 'react-router-dom';
 
 const getNotificationIcon = (link: string) => {
     if (link.includes('/invoices')) return <FileTextIcon className="w-5 h-5 text-green-400" />;
     if (link.includes('/projects')) return <BriefcaseIcon className="w-5 h-5 text-purple-400" />;
+    if (link.includes('/my-job-posts')) return <UsersIcon className="w-5 h-5 text-blue-400" />;
     return <Bell className="w-5 h-5 text-gray-400" />;
 };
 
