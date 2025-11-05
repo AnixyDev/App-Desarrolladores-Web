@@ -4,7 +4,6 @@ import { useAppStore } from '../../hooks/useAppStore';
 import Card, { CardHeader, CardContent, CardFooter } from '../../components/ui/Card';
 import { formatCurrency } from '../../lib/utils';
 import Button from '../../components/ui/Button';
-// FIX: Remove .ts extension from import to fix module resolution error.
 import { redirectToCheckout } from '../../services/stripeService';
 
 const PortalInvoiceViewPage: React.FC = () => {

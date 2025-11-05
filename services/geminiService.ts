@@ -68,7 +68,6 @@ export const generateProposalText = async (jobTitle: string, jobDescription: str
         Genera solo el texto de la propuesta.
     `;
 
-    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
@@ -96,7 +95,6 @@ export const refineProposalText = async (originalProposal: string, refinementTyp
         Ahora, por favor, proporciona la versión refinada.
     `;
 
-    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
@@ -128,7 +126,6 @@ export const summarizeApplicant = async (jobDescription: string, applicantProfil
         3.  "cons": Un array de 1-2 posibles debilidades o puntos a aclarar (strings).
     `;
 
-    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: prompt,
@@ -164,7 +161,6 @@ export const getAIResponse = async (
     
     const contents = [...history, { role: 'user', parts: [{ text: prompt }] }];
 
-    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
     return safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-pro',
         contents: contents as any,
@@ -192,7 +188,6 @@ export const generateFinancialForecast = async (data: any): Promise<any> => {
         4.  El resultado debe ser un objeto JSON con las claves: "summary", "potentialRisks", "suggestions".
     `;
     
-    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
@@ -234,7 +229,6 @@ export const generateTimeEntryDescription = async (projectName: string, projectD
         4.  Genera solo el texto de la descripción, sin introducciones ni saludos.
     `;
 
-    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
@@ -251,8 +245,6 @@ export const generateTimeEntryDescription = async (projectName: string, projectD
 // --- NUEVAS FUNCIONES ---
 
 export const generateItemsForDocument = async (prompt: string, hourlyRate: number) => {
-    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
-    // FIX: Corrected prompt to use hourly rate in EUR, not cents.
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: `Basado en la siguiente descripción, genera una lista de conceptos para una factura o presupuesto. Estima las horas si es necesario y calcula el precio usando una tarifa de ${hourlyRate / 100} EUR/hora. La descripción es: "${prompt}"`,
@@ -285,7 +277,6 @@ export const generateItemsForDocument = async (prompt: string, hourlyRate: numbe
 export const rankArticlesByRelevance = async (query: string, articles: { id: string, title: string, content: string }[]) => {
     const simplifiedArticles = articles.map(a => ({ id: a.id, title: a.title, excerpt: a.content.substring(0, 150) }));
     
-    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: `Dada la siguiente consulta de búsqueda y una lista de artículos, devuelve un array JSON con los IDs de los artículos ordenados por relevancia semántica (el más relevante primero). Consulta: "${query}". Artículos: ${JSON.stringify(simplifiedArticles)}`,
@@ -305,7 +296,6 @@ export const rankArticlesByRelevance = async (query: string, articles: { id: str
 };
 
 export const analyzeProfitability = async (data: any) => {
-    // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: `Analiza los siguientes datos de rentabilidad de un freelancer y proporciona un análisis JSON conciso. Datos: ${JSON.stringify(data)}`,

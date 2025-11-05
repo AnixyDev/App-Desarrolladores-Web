@@ -1,6 +1,5 @@
 // pages/DashboardPage.tsx
 import React, { lazy, Suspense } from 'react';
-// FIX: Remove .tsx extensions from imports to resolve module resolution errors.
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import { formatCurrency } from '../lib/utils';

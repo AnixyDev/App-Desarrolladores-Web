@@ -3,7 +3,6 @@ import { HashRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 're
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAppStore } from './hooks/useAppStore';
 import { useToast } from './hooks/useToast';
-// FIX: Remove .ts extension from import to fix module resolution error.
 import { STRIPE_ITEMS } from './services/stripeService';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
@@ -50,7 +49,6 @@ const RoleManagement = lazy(() => import('./pages/RoleManagement'));
 const IntegrationsManager = lazy(() => import('./pages/IntegrationsManager'));
 const ForecastingPage = lazy(() => import('./pages/ForecastingPage'));
 const AffiliateProgramPage = lazy(() => import('./pages/AffiliateProgramPage'));
-// FIX: Remove .tsx extension from import to fix module resolution error.
 const BillingPage = lazy(() => import('./pages/BillingPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 

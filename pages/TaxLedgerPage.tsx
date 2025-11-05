@@ -1,9 +1,5 @@
-
-
-
 import React, { useState, useMemo } from 'react';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
-// FIX: Remove .tsx extensions from imports to fix module resolution errors.
 import { useAppStore } from '../hooks/useAppStore';
 import { formatCurrency } from '../lib/utils';
 import { BookIcon } from '../components/icons/Icon';

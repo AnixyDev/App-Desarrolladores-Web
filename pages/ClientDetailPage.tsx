@@ -10,9 +10,7 @@ import Modal from '../components/ui/Modal';
 import { Client, NewClient, Invoice } from '../types';
 import StatusChip from '../components/ui/StatusChip';
 import EmptyState from '../components/ui/EmptyState';
-// FIX: Import Input component to resolve reference error.
 import Input from '../components/ui/Input';
-// FIX: Import useToast hook to resolve reference error.
 import { useToast } from '../hooks/useToast';
 
 

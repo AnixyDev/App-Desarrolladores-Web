@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-// FIX: Remove .tsx and .ts extensions from imports to resolve module resolution errors.
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card';
 import Input from '../components/ui/Input';

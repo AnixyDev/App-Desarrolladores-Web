@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
-// FIX: Remove .tsx extensions from imports to fix module resolution errors.
 import { SendIcon, SparklesIcon, UserIcon } from '../components/icons/Icon';
 import { getAIResponse } from '../services/geminiService';
 import { useAppStore } from '../hooks/useAppStore';

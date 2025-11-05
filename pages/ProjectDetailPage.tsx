@@ -1,7 +1,6 @@
 // pages/ProjectDetailPage.tsx
 import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-// FIX: Remove .tsx and .ts extensions from imports to resolve module resolution errors.
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';

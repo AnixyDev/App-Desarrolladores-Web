@@ -1,8 +1,7 @@
-
 import React from 'react';
-import { useAppStore } from '../hooks/useAppStore.tsx';
-import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
-import { MailIcon } from '../components/icons/Icon.tsx';
+import { useAppStore } from '../hooks/useAppStore';
+import Card, { CardContent, CardHeader } from '../components/ui/Card';
+import { MailIcon } from '../components/icons/Icon';
 
 const ProfilePublic: React.FC = () => {
     const { profile } = useAppStore();

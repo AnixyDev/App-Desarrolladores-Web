@@ -1,9 +1,5 @@
-
-
-
 import React from 'react';
 import { useParams } from 'react-router-dom';
-// FIX: Remove .tsx extensions from imports to fix module resolution errors.
 import { useAppStore } from '../../hooks/useAppStore';
 import Card, { CardHeader, CardContent, CardFooter } from '../../components/ui/Card';
 import Button from '../../components/ui/Button';

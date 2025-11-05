@@ -1,10 +1,8 @@
 import React, { useState, useMemo, lazy, Suspense } from 'react';
-// FIX: Remove .tsx extensions from imports to fix module resolution errors.
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { formatCurrency } from '../lib/utils';
-// FIX: Aliased Users to UsersIcon to match usage.
 import { DownloadIcon, DollarSignIcon, TrendingUpIcon, Users as UsersIcon, ClockIcon, SparklesIcon, RefreshCwIcon } from '../components/icons/Icon';
 import { analyzeProfitability, AI_CREDIT_COSTS } from '../services/geminiService';
 import { useToast } from '../hooks/useToast';
