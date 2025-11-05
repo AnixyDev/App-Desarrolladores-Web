@@ -8,9 +8,10 @@ import { useNavigate } from 'react-router-dom';
 
 // Lista de habilidades comunes para la selección múltiple
 const commonSkills = [
-  'React', 'Node.js', 'Next.js', 'Angular', 'Vue.js', 'Python (Django/Flask)', 
-  'Java', 'Go', 'PHP (Laravel)', 'TypeScript', 'Tailwind CSS', 'AWS', 
-  'GCP (Google Cloud)', 'Firebase', 'MongoDB', 'PostgreSQL', 'Docker', 'Kubernetes'
+  'Angular', 'AWS', 'CSS', 'Docker', 'Firebase', 'Go', 'GCP (Google Cloud)',
+  'HTML', 'Java', 'JavaScript', 'Kubernetes', 'PHP (Laravel)', 'MongoDB', 
+  'MySQL', 'Next.js', 'Node.js', 'PostgreSQL', 'Python (Django/Flask)', 
+  'React', 'Svelte', 'Tailwind CSS', 'TypeScript', 'Vue.js',
 ];
 
 const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal'));
@@ -45,7 +46,7 @@ const JobPostForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const { addToast } = useToast();
-  const { profile } = useAppStore();
+  const { profile, addJob } = useAppStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -70,17 +71,6 @@ const JobPostForm: React.FC = () => {
       }
     });
   };
-  
-  const resetForm = () => {
-      setFormData({
-        titulo: '',
-        descripcion: '',
-        presupuesto: '',
-        duracionSemanas: '',
-        habilidadesRequeridas: [],
-      });
-      setIsFeatured(false);
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -95,10 +85,27 @@ const JobPostForm: React.FC = () => {
             setIsLoading(false); // Reactivar el botón si hay un error antes de la redirección
         }
     } else {
+        if (!profile) {
+            addToast('No se pudo identificar al usuario. Por favor, inicia sesión de nuevo.', 'error');
+            return;
+        }
         // Envío normal sin pago
-        console.log("Datos de la oferta de trabajo enviados (Simulación):", formData);
+        const newJob = {
+            titulo: formData.titulo,
+            descripcionCorta: formData.descripcion.substring(0, 100) + '...',
+            descripcionLarga: formData.descripcion,
+            presupuesto: parseFloat(formData.presupuesto) || 0,
+            duracionSemanas: parseInt(formData.duracionSemanas, 10) || 0,
+            habilidades: formData.habilidadesRequeridas,
+            cliente: profile.business_name,
+            fechaPublicacion: "Ahora mismo",
+            isFeatured: false,
+            compatibilidadIA: Math.floor(Math.random() * 30) + 70, // Simula alta compatibilidad
+            postedByUserId: profile.id
+        };
+        addJob(newJob);
         addToast('¡Oferta de trabajo publicada con éxito!', 'success');
-        resetForm();
+        navigate('/my-job-posts');
     }
   };
 
@@ -185,7 +192,7 @@ const JobPostForm: React.FC = () => {
                 </button>
             </div>
             {isFeatured && (
-                 <p className="text-center text-yellow-300 font-semibold mt-3 text-sm bg-gray-800/50 p-2 rounded">Coste adicional: 5,95 € para 7 días de--- START OF FILE pages/JobMarketDashboard.tsx ---</p>
+                 <p className="text-center text-yellow-300 font-semibold mt-3 text-sm bg-gray-800/50 p-2 rounded">Coste adicional: 5,95 € para 7 días de visibilidad máxima.</p>
             )}
           </div>
 
