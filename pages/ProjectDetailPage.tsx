@@ -1,7 +1,7 @@
 // pages/ProjectDetailPage.tsx
 import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-// FIX: Remove .tsx and .ts extensions from imports to resolve module resolution errors.
+// FIX: Remove .tsx and .ts extensions from imports to fix module resolution errors.
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -9,6 +9,7 @@ import Input from '../components/ui/Input';
 import { formatCurrency } from '../lib/utils';
 import { Project, Task, InvoiceItem } from '../types';
 import { PlusIcon, TrashIcon, ClockIcon, FileTextIcon, MessageSquareIcon, DollarSignIcon } from '../components/icons/Icon';
+import EmptyState from '../components/ui/EmptyState';
 
 const ProjectChat = lazy(() => import('../components/ProjectChat'));
 const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal'));
@@ -259,23 +260,31 @@ const ProjectDetailPage: React.FC = () => {
                             />
                             <Button type="submit" aria-label="Añadir nueva tarea"><PlusIcon className="w-5 h-5"/></Button>
                         </form>
-                        <ul className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                            {tasks.map(task => (
-                                <li key={task.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                                    <div className="flex items-center gap-3">
-                                        <button onClick={() => toggleTask(task.id)} aria-label={task.completed ? `Marcar tarea '${task.description}' como incompleta` : `Marcar tarea '${task.description}' como completada`}>
-                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${task.completed ? 'border-primary-500 bg-primary-500' : 'border-gray-500'}`}>
-                                                {task.completed && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-                                            </div>
-                                        </button>
-                                        <span className={` ${task.completed ? 'line-through text-gray-500' : 'text-white'}`}>{task.description}</span>
-                                    </div>
-                                    <Button size="sm" variant="danger" onClick={() => handleDeleteClick(task)} aria-label={`Eliminar tarea '${task.description}'`}>
-                                        <TrashIcon className="w-4 h-4"/>
-                                    </Button>
-                                </li>
-                            ))}
-                        </ul>
+                        {tasks.length > 0 ? (
+                            <ul className="space-y-2 max-h-96 overflow-y-auto pr-2">
+                                {tasks.map(task => (
+                                    <li key={task.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                                        <div className="flex items-center gap-3">
+                                            <button onClick={() => toggleTask(task.id)} aria-label={task.completed ? `Marcar tarea '${task.description}' como incompleta` : `Marcar tarea '${task.description}' como completada`}>
+                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${task.completed ? 'border-primary-500 bg-primary-500' : 'border-gray-500'}`}>
+                                                    {task.completed && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                                                </div>
+                                            </button>
+                                            <span className={` ${task.completed ? 'line-through text-gray-500' : 'text-white'}`}>{task.description}</span>
+                                        </div>
+                                        <Button size="sm" variant="danger" onClick={() => handleDeleteClick(task)} aria-label={`Eliminar tarea '${task.description}'`}>
+                                            <TrashIcon className="w-4 h-4"/>
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <EmptyState
+                                icon={FileTextIcon}
+                                title="No hay tareas"
+                                message="Aún no has añadido ninguna tarea a este proyecto. ¡Añade la primera para empezar a organizarte!"
+                            />
+                        )}
                     </CardContent>
                 </Card>
             </div>
