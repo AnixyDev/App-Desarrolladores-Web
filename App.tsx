@@ -1,10 +1,9 @@
-
-
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAppStore } from './hooks/useAppStore';
 import { useToast } from './hooks/useToast';
+// FIX: Remove .ts extension from import to fix module resolution error.
 import { STRIPE_ITEMS } from './services/stripeService';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
@@ -51,6 +50,7 @@ const RoleManagement = lazy(() => import('./pages/RoleManagement'));
 const IntegrationsManager = lazy(() => import('./pages/IntegrationsManager'));
 const ForecastingPage = lazy(() => import('./pages/ForecastingPage'));
 const AffiliateProgramPage = lazy(() => import('./pages/AffiliateProgramPage'));
+// FIX: Remove .tsx extension from import to fix module resolution error.
 const BillingPage = lazy(() => import('./pages/BillingPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
@@ -89,34 +89,51 @@ const MainLayout = () => {
 };
 
 const PaymentHandler = () => {
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { addToast } = useToast();
-    const { upgradePlan, purchaseCredits } = useAppStore();
+    const { upgradePlan, purchaseCredits, markInvoiceAsPaid } = useAppStore();
 
     useEffect(() => {
         const paymentStatus = searchParams.get('payment');
         const itemKey = searchParams.get('item') as keyof typeof STRIPE_ITEMS | null;
+        const invoiceId = searchParams.get('invoice_id');
 
-        if (paymentStatus === 'success' && itemKey) {
-            const item = STRIPE_ITEMS[itemKey];
-            if (item) {
-                if (item.mode === 'subscription') {
-                    if (itemKey === 'proPlan') {
-                        upgradePlan('Pro');
-                        addToast('¡Felicidades! Has actualizado al Plan Pro.', 'success');
-                    } else if (itemKey.includes('teams')) {
-                        upgradePlan('Teams');
-                        addToast('¡Bienvenido a Teams! Ya puedes invitar a tu equipo.', 'success');
+        if (paymentStatus === 'success') {
+            if (itemKey) {
+                const item = STRIPE_ITEMS[itemKey];
+                if (item) {
+                    if (item.mode === 'subscription') {
+                        if (itemKey === 'proPlan') {
+                            upgradePlan('Pro');
+                            addToast('¡Felicidades! Has actualizado al Plan Pro.', 'success');
+// FIX: Property 'includes' does not exist on type 'string | number | symbol'. Type guard added to ensure itemKey is a string.
+                        } else if (typeof itemKey === 'string' && itemKey.includes('teams')) {
+                            upgradePlan('Teams');
+                            addToast('¡Bienvenido a Teams! Ya puedes invitar a tu equipo.', 'success');
+                        }
+                    } else if (item.mode === 'payment' && 'credits' in item) {
+                        purchaseCredits(item.credits);
+                        addToast(`¡Has comprado ${item.credits} créditos de IA!`, 'success');
+                    } else if (itemKey === 'featuredJobPost') {
+                        addToast('¡Tu oferta ha sido destacada y publicada con éxito!', 'success');
                     }
-                } else if (item.mode === 'payment' && 'credits' in item) {
-                    purchaseCredits(item.credits);
-                    addToast(`¡Has comprado ${item.credits} créditos de IA!`, 'success');
-                } else if (itemKey === 'featuredJobPost') {
-                    addToast('¡Tu oferta ha sido destacada y publicada con éxito!', 'success');
                 }
+                searchParams.delete('item');
+            } else if (invoiceId) {
+                markInvoiceAsPaid(invoiceId);
+                addToast('¡Pago recibido! La factura ha sido marcada como pagada.', 'success');
+                searchParams.delete('invoice_id');
             }
+             searchParams.delete('payment');
+             setSearchParams(searchParams, { replace: true });
+
         } else if (paymentStatus === 'cancelled') {
             addToast('El proceso de pago fue cancelado.', 'info');
+            // Clean up all payment-related URL params
+            searchParams.delete('payment');
+            searchParams.delete('invoice_id');
+            searchParams.delete('item');
+            setSearchParams(searchParams, { replace: true });
         }
         // This effect should only run once on mount
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -127,6 +144,14 @@ const PaymentHandler = () => {
 
 
 function App() {
+    const { isAuthenticated, checkInvoiceStatuses } = useAppStore();
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            checkInvoiceStatuses();
+        }
+    }, [isAuthenticated, checkInvoiceStatuses]);
+
     return (
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
             <HashRouter>

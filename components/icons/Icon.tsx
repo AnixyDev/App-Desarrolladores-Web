@@ -52,4 +52,5 @@ export {
   Save as SaveIcon,
   GitBranch,
   ShoppingBag,
+  CreditCard,
 } from 'lucide-react';

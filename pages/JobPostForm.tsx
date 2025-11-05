@@ -1,8 +1,9 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Briefcase, DollarSign, Clock, Hash, Send, Zap, Star } from 'lucide-react';
-import { useToast } from '../hooks/useToast.ts';
-import { redirectToCheckout } from '../services/stripeService.ts';
-import { useAppStore } from '../hooks/useAppStore.tsx';
+import { useToast } from '../hooks/useToast';
+// FIX: Remove .ts extension from import to fix module resolution error.
+import { redirectToCheckout } from '../services/stripeService';
+import { useAppStore } from '../hooks/useAppStore';
 import { useNavigate } from 'react-router-dom';
 
 // Lista de habilidades comunes para la selección múltiple
@@ -12,7 +13,7 @@ const commonSkills = [
   'GCP (Google Cloud)', 'Firebase', 'MongoDB', 'PostgreSQL', 'Docker', 'Kubernetes'
 ];
 
-const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal.tsx'));
+const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal'));
 
 interface FormData {
     titulo: string;
@@ -184,14 +185,20 @@ const JobPostForm: React.FC = () => {
                 </button>
             </div>
             {isFeatured && (
-                 <p className="text-center text-yellow-300 font-semibold mt-3 text-sm bg-gray-800/50 p-2 rounded">Coste adicional: 5,95 € para 7 días de visibilidad premium.</p>
+                 <p className="text-center text-yellow-300 font-semibold mt-3 text-sm bg-gray-800/50 p-2 rounded">Coste adicional: 5,95 € para 7 días de--- START OF FILE pages/JobMarketDashboard.tsx ---</p>
             )}
           </div>
-          
-          <button type="submit" disabled={isLoading} className={`w-full py-3 font-bold rounded-full shadow-lg transition-all duration-200 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed ${isFeatured ? 'bg-yellow-400 text-black hover:bg-yellow-500 shadow-yellow-500/40' : 'bg-fuchsia-600 text-black hover:bg-fuchsia-700 shadow-fuchsia-500/50'}`}>
-            <Send className="w-5 h-5 mr-2" />
-            {isLoading ? 'Procesando...' : (isFeatured ? 'Pagar 5,95 € y Publicar' : 'Publicar Oferta Agora')}
-          </button>
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full sm:w-auto px-8 py-3 font-semibold rounded-lg transition duration-200 bg-fuchsia-600 text-black hover:bg-fuchsia-700 shadow-lg shadow-fuchsia-500/50 flex items-center justify-center"
+            >
+              <Send className="w-5 h-5 mr-2" />
+              {isLoading ? 'Procesando Pago...' : (isFeatured ? 'Publicar y Destacar' : 'Publicar Oferta')}
+            </button>
+          </div>
         </form>
       </div>
     </div>

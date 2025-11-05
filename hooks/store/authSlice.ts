@@ -1,122 +1,127 @@
+
 import { StateCreator } from 'zustand';
-import { Profile, GoogleJwtPayload, UserData } from '../../types.ts';
-import { AppState } from '../useAppStore.tsx';
+import { v4 as uuidv4 } from 'uuid';
+import { AppState } from '../useAppStore';
+import { Profile, GoogleJwtPayload, UserData } from '../../types';
+
+// Perfil de ejemplo para el usuario inicial
+const initialProfile: Profile = {
+    id: 'u-1',
+    full_name: 'Carlos Santana',
+    email: 'carlos@santana.com',
+    business_name: 'Santana Development',
+    tax_id: 'B12345678',
+    avatar_url: 'https://i.pravatar.cc/150?u=carlossantana',
+    plan: 'Pro',
+    ai_credits: 150,
+    hourly_rate_cents: 6500,
+    pdf_color: '#d9009f',
+    bio: 'Desarrollador Full-Stack con 8 años de experiencia especializado en React, Node.js y arquitecturas serverless. Apasionado por crear productos escalables y de alta calidad.',
+    skills: ['React', 'TypeScript', 'Node.js', 'Next.js', 'AWS', 'Serverless'],
+    portfolio_url: 'https://github.com/carlossantana-dev',
+    payment_reminders_enabled: true,
+    reminder_template_upcoming: 'Hola [ClientName],\n\nEste es un recordatorio amigable de que la factura #[InvoiceNumber] por un importe de [Amount] vence el [DueDate].\n\nSaludos,\n[YourName]',
+    reminder_template_overdue: 'Hola [ClientName],\n\nEste es un recordatorio de que la factura #[InvoiceNumber] por un importe de [Amount] venció el [DueDate] y sigue pendiente de pago.\n\nPor favor, realiza el pago lo antes posible.\n\nSaludos,\n[YourName]',
+    affiliate_code: 'SANTANA20',
+    // Campos para Stripe Connect
+    stripe_account_id: '',
+    stripe_onboarding_complete: false,
+};
 
 export interface AuthSlice {
   isAuthenticated: boolean;
-  profile: Profile | null;
-  login: (email: string, pass: string) => boolean;
-  loginWithGoogle: (payload: GoogleJwtPayload) => void;
+  profile: Profile;
+  login: (email: string, password?: string) => boolean;
   logout: () => void;
-  register: (name: string, email: string, pass: string) => boolean;
-  updateProfile: (newProfileData: Profile) => void;
+  register: (name: string, email: string, password?: string) => boolean;
+  loginWithGoogle: (decoded: GoogleJwtPayload) => void;
+  updateProfile: (profileData: Partial<Profile>) => void;
   upgradePlan: (plan: 'Pro' | 'Teams') => void;
   purchaseCredits: (amount: number) => void;
-  consumeCredits: (amount: number) => void;
+  consumeCredits: (amount: number) => boolean;
+  updateStripeConnection: (accountId: string, onboardingComplete: boolean) => void;
 }
-
-const createCleanState = (newProfile: Profile) => {
-    const newUserData: UserData = {
-        id: newProfile.id,
-        name: `${newProfile.full_name} (Tú)`,
-        email: newProfile.email,
-        role: 'Admin',
-        status: 'Activo',
-        hourly_rate_cents: newProfile.hourly_rate_cents
-    };
-    return {
-        isAuthenticated: true,
-        profile: newProfile,
-        clients: [],
-        projects: [],
-        tasks: [],
-        invoices: [],
-        expenses: [],
-        recurringExpenses: [],
-        timeEntries: [],
-        budgets: [],
-        proposals: [],
-        contracts: [],
-        users: [newUserData],
-        referrals: [],
-        articles: [],
-        jobs: [],
-        applications: [],
-        savedJobIds: [],
-        monthlyGoalCents: 500000,
-    };
-};
 
 export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, get) => ({
     isAuthenticated: false,
-    profile: null,
-    login: (email, pass) => {
-        // Simulación de login para prototipo:
-        // Comprueba si el email coincide con el perfil guardado en localStorage.
-        // No comprueba la contraseña.
-        const storedProfile = get().profile;
-        if (storedProfile && storedProfile.email.toLowerCase() === email.toLowerCase()) {
+    profile: initialProfile,
+    login: (email, password) => {
+        const userProfile = get().profile;
+        // Lógica simplificada para datos de demostración
+        if (userProfile && email.toLowerCase() === userProfile.email.toLowerCase()) {
             set({ isAuthenticated: true });
             return true;
         }
         return false;
     },
-    loginWithGoogle: (payload) => {
-        const existingProfile = get().profile;
-
-        if (existingProfile && existingProfile.email === payload.email) {
-            set({ isAuthenticated: true });
-        } else {
-            const newProfile: Profile = {
-              id: payload.sub,
-              full_name: payload.name,
-              email: payload.email,
-              avatar_url: payload.picture,
-              business_name: `${payload.name}'s Business`,
-              tax_id: '',
-              hourly_rate_cents: 7500,
-              pdf_color: '#d9009f',
-              plan: 'Pro',
-              ai_credits: 500,
-              affiliate_code: payload.name.toUpperCase().replace(/\s/g, '') + Date.now().toString().slice(-3),
-              bio: 'Desarrollador Full-Stack apasionado por crear aplicaciones web modernas y eficientes.',
-              skills: ['React', 'Node.js', 'TypeScript', 'Next.js'],
-              portfolio_url: '',
-              payment_reminders_enabled: true,
-              reminder_template_upcoming: 'Hola [ClientName],\n\nEste es un recordatorio amistoso de que la factura #[InvoiceNumber] por un total de [Amount] vence pronto, el [DueDate].\n\nGracias,\n[YourName]',
-              reminder_template_overdue: 'Hola [ClientName],\n\nNuestros registros indican que la factura #[InvoiceNumber] por [Amount] ha vencido. Agradeceríamos tu pago lo antes posible.\n\nGracias,\n[YourName]',
-            };
-            set(createCleanState(newProfile));
-        }
+    logout: () => {
+        set({ isAuthenticated: false });
     },
-    logout: () => set({
-        isAuthenticated: false,
-    }),
-    register: (name, email, pass) => {
+    register: (name, email, password) => {
         const newProfile: Profile = {
-          id: `u-${Date.now()}`,
-          full_name: name,
-          email: email,
-          avatar_url: undefined,
-          business_name: `${name}'s Business`,
-          tax_id: '',
-          hourly_rate_cents: 7500,
-          pdf_color: '#d9009f',
-          plan: 'Pro',
-          ai_credits: 500,
-          affiliate_code: name.toUpperCase().replace(/\s/g, '') + Date.now().toString().slice(-3),
-          bio: 'Desarrollador Full-Stack apasionado por crear aplicaciones web modernas y eficientes.',
-          skills: ['React', 'Node.js', 'TypeScript', 'Next.js'],
-          portfolio_url: '',
-          payment_reminders_enabled: true,
-          reminder_template_upcoming: 'Hola [ClientName],\n\nEste es un recordatorio amistoso de que la factura #[InvoiceNumber] por un total de [Amount] vence pronto, el [DueDate].\n\nGracias,\n[YourName]',
-          reminder_template_overdue: 'Hola [ClientName],\n\nNuestros registros indican que la factura #[InvoiceNumber] por [Amount] ha vencido. Agradeceríamos tu pago lo antes posible.\n\nGracias,\n[YourName]',
+            ...initialProfile,
+            id: `u-${Date.now()}`,
+            full_name: name,
+            email: email,
         };
-        set(createCleanState(newProfile));
+        set({ profile: newProfile, isAuthenticated: true });
+        const mainUser: UserData = {
+            id: newProfile.id,
+            name: newProfile.full_name,
+            email: newProfile.email,
+            role: 'Admin',
+            status: 'Activo',
+            hourly_rate_cents: newProfile.hourly_rate_cents,
+        };
+        // Añade al usuario principal a la lista de usuarios del equipo
+        set(state => ({ users: [mainUser, ...state.users.filter(u => u.id !== mainUser.id)] }));
         return true;
     },
-    updateProfile: (newProfileData: Profile) => set({ profile: newProfileData }),
-    upgradePlan: (plan) => set(state => ({ profile: state.profile ? { ...state.profile, plan } : null })),
-    purchaseCredits: (amount) => set(state => ({ profile: state.profile ? { ...state.profile, ai_credits: state.profile.ai_credits + amount } : null })),
-    consumeCredits: (amount) => set(state => ({ profile: state.profile ? { ...state.profile, ai_credits: Math.max(0, state.profile.ai_credits - amount) } : null })),
+    loginWithGoogle: (decoded) => {
+        const existingProfile = get().profile;
+        const newProfileData = {
+            full_name: decoded.name,
+            email: decoded.email,
+            avatar_url: decoded.picture,
+        };
+        const updatedProfile = { ...existingProfile, ...newProfileData } as Profile;
+        set({ profile: updatedProfile, isAuthenticated: true });
+        
+         const mainUser: UserData = {
+            id: updatedProfile.id,
+            name: decoded.name,
+            email: decoded.email,
+            role: 'Admin',
+            status: 'Activo',
+            hourly_rate_cents: updatedProfile.hourly_rate_cents,
+        };
+        // Actualiza el usuario principal en la lista de usuarios del equipo
+        set(state => ({ users: [mainUser, ...state.users.filter(u => u.id !== mainUser.id)] }));
+    },
+    updateProfile: (profileData) => {
+        set(state => ({ profile: { ...state.profile, ...profileData } as Profile }));
+    },
+    upgradePlan: (plan) => {
+        set(state => ({ profile: { ...state.profile, plan } as Profile }));
+    },
+    purchaseCredits: (amount) => {
+        set(state => ({ profile: { ...state.profile, ai_credits: state.profile.ai_credits + amount } as Profile }));
+    },
+    consumeCredits: (amount) => {
+        const currentCredits = get().profile.ai_credits;
+        if (currentCredits >= amount) {
+            set(state => ({ profile: { ...state.profile, ai_credits: currentCredits - amount } as Profile }));
+            return true;
+        }
+        return false;
+    },
+    updateStripeConnection: (accountId, onboardingComplete) => {
+        set(state => ({
+            profile: {
+                ...state.profile,
+                stripe_account_id: accountId,
+                stripe_onboarding_complete: onboardingComplete,
+            } as Profile
+        }));
+    },
 });

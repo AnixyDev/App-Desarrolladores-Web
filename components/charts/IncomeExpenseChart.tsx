@@ -1,5 +1,6 @@
 
 
+
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 // FIX: Remove .ts extension from import to fix module resolution error.

@@ -53,6 +53,7 @@ export const useAppStore = create<AppState>()(
         applications: state.applications,
         savedJobIds: state.savedJobIds,
         notifiedJobIds: state.notifiedJobIds,
+        notifiedInvoiceIds: state.notifiedInvoiceIds, // Persist notified invoices
         monthlyGoalCents: state.monthlyGoalCents,
         notifications: state.notifications,
         portalComments: state.portalComments,

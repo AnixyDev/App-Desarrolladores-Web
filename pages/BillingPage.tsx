@@ -1,197 +1,127 @@
-
+// pages/BillingPage.tsx
 import React, { useState } from 'react';
-import { useAppStore } from '../hooks/useAppStore.tsx';
-import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
-import Button from '../components/ui/Button.tsx';
-import { SparklesIcon, CheckCircleIcon, StarIcon } from '../components/icons/Icon.tsx';
-import { useToast } from '../hooks/useToast.ts';
-import { redirectToCheckout, STRIPE_ITEMS } from '../services/stripeService.ts';
-
-interface Plan {
-    name: string;
-    price: string;
-    priceSuffix?: string;
-    annualPrice?: string;
-    description: string;
-    features: string[];
-    itemKey: keyof typeof STRIPE_ITEMS | null;
-    isCurrent: boolean;
-    recommended?: boolean;
-}
+import { useAppStore } from '../hooks/useAppStore';
+import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import { CheckCircleIcon, SparklesIcon, CreditCard, Users } from '../components/icons/Icon';
+import { redirectToCheckout, StripeItemKey } from '../services/stripeService';
+import { useToast } from '../hooks/useToast';
 
 const BillingPage: React.FC = () => {
     const { profile } = useAppStore();
     const { addToast } = useToast();
     const [isLoading, setIsLoading] = useState<string | null>(null);
 
-    const handlePayment = async (itemKey: keyof typeof STRIPE_ITEMS) => {
+    const handlePurchase = async (itemKey: StripeItemKey) => {
         setIsLoading(itemKey);
         try {
             await redirectToCheckout(itemKey);
-            // El usuario será redirigido a Stripe. El manejo del éxito o cancelación
-            // se procesa en App.tsx a través de los parámetros de la URL.
+            // The user will be redirected, so no further action is needed here on success.
         } catch (error) {
-            console.error(error);
             addToast((error as Error).message, 'error');
-            setIsLoading(null); // Solo restaurar en caso de error antes de la redirección.
+            setIsLoading(null);
         }
     };
-    
-    const plans: Plan[] = [
-        {
-            name: 'Free',
-            price: '0€',
-            description: 'Ideal para empezar y organizar tus finanzas básicas.',
-            features: [
-                '1 Cliente',
-                '3 Facturas/mes',
-                'Proyectos ilimitados',
-                'Gestión de Gastos',
-                '10 Créditos IA (única vez)',
-            ],
-            itemKey: null,
-            isCurrent: profile?.plan === 'Free',
-        },
-        {
-            name: 'Pro',
-            price: '3,95€',
-            priceSuffix: '/ mes',
-            description: 'Para freelancers que buscan crecer y profesionalizarse.',
-            features: [
-                'Todo en Free, y además:',
-                'Clientes ilimitados',
-                'Facturas ilimitadas',
-                'Presupuestos y Propuestas',
-                'Portal de Cliente',
-                '500 Créditos IA / mes',
-            ],
-            itemKey: 'proPlan' as const,
-            isCurrent: profile?.plan === 'Pro',
-            recommended: true,
-        },
-        {
-            name: 'Teams',
-            price: '35,95€',
-            priceSuffix: ' por persona/mes',
-            annualPrice: 'o 295,00€/año',
-            description: 'Para equipos y agencias que necesitan colaborar.',
-            features: [
-                'Todo en Pro, y además:',
-                'Gestión de Equipos y Roles',
-                'Timesheets colaborativos',
-                'Knowledge Base interna',
-                'Integraciones y Webhooks',
-                '2,500 Créditos IA / mes',
-            ],
-            itemKey: 'teamsPlanMonthly' as const, // O una página de contacto
-            isCurrent: profile?.plan === 'Teams',
-        }
-    ];
 
-    const creditPacks = [
-        { credits: 100, price: '1,95€', key: 'credits100' as const },
-        { credits: 500, price: '3,95€', key: 'credits500' as const },
-        { credits: 1000, price: '5,95€', key: 'credits1000' as const },
-    ];
+    const isPro = profile.plan === 'Pro';
+    const isTeams = profile.plan === 'Teams';
 
-    if (!profile) return null;
+    const PlanCard: React.FC<{
+        plan: 'Pro' | 'Teams';
+        title: string;
+        price: string;
+        features: string[];
+        isCurrent: boolean;
+        itemKey: 'proPlan' | 'teamsPlan';
+        icon: React.ElementType;
+    }> = ({ plan, title, price, features, isCurrent, itemKey, icon: Icon }) => (
+        <Card className={`flex flex-col ${isCurrent ? 'border-primary-500' : ''}`}>
+            <CardHeader className="text-center">
+                <Icon className="w-8 h-8 mx-auto text-primary-400 mb-2" />
+                <h3 className="text-xl font-bold text-white">{title}</h3>
+                <p className="text-3xl font-extrabold text-white mt-2">{price}<span className="text-base font-normal text-gray-400">/mes</span></p>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-3">
+                {features.map((feature, i) => (
+                    <p key={i} className="flex items-start gap-2"><CheckCircleIcon className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />{feature}</p>
+                ))}
+            </CardContent>
+            <CardFooter>
+                {isCurrent ? (
+                    <Button className="w-full" disabled>Plan Actual</Button>
+                ) : (
+                    <Button className="w-full" onClick={() => handlePurchase(itemKey)} disabled={!!isLoading}>
+                        {isLoading === itemKey ? 'Procesando...' : 'Actualizar Plan'}
+                    </Button>
+                )}
+            </CardFooter>
+        </Card>
+    );
 
     return (
         <div className="space-y-8">
-            <h1 className="text-3xl font-bold text-white">Facturación y Planes</h1>
-
-            <Card>
-                <CardHeader>
-                    <h2 className="text-lg font-semibold">Resumen de tu Cuenta</h2>
-                </CardHeader>
-                <CardContent className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div className="text-center sm:text-left">
-                        <p className="text-gray-400">Tu Plan Actual</p>
-                        <p className="text-2xl font-bold text-primary-400">{profile.plan}</p>
-                    </div>
-                    <div className="h-12 w-px bg-gray-700 hidden sm:block"></div>
-                    <div className="text-center sm:text-left">
-                        <p className="text-gray-400">Créditos de IA restantes</p>
-                        <p className="text-2xl font-bold text-white flex items-center gap-2 justify-center">
-                            <SparklesIcon className="w-6 h-6 text-purple-400"/>
-                            {profile.ai_credits.toLocaleString('es-ES')}
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
-                {plans.map(plan => (
-                    <Card key={plan.name} className={`flex flex-col relative ${plan.recommended ? 'border-2 border-primary-500' : ''}`}>
-                        {plan.recommended && (
-                            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-500 text-white px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
-                                <StarIcon className="w-4 h-4"/> Recomendado
-                            </div>
-                        )}
-                        <CardHeader className="text-center">
-                            <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
-                            <p className="text-gray-400 text-sm mt-1">{plan.description}</p>
-                            <div className="mt-4">
-                                <span className="text-4xl font-extrabold text-white">{plan.price}</span>
-                                {plan.priceSuffix && <span className="text-gray-400">{plan.priceSuffix}</span>}
-                                {plan.annualPrice && <p className="text-sm text-gray-500 mt-1">{plan.annualPrice}</p>}
-                            </div>
-                        </CardHeader>
-                        <CardContent className="flex-grow">
-                            <ul className="space-y-3 text-gray-300">
-                                {plan.features.map(feature => (
-                                    <li key={feature} className="flex items-start gap-3">
-                                        <CheckCircleIcon className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
-                                        <span>{feature}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </CardContent>
-                        <div className="p-4 mt-auto">
-                            {plan.isCurrent ? (
-                                <Button className="w-full" variant="secondary" disabled>Tu Plan Actual</Button>
-                            ) : (
-                                <Button 
-                                    className="w-full"
-                                    variant={plan.recommended ? 'primary' : 'secondary'}
-                                    onClick={() => plan.itemKey && handlePayment(plan.itemKey)}
-                                    disabled={isLoading !== null || !plan.itemKey}
-                                >
-                                    {isLoading === plan.itemKey ? 'Procesando...' : `Cambiar a ${plan.name}`}
-                                </Button>
-                            )}
-                        </div>
-                    </Card>
-                ))}
+            <div className="text-center">
+                <h1 className="text-3xl font-bold text-white">Facturación y Planes</h1>
+                <p className="text-gray-400 mt-2">Tu plan actual es: <span className="font-semibold text-primary-400">{profile.plan}</span></p>
             </div>
-            
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <PlanCard
+                    plan="Pro"
+                    title="Plan Pro"
+                    price="12,95€"
+                    features={[
+                        "Facturas y clientes ilimitados",
+                        "Perfil público de freelancer",
+                        "Acceso al Marketplace de Proyectos",
+                        "Aplicar a ofertas con IA",
+                        "Alertas de nuevos trabajos"
+                    ]}
+                    isCurrent={isPro}
+                    itemKey="proPlan"
+                    icon={CreditCard}
+                />
+                <PlanCard
+                    plan="Teams"
+                    title="Plan Teams"
+                    price="35,95€"
+                    features={[
+                        "Todas las funciones del Plan Pro",
+                        "Invita a miembros a tu equipo",
+                        "Gestión de roles y permisos",
+                        "Base de Conocimiento colaborativa",
+                        "Integraciones y Webhooks"
+                    ]}
+                    isCurrent={isTeams}
+                    itemKey="teamsPlan"
+                    icon={Users}
+                />
+            </div>
+
             <Card>
                 <CardHeader>
-                    <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                        <SparklesIcon className="w-5 h-5 text-purple-400"/>Comprar Créditos de IA
-                    </h2>
-                    <p className="text-sm text-gray-400">Añade créditos para usar funciones avanzadas de IA de forma puntual.</p>
+                     <h2 className="text-xl font-semibold text-white flex items-center gap-2"><SparklesIcon className="text-purple-400" /> Créditos de IA</h2>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {creditPacks.map(pack => (
-                        <div key={pack.credits} className="p-4 bg-gray-800/50 rounded-lg text-center flex flex-col items-center justify-between">
+                <CardContent className="space-y-4">
+                    <p className="text-gray-400">Tus créditos de IA se usan para funciones avanzadas como la generación de propuestas, resúmenes de candidatos y análisis financieros. Tu saldo actual es: <span className="font-bold text-white">{profile.ai_credits}</span>.</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="p-4 bg-gray-800/50 rounded-lg flex justify-between items-center">
                             <div>
-                                <p className="text-2xl font-bold text-purple-400">{pack.credits.toLocaleString('es-ES')} créditos</p>
-                                <p className="text-xl font-semibold text-white mb-3">{pack.price}</p>
+                                <p className="font-semibold text-white">Paquete de 500 Créditos</p>
+                                <p className="text-2xl font-bold text-white">4,95€</p>
                             </div>
-                            <Button 
-                                variant="secondary"
-                                className="w-full mt-2"
-                                onClick={() => handlePayment(pack.key)} 
-                                disabled={isLoading !== null}
-                            >
-                                {isLoading === pack.key ? 'Procesando...' : 'Comprar'}
-                            </Button>
+                            <Button onClick={() => handlePurchase('aiCredits500')} disabled={!!isLoading}>{isLoading === 'aiCredits500' ? '...' : 'Comprar'}</Button>
                         </div>
-                    ))}
+                        <div className="p-4 bg-gray-800/50 rounded-lg flex justify-between items-center">
+                            <div>
+                                <p className="font-semibold text-white">Paquete de 1500 Créditos</p>
+                                <p className="text-2xl font-bold text-white">11,95€</p>
+                            </div>
+                            <Button onClick={() => handlePurchase('aiCredits1500')} disabled={!!isLoading}>{isLoading === 'aiCredits1500' ? '...' : 'Comprar'}</Button>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
-
         </div>
     );
 };

@@ -1,8 +1,9 @@
 
+
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { SIDEBAR_STRUCTURE } from '../../constants.ts';
-import { Logo } from '../icons/Logo.tsx';
+import { SIDEBAR_STRUCTURE } from '../../constants';
+import { Logo } from '../icons/Logo';
 import { ChevronDown } from 'lucide-react';
 
 interface SidebarProps {

@@ -1,7 +1,7 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
-// FIX: Remove .tsx extensions from imports to fix module resolution errors.
+// FIX: Remove .tsx extensions from imports to resolve module resolution errors.
 import { useAppStore } from '../hooks/useAppStore';
 import { formatCurrency } from '../lib/utils';
 import { BriefcaseIcon, FileTextIcon, EditIcon, TrashIcon, PhoneIcon, MailIcon } from '../components/icons/Icon';

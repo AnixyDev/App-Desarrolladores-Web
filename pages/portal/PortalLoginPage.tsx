@@ -1,8 +1,9 @@
 
+
 import React from 'react';
-import Card, { CardContent, CardHeader } from '../../components/ui/Card.tsx';
-import Input from '../../components/ui/Input.tsx';
-import Button from '../../components/ui/Button.tsx';
+import Card, { CardContent, CardHeader } from '../../components/ui/Card';
+import Input from '../../components/ui/Input';
+import Button from '../../components/ui/Button';
 
 const PortalLoginPage: React.FC = () => {
     return (
