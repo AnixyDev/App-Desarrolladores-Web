@@ -21,7 +21,8 @@ const createCleanState = (newProfile: Profile) => {
         name: `${newProfile.full_name} (Tú)`,
         email: newProfile.email,
         role: 'Admin',
-        status: 'Activo'
+        status: 'Activo',
+        hourly_rate_cents: newProfile.hourly_rate_cents
     };
     return {
         isAuthenticated: true,

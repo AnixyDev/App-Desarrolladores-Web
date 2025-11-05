@@ -61,21 +61,26 @@ export const generateInvoicePdf = async (invoice: Invoice, client: Client, profi
 
     // --- Totals ---
     const finalY = (doc as any).lastAutoTable.finalY + 10;
-    const rightAlignX = 198;
+    const labelX = 170;
+    const valueX = 200;
 
     doc.setFontSize(10);
-    doc.text('Subtotal:', rightAlignX, finalY, { align: 'right' });
-    doc.text(formatCurrency(invoice.subtotal_cents), rightAlignX + 2, finalY, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
 
-    doc.text(`IVA (${invoice.tax_percent}%):`, rightAlignX, finalY + 7, { align: 'right' });
-    doc.text(formatCurrency(invoice.total_cents - invoice.subtotal_cents), rightAlignX + 2, finalY + 7, { align: 'right' });
+    doc.text('Subtotal:', labelX, finalY, { align: 'right' });
+    doc.text(formatCurrency(invoice.subtotal_cents), valueX, finalY, { align: 'right' });
+
+    doc.text(`IVA (${invoice.tax_percent}%):`, labelX, finalY + 7, { align: 'right' });
+    doc.text(formatCurrency(invoice.total_cents - invoice.subtotal_cents), valueX, finalY + 7, { align: 'right' });
 
     doc.setFont('helvetica', 'bold');
-    doc.text('TOTAL:', rightAlignX, finalY + 14, { align: 'right' });
-    doc.text(formatCurrency(invoice.total_cents), rightAlignX + 2, finalY + 14, { align: 'right' });
+    doc.setFontSize(11);
+    doc.text('TOTAL:', labelX, finalY + 14, { align: 'right' });
+    doc.text(formatCurrency(invoice.total_cents), valueX, finalY + 14, { align: 'right' });
     
     // --- Footer ---
     doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
     doc.text('Gracias por su confianza.', 14, 280);
     
     doc.save(`Factura-${invoice.invoice_number}.pdf`);

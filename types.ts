@@ -171,6 +171,7 @@ export interface UserData {
     role: 'Admin' | 'Manager' | 'Developer';
     status: 'Activo' | 'Inactivo' | 'Pendiente';
     invitedOn?: string;
+    hourly_rate_cents: number;
 }
 
 export interface GoogleJwtPayload {
