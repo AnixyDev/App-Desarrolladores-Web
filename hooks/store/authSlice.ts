@@ -86,6 +86,8 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
     isAuthenticated: false,
     profile: initialProfile,
     login: (email, password) => {
+        // In a real app, you'd check against a list of users.
+        // For this mock, we assume login is only possible for the registered/current user.
         const userProfile = get().profile;
         if (userProfile && email.toLowerCase() === userProfile.email.toLowerCase()) {
             set({ isAuthenticated: true });
@@ -98,8 +100,6 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
     },
     register: (name, email, password) => {
         const newProfile = createNewProfile(name, email);
-        set({ profile: newProfile, isAuthenticated: true });
-        
         const mainUser: UserData = {
             id: newProfile.id,
             name: newProfile.full_name,
@@ -108,35 +108,23 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
             status: 'Activo',
             hourly_rate_cents: newProfile.hourly_rate_cents,
         };
-        set(state => ({ users: [mainUser, ...state.users.filter(u => u.id !== mainUser.id)] }));
+        // Set the new profile as the current one and log in
+        set({ profile: newProfile, isAuthenticated: true, users: [mainUser] });
         return true;
     },
     loginWithGoogle: (decoded) => {
-        const currentProfile = get().profile;
-        let userProfile: Profile;
-
-        if (currentProfile.email === 'carlos@santana.com') { // If it's the default mock user
-            userProfile = createNewProfile(decoded.name, decoded.email, decoded.picture);
-        } else { // If a user already registered, update their info
-            userProfile = {
-                ...currentProfile,
-                full_name: decoded.name,
-                email: decoded.email,
-                avatar_url: decoded.picture,
-            };
-        }
-
-        set({ profile: userProfile, isAuthenticated: true });
-        
+        // This logic simulates finding an existing user or creating a new one.
+        // For this mock, we'll just create a new profile.
+        const newProfile = createNewProfile(decoded.name, decoded.email, decoded.picture);
         const mainUser: UserData = {
-            id: userProfile.id,
-            name: userProfile.full_name,
-            email: userProfile.email,
+            id: newProfile.id,
+            name: newProfile.full_name,
+            email: newProfile.email,
             role: 'Admin',
             status: 'Activo',
-            hourly_rate_cents: userProfile.hourly_rate_cents,
+            hourly_rate_cents: newProfile.hourly_rate_cents,
         };
-        set(state => ({ users: [mainUser, ...state.users.filter(u => u.id !== mainUser.id)] }));
+        set({ profile: newProfile, isAuthenticated: true, users: [mainUser] });
     },
     updateProfile: (profileData) => {
         set(state => ({ profile: { ...state.profile, ...profileData } as Profile }));
