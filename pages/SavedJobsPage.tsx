@@ -1,14 +1,14 @@
 // pages/SavedJobsPage.tsx
 import React, { useState, lazy, Suspense } from 'react';
-import { useAppStore } from '../hooks/useAppStore.tsx';
+import { useAppStore } from '../hooks/useAppStore';
 import { Star, Briefcase } from 'lucide-react';
-import { Job } from '../types.ts';
-import EmptyState from '../components/ui/EmptyState.tsx';
+import { Job } from '../types';
+import EmptyState from '../components/ui/EmptyState';
 import { Link } from 'react-router-dom';
-import Button from '../components/ui/Button.tsx';
+import Button from '../components/ui/Button';
 
-const ProposalGeneratorModal = lazy(() => import('../components/modals/ProposalGeneratorModal.tsx'));
-const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal.tsx'));
+const ProposalGeneratorModal = lazy(() => import('../components/modals/ProposalGeneratorModal'));
+const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal'));
 
 const SavedJobsPage: React.FC = () => {
     const { getSavedJobs, saveJob, profile } = useAppStore();

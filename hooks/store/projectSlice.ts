@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
-import { Project, NewProject, Task, TimeEntry, NewTimeEntry } from '../../types.ts';
-import { AppState } from '../useAppStore.tsx';
+import { Project, NewProject, Task, TimeEntry, NewTimeEntry } from '../../types';
+import { AppState } from '../useAppStore';
 
 export interface ProjectSlice {
   projects: Project[];
@@ -10,6 +10,7 @@ export interface ProjectSlice {
   getProjectByName: (name: string) => Project | undefined;
   addProject: (project: NewProject) => void;
   updateProjectStatus: (id: string, status: Project['status']) => void;
+  updateProjectBudget: (id: string, budgetCents: number) => void;
   getTasksByProjectId: (projectId: string) => Task[];
   addTask: (task: Omit<Task, 'id'|'user_id'|'created_at'|'status'|'invoice_id'>) => void;
   updateTaskStatus: (id: string, status: Task['status']) => void;
@@ -39,6 +40,13 @@ export const createProjectSlice: StateCreator<AppState, [], [], ProjectSlice> = 
             );
         }
         set(state => ({ projects: state.projects.map(p => p.id === id ? { ...p, status } : p) }));
+    },
+    updateProjectBudget: (id, budgetCents) => {
+        set(state => ({
+            projects: state.projects.map(p =>
+                p.id === id ? { ...p, budget_cents: budgetCents } : p
+            )
+        }));
     },
     getTasksByProjectId: (projectId) => get().tasks.filter(t => t.project_id === projectId),
     addTask: (task) => set(state => ({ tasks: [...state.tasks, { ...task, id: `t-${Date.now()}`, user_id: 'u-1', created_at: new Date().toISOString(), status: 'todo', invoice_id: null }]})),

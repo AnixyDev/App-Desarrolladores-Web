@@ -1,6 +1,7 @@
 import { StateCreator } from 'zustand';
 import { AppState } from '../useAppStore';
-import { ProjectMessage, ProjectFile } from '../../types';
+// FIX: Import KnowledgeArticle type to manage knowledge base state.
+import { ProjectMessage, ProjectFile, KnowledgeArticle } from '../../types';
 
 export interface CollaborationSlice {
   projectComments: ProjectMessage[];
@@ -8,11 +9,17 @@ export interface CollaborationSlice {
   addProjectComment: (comment: Omit<ProjectMessage, 'id' | 'timestamp'>) => string | null;
   addProjectFile: (file: Omit<ProjectFile, 'id' | 'uploadedAt'>) => void;
   deleteProjectFile: (fileId: string) => void;
+  // FIX: Add state and actions for Knowledge Base articles.
+  articles: KnowledgeArticle[];
+  addArticle: (article: Partial<KnowledgeArticle>) => void;
+  updateArticle: (article: Partial<KnowledgeArticle>) => void;
+  deleteArticle: (id: string) => void;
 }
 
 export const createCollaborationSlice: StateCreator<AppState, [], [], CollaborationSlice> = (set, get) => ({
   projectComments: [],
   projectFiles: [],
+  articles: [],
   addProjectComment: (comment) => {
     const newComment: ProjectMessage = {
       ...comment,
@@ -39,5 +46,23 @@ export const createCollaborationSlice: StateCreator<AppState, [], [], Collaborat
   },
   deleteProjectFile: (fileId) => {
     set(state => ({ projectFiles: state.projectFiles.filter(f => f.id !== fileId) }));
-  }
+  },
+  // FIX: Implement actions for managing Knowledge Base articles.
+  addArticle: (article) => {
+    const newArticle: KnowledgeArticle = {
+        ...article,
+        id: `kb-${Date.now()}`,
+        created_at: new Date().toISOString().slice(0, 10),
+        updated_at: new Date().toISOString().slice(0, 10),
+    } as KnowledgeArticle;
+    set(state => ({ articles: [...state.articles, newArticle] }));
+  },
+  updateArticle: (article) => {
+      set(state => ({
+          articles: state.articles.map(a => a.id === article.id ? { ...a, ...article, updated_at: new Date().toISOString().slice(0, 10) } as KnowledgeArticle : a)
+      }));
+  },
+  deleteArticle: (id) => {
+      set(state => ({ articles: state.articles.filter(a => a.id !== id) }));
+  },
 });

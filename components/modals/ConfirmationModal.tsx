@@ -1,5 +1,4 @@
 import React from 'react';
-// FIX: Removed .tsx extensions for consistency.
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { AlertTriangleIcon } from '../icons/Icon';

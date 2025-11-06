@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { SIDEBAR_STRUCTURE } from '../../constants';
+import { useAppStore } from '../../hooks/useAppStore';
 import { Logo } from '../icons/Logo';
 import { ChevronDown } from 'lucide-react';
 
@@ -12,6 +13,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
+    const { profile } = useAppStore();
     const [openGroup, setOpenGroup] = useState<string | null>(null);
 
     const handleGroupClick = (label: string) => {
@@ -79,7 +81,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
                                     </button>
                                     <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isGroupOpen ? 'max-h-screen' : 'max-h-0'}`}>
                                         <div className="py-1 pl-4 space-y-1">
-                                            {item.items.map(subItem => (
+                                            {item.items.map(subItem => {
+                                                return (
                                                  <NavLink
                                                     key={subItem.href}
                                                     to={subItem.href}
@@ -95,7 +98,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
                                                     <subItem.icon className="w-5 h-5 mr-3" />
                                                     <span>{subItem.label}</span>
                                                 </NavLink>
-                                            ))}
+                                                )
+                                            })}
                                         </div>
                                     </div>
                                 </div>

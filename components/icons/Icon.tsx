@@ -1,4 +1,4 @@
-// components/icons/Icon.tsx
+// FIX: Changed 'import' to 'export' to make icons available for other components.
 export {
   LayoutDashboard,
   Users,
@@ -54,6 +54,8 @@ export {
   ShoppingBag,
   CreditCard,
   Filter as FilterIcon,
-  // FIX: Export 'Camera' icon to be used in ExpensesPage.
   Camera,
+  Paperclip,
+  Upload,
+  CalendarPlus,
 } from 'lucide-react';

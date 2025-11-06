@@ -1,18 +1,18 @@
 // pages/JobApplicantsPage.tsx
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useAppStore } from '../hooks/useAppStore.tsx';
-import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
-import Button from '../components/ui/Button.tsx';
-import Modal from '../components/ui/Modal.tsx';
+import { useAppStore } from '../hooks/useAppStore';
+import Card, { CardContent, CardHeader } from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
 import { Users, SparklesIcon, RefreshCwIcon, CheckCircle, AlertTriangle } from 'lucide-react';
-import { JobApplication } from '../types.ts';
-import EmptyState from '../components/ui/EmptyState.tsx';
-import { summarizeApplicant, AI_CREDIT_COSTS } from '../services/geminiService.ts';
-import { useToast } from '../hooks/useToast.ts';
+import { JobApplication } from '../types';
+import EmptyState from '../components/ui/EmptyState';
+import { summarizeApplicant, AI_CREDIT_COSTS } from '../services/geminiService';
+import { useToast } from '../hooks/useToast';
 
-const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal.tsx'));
-const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal.tsx'));
+const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal'));
+const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal'));
 
 interface ApplicantSummary {
     summary: string;

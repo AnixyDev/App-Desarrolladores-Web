@@ -1,7 +1,4 @@
-
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-// FIX: Removed .tsx/.ts extensions from imports for consistency.
 import { useAppStore } from '../hooks/useAppStore';
 import { useToast } from '../hooks/useToast';
 import { SendIcon, SparklesIcon, UserIcon } from './icons/Icon';

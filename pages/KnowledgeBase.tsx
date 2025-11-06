@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
-// FIX: Removed .tsx/.ts extensions from imports for consistency.
 import { BookIcon, PlusIcon, SearchIcon, EditIcon, TrashIcon, SparklesIcon, FileSignatureIcon, BrainCircuitIcon } from '../components/icons/Icon';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -28,10 +27,10 @@ const useDebounce = (value: string, delay: number) => {
 
 
 const KnowledgeBase: React.FC = () => {
-    const { profile, consumeCredits } = useAppStore();
+    // FIX: Use the global store for articles and their management functions instead of local state.
+    const { profile, consumeCredits, articles, addArticle, updateArticle, deleteArticle } = useAppStore();
     const { addToast } = useToast();
 
-    const [articles, setArticles] = useState<KnowledgeArticle[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
     const [rankedArticleIds, setRankedArticleIds] = useState<string[]>([]);
@@ -89,10 +88,11 @@ const KnowledgeBase: React.FC = () => {
         if (!currentArticle?.title || !currentArticle?.content) return;
         
         if (currentArticle.id) {
-            setArticles(articles.map(a => a.id === currentArticle.id ? { ...a, ...currentArticle, updated_at: new Date().toISOString().slice(0, 10) } : a));
+            // FIX: Use updateArticle from the store.
+            updateArticle(currentArticle);
         } else {
-            const newArticle = { ...currentArticle, id: `kb-${Date.now()}`, created_at: new Date().toISOString().slice(0, 10), updated_at: new Date().toISOString().slice(0, 10) };
-            setArticles([...articles, newArticle as KnowledgeArticle]);
+            // FIX: Use addArticle from the store.
+            addArticle(currentArticle);
         }
         setIsModalOpen(false);
     };
@@ -104,7 +104,8 @@ const KnowledgeBase: React.FC = () => {
 
     const confirmDelete = () => {
         if (articleToDelete) {
-            setArticles(articles.filter(a => a.id !== articleToDelete.id));
+            // FIX: Use deleteArticle from the store.
+            deleteArticle(articleToDelete.id);
             setIsConfirmModalOpen(false);
             setArticleToDelete(null);
         }

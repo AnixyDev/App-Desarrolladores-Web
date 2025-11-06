@@ -95,7 +95,7 @@ const ContractsPage: React.FC = () => {
 
         sendContract(contract.id);
 
-        const portalLink = `${window.location.origin}${window.location.pathname}#/portal/contract/${contract.id}`;
+        const portalLink = `${window.location.origin}/#/portal/contract/${contract.id}`;
         const subject = `Contrato para el proyecto "${project.name}"`;
         const body = `Hola ${client.name},\n\nTe envío el contrato para nuestro proyecto "${project.name}".\n\nPuedes revisarlo y firmarlo digitalmente a través del siguiente enlace seguro:\n${portalLink}\n\nQuedo a tu disposición para cualquier duda.\n\nSaludos,\n${profile.full_name}`;
 

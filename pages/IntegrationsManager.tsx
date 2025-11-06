@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-// FIX: Removed .tsx extension from icon import for consistency and to prevent module resolution issues.
 import { ZapIcon, LinkIcon, TrashIcon, SettingsIcon, PlusIcon, RefreshCwIcon, CheckCircleIcon, XCircleIcon } from '../components/icons/Icon';
 
 // --- TYPES ---

@@ -1,7 +1,7 @@
 // hooks/store/jobSlice.ts
 import { StateCreator } from 'zustand';
-import { Job, JobApplication } from '../../types.ts';
-import { AppState } from '../useAppStore.tsx';
+import { Job, JobApplication } from '../../types';
+import { AppState } from '../useAppStore';
 
 export interface JobSlice {
   jobs: Job[];

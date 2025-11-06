@@ -11,9 +11,13 @@ import { TeamSlice, createTeamSlice } from './store/teamSlice';
 import { NotificationSlice, createNotificationSlice } from './store/notificationSlice';
 import { JobSlice, createJobSlice } from './store/jobSlice';
 import { CollaborationSlice, createCollaborationSlice } from './store/collaborationSlice';
+// FIX: Import disconnected slices to integrate them into the main store.
+import { InboxSlice, createInboxSlice } from './store/inboxSlice';
+import { PortalSlice, createPortalSlice } from './store/portalSlice';
 
 // Combine all slices into one AppState
-export type AppState = AuthSlice & ClientSlice & ProjectSlice & FinanceSlice & TeamSlice & NotificationSlice & JobSlice & CollaborationSlice;
+// FIX: Add missing slices to the main AppState type definition.
+export type AppState = AuthSlice & ClientSlice & ProjectSlice & FinanceSlice & TeamSlice & NotificationSlice & JobSlice & CollaborationSlice & InboxSlice & PortalSlice;
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -27,6 +31,9 @@ export const useAppStore = create<AppState>()(
       ...createNotificationSlice(...a),
       ...createJobSlice(...a),
       ...createCollaborationSlice(...a),
+      // FIX: Call the slice creators for the newly integrated slices.
+      ...createInboxSlice(...a),
+      ...createPortalSlice(...a),
     }),
     {
       name: 'devfreelancer-storage',
@@ -58,6 +65,10 @@ export const useAppStore = create<AppState>()(
         notifications: state.notifications,
         projectComments: state.projectComments,
         projectFiles: state.projectFiles,
+        // FIX: Add state from new slices to the partialize function for persistence.
+        inboxItems: state.inboxItems,
+        portalComments: state.portalComments,
+        portalFiles: state.portalFiles,
       }),
     }
   )

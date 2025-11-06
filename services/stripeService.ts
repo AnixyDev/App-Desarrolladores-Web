@@ -57,18 +57,18 @@ export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Re
     // This mimics Stripe's redirect behavior.
     console.log(`Simulating Stripe checkout for: ${item.name}`, extraParams);
     
-    // Simulate a successful payment redirection for demonstration purposes.
-    const baseUrl = window.location.href.split('#')[0];
-    const hashPath = window.location.hash.split('?')[0];
-
-    const params = new URLSearchParams();
-    params.set('payment', 'success');
-    params.set('item', itemKey);
+    // In a real application, you would provide success_url and cancel_url to Stripe.
+    // Stripe would then redirect to these URLs.
+    // For this mock, we build the success URL ourselves.
+    
+    const successUrl = new URL(window.location.origin);
+    successUrl.searchParams.set('payment', 'success');
+    successUrl.searchParams.set('item', itemKey);
     for (const key in extraParams) {
-        params.set(key, extraParams[key]);
+        successUrl.searchParams.set(key, extraParams[key]);
     }
     
-    // Simulate redirecting to Stripe and then back to our app
+    // Simulate redirecting to Stripe and then back to our app.
     // We'll just directly go to the success URL for this mock.
-    window.location.href = `${baseUrl}${hashPath}?${params.toString()}`;
+    window.location.href = successUrl.toString();
 };

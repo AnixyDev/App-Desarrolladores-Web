@@ -2,38 +2,39 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
-// FIX: Corrected the import for the Briefcase icon.
-import { MailIcon, UserIcon as User, BriefcaseIcon as Briefcase, LinkIcon, ClockIcon, DollarSignIcon } from '../components/icons/Icon';
+import { MailIcon, UserIcon as User, LinkIcon, ClockIcon, DollarSignIcon } from '../components/icons/Icon';
 import Button from '../components/ui/Button';
 import { Link, useNavigate } from 'react-router-dom';
+import { formatCurrency } from '../lib/utils';
 
 const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal'));
 
 const PublicProfilePage: React.FC = () => {
-    const { profile } = useAppStore();
+    const { profile: currentUserProfile } = useAppStore();
     const navigate = useNavigate();
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
     useEffect(() => {
-        if (profile?.plan === 'Free') {
+        // This feature is only for Pro/Teams plans
+        if (currentUserProfile?.plan === 'Free') {
             setIsUpgradeModalOpen(true);
         }
-    }, [profile?.plan]);
-
-    if (!profile) {
-        return <div>Cargando perfil...</div>;
-    }
-
+    }, [currentUserProfile?.plan]);
+    
     if (isUpgradeModalOpen) {
         return (
             <Suspense fallback={null}>
                 <UpgradePromptModal
                     isOpen={isUpgradeModalOpen}
                     onClose={() => navigate('/')}
-                    featureName="tener un perfil público de freelancer"
+                    featureName="crear un perfil público"
                 />
             </Suspense>
         );
+    }
+    
+    if (!currentUserProfile) {
+        return <div>Cargando perfil...</div>
     }
 
     return (
@@ -44,26 +45,28 @@ const PublicProfilePage: React.FC = () => {
             </div>
             <Card>
                 <CardHeader className="text-center p-8 bg-gray-800/50">
-                    {profile.avatar_url ? (
-                        <img src={profile.avatar_url} alt="Perfil" className="w-24 h-24 rounded-full object-cover mx-auto mb-4 border-4 border-gray-600" />
+                    {currentUserProfile.avatar_url ? (
+                        <img src={currentUserProfile.avatar_url} alt="Perfil" className="w-24 h-24 rounded-full object-cover mx-auto mb-4 border-4 border-gray-600" />
                     ) : (
-                        <User className="w-24 h-24 rounded-full bg-gray-700 text-gray-300 p-4 mx-auto mb-4 border-4 border-gray-600" />
+                        <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4 border-4 border-gray-600">
+                            <User className="w-12 h-12 text-gray-300" />
+                        </div>
                     )}
-                    <h1 className="text-3xl font-bold text-white">{profile.full_name}</h1>
-                    {profile.specialty && <p className="text-xl text-primary-400 mt-1">{profile.specialty}</p>}
-                    <p className="text-lg text-gray-400 mt-1">{profile.business_name}</p>
+                    <h1 className="text-3xl font-bold text-white">{currentUserProfile.full_name}</h1>
+                    {currentUserProfile.specialty && <p className="text-xl text-primary-400 mt-1">{currentUserProfile.specialty}</p>}
+                    <p className="text-lg text-gray-400 mt-1">{currentUserProfile.business_name}</p>
                 </CardHeader>
                 <CardContent className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="md:col-span-2 space-y-4">
                         <div>
                             <h3 className="font-semibold text-white mb-2">Sobre mí</h3>
-                            <p className="text-gray-300">{profile.bio || 'Aún no has añadido una biografía.'}</p>
+                            <p className="text-gray-300">{currentUserProfile.bio || 'Aún no has añadido una biografía.'}</p>
                         </div>
                         <div>
                             <h3 className="font-semibold text-white mb-2">Habilidades Principales</h3>
                             <div className="flex flex-wrap gap-2">
-                                {profile.skills && profile.skills.length > 0 ? (
-                                    profile.skills.map(skill => (
+                                {currentUserProfile.skills && currentUserProfile.skills.length > 0 ? (
+                                    currentUserProfile.skills.map(skill => (
                                         <span key={skill} className="px-3 py-1 text-sm font-medium rounded-full bg-gray-800 text-fuchsia-400 border border-fuchsia-900/50">
                                             {skill}
                                         </span>
@@ -78,28 +81,24 @@ const PublicProfilePage: React.FC = () => {
                          <h3 className="font-semibold text-white text-center md:text-left">Contacto y Detalles</h3>
                          <div className="flex items-center space-x-3">
                             <MailIcon className="w-5 h-5 text-gray-400" />
-                            <a href={`mailto:${profile.email}`} className="text-gray-300 hover:text-white truncate">{profile.email}</a>
+                            <a href={`mailto:${currentUserProfile.email}`} className="text-gray-300 hover:text-white truncate">{currentUserProfile.email}</a>
                         </div>
-                        {profile.portfolio_url && (
+                        {currentUserProfile.portfolio_url && (
                              <div className="flex items-center space-x-3">
                                 <LinkIcon className="w-5 h-5 text-gray-400" />
-                                <a href={profile.portfolio_url} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white truncate">{profile.portfolio_url}</a>
+                                <a href={currentUserProfile.portfolio_url} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white truncate">{currentUserProfile.portfolio_url}</a>
                             </div>
                         )}
-                        <div className="flex items-center space-x-3">
-                            <Briefcase className="w-5 h-5 text-gray-400" />
-                            <span className="text-gray-300">Tarifa base: {profile.hourly_rate_cents / 100}€/hora</span>
-                        </div>
-                         {profile.preferred_hourly_rate_cents && (
+                         {currentUserProfile.preferred_hourly_rate_cents && (
                             <div className="flex items-center space-x-3">
                                 <DollarSignIcon className="w-5 h-5 text-gray-400" />
-                                <span className="text-gray-300">Tarifa preferida: {(profile.preferred_hourly_rate_cents || 0) / 100}€/hora</span>
+                                <span className="text-gray-300">Tarifa preferida: {formatCurrency(currentUserProfile.preferred_hourly_rate_cents)}/hora</span>
                             </div>
                          )}
-                         {profile.availability_hours && (
+                         {currentUserProfile.availability_hours && (
                             <div className="flex items-center space-x-3">
                                 <ClockIcon className="w-5 h-5 text-gray-400" />
-                                <span className="text-gray-300">Disponible: {profile.availability_hours} h/semana</span>
+                                <span className="text-gray-300">Disponible: {currentUserProfile.availability_hours} h/semana</span>
                             </div>
                          )}
                     </div>

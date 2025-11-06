@@ -1,6 +1,5 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-// FIX: Removed .tsx extension from import for consistency.
 import { Logo } from '../../components/icons/Logo';
 
 const AuthLayout: React.FC = () => {

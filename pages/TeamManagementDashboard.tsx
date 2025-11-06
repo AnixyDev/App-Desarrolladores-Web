@@ -1,6 +1,4 @@
 import React, { useState, lazy, Suspense } from 'react';
-// FIX: Switched to the centralized Icon wrapper for consistency and added the missing User icon.
-// FIX: Correctly import RefreshCwIcon as it is the exported member, not RefreshCw.
 import { Users, UserPlus, Trash2, MailIcon as Mail, X, UserIcon as User, RefreshCwIcon } from '../components/icons/Icon';
 import { useAppStore } from '../hooks/useAppStore';
 import { UserData } from '../types';

@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
-import { UserData, Referral } from '../../types.ts';
-import { AppState } from '../useAppStore.tsx';
+import { UserData, Referral } from '../../types';
+import { AppState } from '../useAppStore';
 
 export interface TeamSlice {
   users: UserData[];

@@ -4,9 +4,9 @@ import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { Invoice, RecurringInvoice } from '../types';
-import { formatCurrency } from '../lib/utils';
+import { formatCurrency, generateICSFile } from '../lib/utils';
 import { generateInvoicePdf } from '../services/pdfService';
-import { DownloadIcon, TrashIcon, CheckCircleIcon, ClockIcon, RefreshCwIcon, SendIcon, RepeatIcon, LinkIcon, FilterIcon, FileTextIcon } from '../components/icons/Icon';
+import { DownloadIcon, TrashIcon, CheckCircleIcon, ClockIcon, RefreshCwIcon, SendIcon, RepeatIcon, LinkIcon, FilterIcon, FileTextIcon, CalendarPlus } from '../components/icons/Icon';
 import StatusChip from '../components/ui/StatusChip';
 import { useToast } from '../hooks/useToast';
 import EmptyState from '../components/ui/EmptyState';
@@ -140,9 +140,20 @@ const InvoicesPage: React.FC = () => {
     };
     
     const handleCopyPaymentLink = (invoiceId: string) => {
-        const portalLink = `${window.location.origin}${window.location.pathname}#/portal/invoice/${invoiceId}`;
+        const portalLink = `${window.location.origin}/#/portal/invoice/${invoiceId}`;
         navigator.clipboard.writeText(portalLink);
         addToast('Enlace de pago copiado al portapapeles', 'success');
+    };
+    
+    const handleAddToCalendar = (invoice: Invoice) => {
+        const client = getClientById(invoice.client_id);
+        const title = `Vencimiento Factura: ${invoice.invoice_number}`;
+        const description = `Revisar y pagar la factura para el cliente ${client?.name}. Total: ${formatCurrency(invoice.total_cents)}.`;
+        const eventDate = new Date(invoice.due_date);
+        const filename = `vencimiento-factura-${invoice.invoice_number}`;
+
+        generateICSFile(title, description, eventDate, filename);
+        addToast('Evento de calendario generado.', 'success');
     };
 
     const FilterButton: React.FC<{ status: 'all' | 'paid' | 'pending'; label: string; }> = ({ status, label }) => (
@@ -231,6 +242,7 @@ const InvoicesPage: React.FC = () => {
                                                 <td className="p-4"><StatusChip type="invoice" status={invoice.paid ? 'paid' : 'pending'} dueDate={invoice.due_date} /></td>
                                                 <td className="p-4">
                                                     <div className="flex gap-2">
+                                                        {!invoice.paid && <Button size="sm" variant="secondary" title="Añadir al Calendario" onClick={() => handleAddToCalendar(invoice)}><CalendarPlus className="w-4 h-4 text-purple-400"/></Button>}
                                                         {!invoice.paid && <Button size="sm" variant="secondary" title="Copiar enlace de pago" onClick={() => handleCopyPaymentLink(invoice.id)}><LinkIcon className="w-4 h-4 text-purple-400"/></Button>}
                                                         {!invoice.paid && profile.payment_reminders_enabled && <Button size="sm" variant="secondary" title="Enviar Recordatorio" onClick={() => handleSendReminder(invoice)}><SendIcon className="w-4 h-4 text-blue-400"/></Button>}
                                                         {!invoice.paid && <Button size="sm" variant="secondary" title="Marcar como pagada" aria-label={`Marcar como pagada la factura ${invoice.invoice_number}`} onClick={() => { markInvoiceAsPaid(invoice.id); addToast(`Factura #${invoice.invoice_number} marcada como pagada.`, 'success');}}><CheckCircleIcon className="w-4 h-4 text-green-400"/></Button>}

@@ -1,14 +1,15 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { useAppStore } from '../hooks/useAppStore.tsx';
+import { useAppStore } from '../hooks/useAppStore';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
-import { formatCurrency } from '../lib/utils.ts';
-import { TrendingUpIcon, SparklesIcon, AlertTriangleIcon, CheckCircleIcon, RefreshCwIcon } from '../components/icons/Icon.tsx';
-import { Invoice, RecurringExpense } from '../types.ts';
-import { generateFinancialForecast, AI_CREDIT_COSTS } from '../services/geminiService.ts'; 
-import BuyCreditsModal from '../components/modals/BuyCreditsModal.tsx';
-import Button from '../components/ui/Button.tsx';
+import Card, { CardContent, CardHeader } from '../components/ui/Card';
+import { formatCurrency } from '../lib/utils';
+import { TrendingUpIcon, SparklesIcon, AlertTriangleIcon, CheckCircleIcon, RefreshCwIcon } from '../components/icons/Icon';
+import { Invoice, RecurringExpense } from '../types';
+import { generateFinancialForecast, AI_CREDIT_COSTS } from '../services/geminiService'; 
+import BuyCreditsModal from '../components/modals/BuyCreditsModal';
+import Button from '../components/ui/Button';
 
 interface ForecastData {
   month: string;

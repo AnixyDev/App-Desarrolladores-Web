@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
-import { Client, NewClient } from '../../types.ts';
-import { AppState } from '../useAppStore.tsx';
+import { Client, NewClient } from '../../types';
+import { AppState } from '../useAppStore';
 
 export interface ClientSlice {
   clients: Client[];

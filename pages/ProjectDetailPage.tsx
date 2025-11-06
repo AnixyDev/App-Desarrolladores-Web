@@ -1,13 +1,13 @@
 // pages/ProjectDetailPage.tsx
-import React, { useState, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useMemo, lazy, Suspense, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import { formatCurrency } from '../lib/utils';
-import { Project, Task, InvoiceItem } from '../types';
-import { PlusIcon, TrashIcon, ClockIcon, FileTextIcon, MessageSquareIcon, DollarSignIcon } from '../components/icons/Icon';
+import { formatCurrency, generateICSFile } from '../lib/utils';
+import { Project, Task, InvoiceItem, ProjectFile } from '../types';
+import { PlusIcon, TrashIcon, ClockIcon, FileTextIcon, MessageSquareIcon, DollarSignIcon, Paperclip, Upload, Trash2, EditIcon, CalendarPlus } from '../components/icons/Icon';
 import EmptyState from '../components/ui/EmptyState';
 import { useToast } from '../hooks/useToast';
 
@@ -29,20 +29,48 @@ const ProjectDetailPage: React.FC = () => {
         addTask,
         updateTaskStatus,
         deleteTask,
-        updateProjectStatus
+        updateProjectStatus,
+        updateProjectBudget,
+        projectFiles,
+        addProjectFile,
+        deleteProjectFile
     } = useAppStore();
 
     const [newTaskDescription, setNewTaskDescription] = useState('');
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+    const [isDeleteFileModalOpen, setIsDeleteFileModalOpen] = useState(false);
+    const [fileToDelete, setFileToDelete] = useState<ProjectFile | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const project = projectId ? getProjectById(projectId) : undefined;
     const client = project ? getClientById(project.client_id) : undefined;
     const tasks = projectId ? getTasksByProjectId(projectId) : [];
     
+    const [isEditingBudget, setIsEditingBudget] = useState(false);
+    const [budgetInput, setBudgetInput] = useState(0);
+
+    useEffect(() => {
+        if (project) {
+            setBudgetInput((project.budget_cents || 0) / 100);
+        }
+    }, [project]);
+
+    const handleBudgetSave = () => {
+        if (project) {
+            updateProjectBudget(project.id, Math.round(budgetInput * 100));
+            addToast('Presupuesto actualizado.', 'success');
+            setIsEditingBudget(false);
+        }
+    };
+
     const projectTimeEntries = useMemo(() => {
         return timeEntries.filter(entry => entry.project_id === projectId);
     }, [timeEntries, projectId]);
+
+    const projectFilesForProject = useMemo(() => {
+        return projectFiles.filter(file => file.project_id === projectId);
+    }, [projectFiles, projectId]);
 
     const projectStats = useMemo(() => {
         const completedTasks = tasks.filter(t => t.status === 'completed').length;
@@ -142,6 +170,45 @@ const ProjectDetailPage: React.FC = () => {
             setTaskToDelete(null);
         }
     };
+    
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            addProjectFile({
+                project_id: project.id,
+                fileName: file.name,
+                fileType: file.type,
+                url: '#', // En una app real, esta sería la URL de un servicio de almacenamiento
+            });
+            addToast(`Archivo "${file.name}" subido con éxito.`, 'success');
+        }
+    };
+
+    const handleDeleteFileClick = (file: ProjectFile) => {
+        setFileToDelete(file);
+        setIsDeleteFileModalOpen(true);
+    };
+
+    const confirmDeleteFile = () => {
+        if (fileToDelete) {
+            deleteProjectFile(fileToDelete.id);
+            addToast('Archivo eliminado.', 'info');
+            setIsDeleteFileModalOpen(false);
+            setFileToDelete(null);
+        }
+    };
+    
+    const handleProjectAddToCalendar = () => {
+        if (project && client) {
+            const title = `Entrega Proyecto: ${project.name}`;
+            const description = `Fecha de entrega final para el proyecto con el cliente ${client.name}.`;
+            const eventDate = new Date(project.due_date);
+            const filename = `entrega-proyecto-${project.name.replace(/\s+/g, '-')}`;
+            generateICSFile(title, description, eventDate, filename);
+            addToast('Evento de calendario del proyecto generado.', 'success');
+        }
+    };
+
 
     return (
         <div className="space-y-6">
@@ -199,15 +266,39 @@ const ProjectDetailPage: React.FC = () => {
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-gray-400">Fecha de Entrega</p>
-                                    <p className="text-white">{project.due_date}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-white">{project.due_date}</p>
+                                        <button onClick={handleProjectAddToCalendar} title="Añadir al Calendario" className="text-gray-400 hover:text-primary-400">
+                                            <CalendarPlus className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                            {project.budget_cents > 0 && (
-                                <div>
-                                    <p className="text-sm font-medium text-gray-400">Presupuesto</p>
-                                    <p className="text-white font-semibold">{formatCurrency(project.budget_cents)}</p>
-                                </div>
-                            )}
+                            <div>
+                                <label className="text-sm font-medium text-gray-400 block">Presupuesto</label>
+                                {isEditingBudget ? (
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <Input
+                                            type="number"
+                                            value={budgetInput}
+                                            onChange={(e) => setBudgetInput(Number(e.target.value))}
+                                            className="w-32 py-1"
+                                            step="0.01"
+                                            autoFocus
+                                        />
+                                        <Button size="sm" onClick={handleBudgetSave}>Guardar</Button>
+                                        <Button size="sm" variant="secondary" onClick={() => {
+                                            setIsEditingBudget(false);
+                                            setBudgetInput(project ? (project.budget_cents || 0) / 100 : 0);
+                                        }}>Cancelar</Button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 mt-1 group cursor-pointer" onClick={() => setIsEditingBudget(true)}>
+                                        <p className="text-white font-semibold">{formatCurrency(project.budget_cents)}</p>
+                                        <EditIcon className="w-4 h-4 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                )}
+                            </div>
                              <div>
                                 <p className="text-sm font-medium text-gray-400">Progreso de Tareas</p>
                                 <div className="w-full bg-gray-700 rounded-full h-2.5 mt-1">
@@ -301,6 +392,41 @@ const ProjectDetailPage: React.FC = () => {
             </div>
 
             <Card>
+                <CardHeader className="flex justify-between items-center">
+                    <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <Paperclip className="w-5 h-5"/> Archivos del Proyecto
+                    </h2>
+                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+                    <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
+                        <Upload className="w-4 h-4 mr-2" /> Subir Archivo
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    {projectFilesForProject.length > 0 ? (
+                        <ul className="space-y-2">
+                            {projectFilesForProject.map(file => (
+                                <li key={file.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800">
+                                    <div>
+                                        <p className="font-medium text-white">{file.fileName}</p>
+                                        <p className="text-xs text-gray-400">Subido el {new Date(file.uploadedAt).toLocaleDateString()}</p>
+                                    </div>
+                                    <Button size="sm" variant="danger" onClick={() => handleDeleteFileClick(file)} aria-label={`Eliminar archivo ${file.fileName}`}>
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <EmptyState 
+                            icon={Paperclip}
+                            title="Sin archivos adjuntos"
+                            message="Sube documentos, maquetas o cualquier archivo relevante para el proyecto."
+                        />
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
                 <CardHeader>
                     <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                         <MessageSquareIcon className="w-5 h-5"/> Canal del Proyecto
@@ -321,6 +447,15 @@ const ProjectDetailPage: React.FC = () => {
                         onConfirm={confirmDelete}
                         title="¿Eliminar Tarea?"
                         message={`¿Estás seguro de que quieres eliminar la tarea: "${taskToDelete?.description}"?`}
+                    />
+                )}
+                {isDeleteFileModalOpen && (
+                    <ConfirmationModal 
+                        isOpen={isDeleteFileModalOpen}
+                        onClose={() => setIsDeleteFileModalOpen(false)}
+                        onConfirm={confirmDeleteFile}
+                        title="¿Eliminar Archivo?"
+                        message={`¿Estás seguro de que quieres eliminar el archivo: "${fileToDelete?.fileName}"?`}
                     />
                 )}
             </Suspense>

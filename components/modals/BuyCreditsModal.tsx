@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-// FIX: Removed .tsx extensions for consistency.
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { SparklesIcon } from '../icons/Icon';

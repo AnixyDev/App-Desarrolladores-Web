@@ -63,14 +63,14 @@ const PortalContractViewPage = lazy(() => import('./pages/portal/PortalContractV
 
 const GOOGLE_CLIENT_ID = "102738470388-s392h3093q9j7q3j9q3j9q3j9q3j9q3j.apps.googleusercontent.com"; // Placeholder Client ID
 
-// FIX: Refactored PrivateRoute to be a self-contained layout route element, resolving a 'children' prop error.
-const PrivateRoute = () => {
+const AppLayout = () => {
     const isAuthenticated = useAppStore(state => state.isAuthenticated);
-    return isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" />;
-};
-
-const MainLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    if (!isAuthenticated) {
+        return <Navigate to="/auth/login" />;
+    }
+
     return (
         <div className="flex h-screen bg-gray-950 text-gray-100">
             <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
@@ -142,7 +142,7 @@ const PaymentHandler = () => {
 
 
 function App() {
-    const { isAuthenticated, checkInvoiceStatuses } = useAppStore();
+    const { isAuthenticated, checkInvoiceStatuses, profile } = useAppStore();
     const { addToast } = useToast();
 
     useEffect(() => {
@@ -176,7 +176,7 @@ function App() {
                     
                     <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
                     
-                    <Route path="/" element={<PrivateRoute />}>
+                    <Route path="/" element={<AppLayout />}>
                         <Route index element={<DashboardPage />} />
                         <Route path="clients" element={<ClientsPage />} />
                         <Route path="clients/:clientId" element={<ClientDetailPage />} />
@@ -213,7 +213,7 @@ function App() {
                         <Route path="affiliate" element={<AffiliateProgramPage />} />
                         <Route path="billing" element={<BillingPage />} />
                         <Route path="settings" element={<SettingsPage />} />
-                        
+
                         <Route path="*" element={<Navigate to="/" />} />
                     </Route>
                 </Routes>

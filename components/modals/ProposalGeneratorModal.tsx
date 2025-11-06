@@ -1,8 +1,4 @@
-
-
-
 import React, { useState, useEffect } from 'react';
-// FIX: Removed .tsx/.ts extensions from imports for consistency.
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { SparklesIcon, RefreshCwIcon, SendIcon } from '../icons/Icon';
