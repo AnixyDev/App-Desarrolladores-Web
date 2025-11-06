@@ -1,3 +1,5 @@
+// lib/utils.ts
+
 import { v4 as uuidv4 } from 'uuid';
 
 export const formatCurrency = (cents: number): string => {
@@ -11,29 +13,23 @@ export const formatCurrency = (cents: number): string => {
     }).format(cents / 100);
 };
 
-// A robust client-side JWT decoder that handles UTF-8 characters correctly.
+/**
+ * A robust client-side JWT decoder that handles UTF-8 characters correctly.
+ * @param token The JWT token string.
+ * @returns The decoded payload object, or null if decoding fails.
+ */
 export const jwtDecode = <T,>(token: string): T | null => {
     try {
         const base64Url = token.split('.')[1];
         if (!base64Url) {
-            console.error("Invalid JWT: No payload specified.");
+            console.error("Invalid JWT: Missing payload.");
             return null;
         }
-        // Replace URL-specific characters and add padding if missing.
+
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const paddedBase64 = base64 + '=='.substring(0, (4 - base64.length % 4) % 4);
-
-        // Decode from base64 to a binary string.
-        const binaryStr = atob(paddedBase64);
-        
-        // Convert the binary string to a Uint8Array.
-        const bytes = new Uint8Array(binaryStr.length);
-        for (let i = 0; i < binaryStr.length; i++) {
-            bytes[i] = binaryStr.charCodeAt(i);
-        }
-
-        // Use TextDecoder to correctly handle UTF-8 characters.
-        const jsonPayload = new TextDecoder().decode(bytes);
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
 
         return JSON.parse(jsonPayload);
     } catch (e) {
