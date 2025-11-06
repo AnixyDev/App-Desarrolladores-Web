@@ -1,11 +1,9 @@
-
-
 import { StateCreator } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { AppState } from '../useAppStore';
 import { Profile, GoogleJwtPayload, UserData } from '../../types';
 
-// Perfil de ejemplo para el usuario inicial
+// Perfil de ejemplo para el usuario inicial de demostración
 const initialProfile: Profile = {
     id: 'u-1',
     full_name: 'Carlos Santana',
@@ -33,10 +31,42 @@ const initialProfile: Profile = {
         on_new_project_message: false,
     },
     affiliate_code: 'SANTANA20',
-    // Campos para Stripe Connect
     stripe_account_id: '',
     stripe_onboarding_complete: false,
 };
+
+// Helper to create a clean profile for a new user
+const createNewProfile = (name: string, email: string, avatar?: string): Profile => ({
+    id: `u-${uuidv4()}`,
+    full_name: name,
+    email: email,
+    business_name: name,
+    tax_id: '',
+    avatar_url: avatar || '',
+    plan: 'Free',
+    ai_credits: 10,
+    hourly_rate_cents: 5000,
+    pdf_color: '#d9009f',
+    bio: '',
+    skills: [],
+    portfolio_url: '',
+    specialty: '',
+    availability_hours: 0,
+    preferred_hourly_rate_cents: 0,
+    payment_reminders_enabled: false,
+    reminder_template_upcoming: 'Hola [ClientName],\n\nEste es un recordatorio amigable de que la factura #[InvoiceNumber] por un importe de [Amount] vence el [DueDate].\n\nSaludos,\n[YourName]',
+    reminder_template_overdue: 'Hola [ClientName],\n\nEste es un recordatorio de que la factura #[InvoiceNumber] por un importe de [Amount] venció el [DueDate] y sigue pendiente de pago.\n\nPor favor, realiza el pago lo antes posible.\n\nSaludos,\n[YourName]',
+    email_notifications: {
+        on_invoice_overdue: true,
+        on_proposal_status_change: true,
+        on_contract_signed: true,
+        on_new_project_message: false,
+    },
+    affiliate_code: uuidv4().substring(0, 8).toUpperCase(),
+    stripe_account_id: '',
+    stripe_onboarding_complete: false,
+});
+
 
 export interface AuthSlice {
   isAuthenticated: boolean;
@@ -57,7 +87,6 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
     profile: initialProfile,
     login: (email, password) => {
         const userProfile = get().profile;
-        // Lógica simplificada para datos de demostración
         if (userProfile && email.toLowerCase() === userProfile.email.toLowerCase()) {
             set({ isAuthenticated: true });
             return true;
@@ -68,13 +97,9 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
         set({ isAuthenticated: false });
     },
     register: (name, email, password) => {
-        const newProfile: Profile = {
-            ...initialProfile,
-            id: `u-${Date.now()}`,
-            full_name: name,
-            email: email,
-        };
+        const newProfile = createNewProfile(name, email);
         set({ profile: newProfile, isAuthenticated: true });
+        
         const mainUser: UserData = {
             id: newProfile.id,
             name: newProfile.full_name,
@@ -83,29 +108,34 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
             status: 'Activo',
             hourly_rate_cents: newProfile.hourly_rate_cents,
         };
-        // Añade al usuario principal a la lista de usuarios del equipo
         set(state => ({ users: [mainUser, ...state.users.filter(u => u.id !== mainUser.id)] }));
         return true;
     },
     loginWithGoogle: (decoded) => {
-        const existingProfile = get().profile;
-        const newProfileData = {
-            full_name: decoded.name,
-            email: decoded.email,
-            avatar_url: decoded.picture,
-        };
-        const updatedProfile = { ...existingProfile, ...newProfileData } as Profile;
-        set({ profile: updatedProfile, isAuthenticated: true });
+        const currentProfile = get().profile;
+        let userProfile: Profile;
+
+        if (currentProfile.email === 'carlos@santana.com') { // If it's the default mock user
+            userProfile = createNewProfile(decoded.name, decoded.email, decoded.picture);
+        } else { // If a user already registered, update their info
+            userProfile = {
+                ...currentProfile,
+                full_name: decoded.name,
+                email: decoded.email,
+                avatar_url: decoded.picture,
+            };
+        }
+
+        set({ profile: userProfile, isAuthenticated: true });
         
-         const mainUser: UserData = {
-            id: updatedProfile.id,
-            name: decoded.name,
-            email: decoded.email,
+        const mainUser: UserData = {
+            id: userProfile.id,
+            name: userProfile.full_name,
+            email: userProfile.email,
             role: 'Admin',
             status: 'Activo',
-            hourly_rate_cents: updatedProfile.hourly_rate_cents,
+            hourly_rate_cents: userProfile.hourly_rate_cents,
         };
-        // Actualiza el usuario principal en la lista de usuarios del equipo
         set(state => ({ users: [mainUser, ...state.users.filter(u => u.id !== mainUser.id)] }));
     },
     updateProfile: (profileData) => {

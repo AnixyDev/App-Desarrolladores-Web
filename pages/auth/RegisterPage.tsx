@@ -61,13 +61,16 @@ const RegisterPage: React.FC = () => {
                         <AlertTriangleIcon className="w-5 h-5 mr-3 shrink-0" />
                         <div>
                             <h3 className="font-bold mb-1">Error de Configuración de Google Login</h3>
-                            <p className="mb-2">El inicio de sesión con Google falló. Esto suele deberse a un ID de Cliente de Google mal configurado o a que el origen de esta aplicación no está autorizado.</p>
-                            <p className="font-semibold">Solución Común (error `origin_mismatch`):</p>
+                            <p className="mb-2">El inicio de sesión con Google falló. Esto puede ocurrir por dos razones principales:</p>
+                             <ul className="list-disc list-inside space-y-1 my-2">
+                                <li>El <b>ID de Cliente de Google</b> en la aplicación es un valor de ejemplo y debe ser reemplazado por uno real.</li>
+                                <li>El <b>origen</b> de esta aplicación no está autorizado en tu configuración de Google Cloud.</li>
+                            </ul>
+                            <p className="font-semibold">Solución (error `origin_mismatch`):</p>
                             <ol className="list-decimal list-inside space-y-1 mt-1">
                                 <li>Copia esta URL de origen: <br/><code className="bg-gray-800 text-white p-1 rounded text-xs select-all">{window.location.origin}</code></li>
                                 <li>Añádela a "Orígenes de JavaScript autorizados" en la configuración de tu cliente de OAuth en Google Cloud.</li>
                             </ol>
-                             <p className="text-xs text-gray-400 mt-2">Asegúrate también de que el ID de Cliente en la aplicación sea el correcto.</p>
                             <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="inline-block mt-3 px-3 py-1 bg-red-600 text-white font-semibold rounded hover:bg-red-700">
                                 Ir a Google Cloud Console
                             </a>

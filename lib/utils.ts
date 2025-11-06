@@ -14,7 +14,7 @@ export const formatCurrency = (cents: number): string => {
 };
 
 /**
- * A robust client-side JWT decoder that handles UTF-8 characters correctly.
+ * A robust client-side JWT decoder that handles UTF-8 characters and padding correctly.
  * @param token The JWT token string.
  * @returns The decoded payload object, or null if decoding fails.
  */
@@ -26,7 +26,14 @@ export const jwtDecode = <T,>(token: string): T | null => {
             return null;
         }
 
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        // Add padding if missing
+        const pad = base64.length % 4;
+        if (pad) {
+            if (pad === 2) base64 += '==';
+            else if (pad === 3) base64 += '=';
+        }
+
         const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
             return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
