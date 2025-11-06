@@ -1,4 +1,5 @@
 
+
 import { StateCreator } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { AppState } from '../useAppStore';
@@ -19,9 +20,18 @@ const initialProfile: Profile = {
     bio: 'Desarrollador Full-Stack con 8 años de experiencia especializado en React, Node.js y arquitecturas serverless. Apasionado por crear productos escalables y de alta calidad.',
     skills: ['React', 'TypeScript', 'Node.js', 'Next.js', 'AWS', 'Serverless'],
     portfolio_url: 'https://github.com/carlossantana-dev',
+    specialty: 'Desarrollo Full-Stack con React y Node.js',
+    availability_hours: 40,
+    preferred_hourly_rate_cents: 7000,
     payment_reminders_enabled: true,
     reminder_template_upcoming: 'Hola [ClientName],\n\nEste es un recordatorio amigable de que la factura #[InvoiceNumber] por un importe de [Amount] vence el [DueDate].\n\nSaludos,\n[YourName]',
     reminder_template_overdue: 'Hola [ClientName],\n\nEste es un recordatorio de que la factura #[InvoiceNumber] por un importe de [Amount] venció el [DueDate] y sigue pendiente de pago.\n\nPor favor, realiza el pago lo antes posible.\n\nSaludos,\n[YourName]',
+    email_notifications: {
+        on_invoice_overdue: true,
+        on_proposal_status_change: true,
+        on_contract_signed: true,
+        on_new_project_message: false,
+    },
     affiliate_code: 'SANTANA20',
     // Campos para Stripe Connect
     stripe_account_id: '',

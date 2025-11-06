@@ -8,7 +8,7 @@ export interface NotificationSlice {
   addNotification: (message: string, link: string) => void;
   markAllAsRead: () => void;
   markInvoiceAsNotified: (invoiceId: string) => void;
-  checkInvoiceStatuses: () => void;
+  checkInvoiceStatuses: () => string[];
 }
 
 export const createNotificationSlice: StateCreator<AppState, [], [], NotificationSlice> = (set, get) => ({
@@ -35,7 +35,8 @@ export const createNotificationSlice: StateCreator<AppState, [], [], Notificatio
         }));
     },
     checkInvoiceStatuses: () => {
-        const { invoices, notifiedInvoiceIds, addNotification, markInvoiceAsNotified, getClientById } = get();
+        const emailMessages: string[] = [];
+        const { invoices, notifiedInvoiceIds, addNotification, markInvoiceAsNotified, getClientById, profile } = get();
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -48,14 +49,26 @@ export const createNotificationSlice: StateCreator<AppState, [], [], Notificatio
             const clientName = getClientById(invoice.client_id)?.name || 'un cliente';
             const diffTime = dueDate.getTime() - today.getTime();
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            let shouldNotify = false;
+            let inAppMessage = '';
 
             if (diffDays < 0) {
-                addNotification(`¡Alerta! La factura #${invoice.invoice_number} para ${clientName} ha vencido.`, '/invoices');
-                markInvoiceAsNotified(invoice.id);
+                shouldNotify = true;
+                inAppMessage = `¡Alerta! La factura #${invoice.invoice_number} para ${clientName} ha vencido.`;
+                if (profile.email_notifications.on_invoice_overdue) {
+                    emailMessages.push(`Simulación: Email enviado a ${profile.email} por la factura vencida #${invoice.invoice_number} para ${clientName}.`);
+                }
             } else if (diffDays <= 3) {
-                addNotification(`La factura #${invoice.invoice_number} para ${clientName} vence en ${diffDays === 0 ? 'hoy' : `${diffDays} día(s)`}.`, '/invoices');
+                shouldNotify = true;
+                inAppMessage = `La factura #${invoice.invoice_number} para ${clientName} vence en ${diffDays === 0 ? 'hoy' : `${diffDays} día(s)`}.`;
+            }
+
+            if (shouldNotify) {
+                addNotification(inAppMessage, '/invoices');
                 markInvoiceAsNotified(invoice.id);
             }
         });
+        return emailMessages;
     },
 });

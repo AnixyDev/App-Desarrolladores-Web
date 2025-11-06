@@ -24,9 +24,10 @@ export interface FinanceSlice {
   addBudget: (budget: any) => void;
   updateBudgetStatus: (id: string, status: Budget['status']) => void;
   addProposal: (proposal: any) => void;
+  updateProposalStatus: (id: string, status: Proposal['status']) => string | null;
   addContract: (contract: any) => void;
   sendContract: (id: string) => void;
-  signContract: (id: string, signerName: string, signature: string) => void;
+  signContract: (id: string, signerName: string, signature: string) => string | null;
   setContractExpiration: (id: string, expiresAt: string) => void;
   setMonthlyGoal: (goal: number) => void;
 }
@@ -165,6 +166,22 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
         };
         set(state => ({ proposals: [newProposal, ...state.proposals] }));
     },
+    updateProposalStatus: (id, status) => {
+        const proposal = get().proposals.find(p => p.id === id);
+        if (proposal) {
+            get().addNotification(`La propuesta "${proposal.title}" ha sido ${status === 'accepted' ? 'aceptada' : 'rechazada'}.`, '/proposals');
+        }
+
+        set(state => ({
+            proposals: state.proposals.map(p => p.id === id ? { ...p, status } : p)
+        }));
+        
+        const { profile } = get();
+        if (profile?.email_notifications?.on_proposal_status_change) {
+            return `Simulación: Email enviado a ${profile.email} sobre la propuesta "${proposal?.title}" que ha sido ${status === 'accepted' ? 'aceptada' : 'rechazada'}.`;
+        }
+        return null;
+    },
     addContract: (contractData) => {
         const newContract = {
             ...contractData,
@@ -176,7 +193,20 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
         set(state => ({ contracts: [newContract, ...state.contracts] }));
     },
     sendContract: (id) => set(state => ({ contracts: state.contracts.map(c => c.id === id ? { ...c, status: 'sent' } : c) })),
-    signContract: (id, signerName, signature) => set(state => ({ contracts: state.contracts.map(c => c.id === id ? { ...c, status: 'signed', signed_by: signerName, signed_at: new Date().toISOString(), signature } : c) })),
+    signContract: (id, signerName, signature) => {
+        const contract = get().contracts.find(c => c.id === id);
+        if (contract) {
+             get().addNotification(`¡El contrato para el proyecto "${get().getProjectById(contract.project_id)?.name}" ha sido firmado!`, '/contracts');
+        }
+
+        set(state => ({ contracts: state.contracts.map(c => c.id === id ? { ...c, status: 'signed', signed_by: signerName, signed_at: new Date().toISOString(), signature } : c) }));
+
+        const { profile } = get();
+        if (profile?.email_notifications?.on_contract_signed) {
+            return `Simulación: Email enviado a ${profile.email} sobre el contrato para "${get().getProjectById(contract?.project_id || '')?.name}" que ha sido firmado.`;
+        }
+        return null;
+    },
     setContractExpiration: (id, expiresAt) => set(state => ({
         contracts: state.contracts.map(c => c.id === id ? { ...c, expires_at: expiresAt } : c)
     })),

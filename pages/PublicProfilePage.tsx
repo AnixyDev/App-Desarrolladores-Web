@@ -3,7 +3,7 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 // FIX: Corrected the import for the Briefcase icon.
-import { MailIcon, UserIcon as User, BriefcaseIcon as Briefcase, LinkIcon } from '../components/icons/Icon';
+import { MailIcon, UserIcon as User, BriefcaseIcon as Briefcase, LinkIcon, ClockIcon, DollarSignIcon } from '../components/icons/Icon';
 import Button from '../components/ui/Button';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -50,7 +50,8 @@ const PublicProfilePage: React.FC = () => {
                         <User className="w-24 h-24 rounded-full bg-gray-700 text-gray-300 p-4 mx-auto mb-4 border-4 border-gray-600" />
                     )}
                     <h1 className="text-3xl font-bold text-white">{profile.full_name}</h1>
-                    <p className="text-xl text-primary-400">{profile.business_name}</p>
+                    {profile.specialty && <p className="text-xl text-primary-400 mt-1">{profile.specialty}</p>}
+                    <p className="text-lg text-gray-400 mt-1">{profile.business_name}</p>
                 </CardHeader>
                 <CardContent className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="md:col-span-2 space-y-4">
@@ -74,7 +75,7 @@ const PublicProfilePage: React.FC = () => {
                         </div>
                     </div>
                     <div className="space-y-4 pt-4 border-t md:border-t-0 md:border-l border-gray-700 md:pl-6">
-                         <h3 className="font-semibold text-white text-center md:text-left">Contacto y Enlaces</h3>
+                         <h3 className="font-semibold text-white text-center md:text-left">Contacto y Detalles</h3>
                          <div className="flex items-center space-x-3">
                             <MailIcon className="w-5 h-5 text-gray-400" />
                             <a href={`mailto:${profile.email}`} className="text-gray-300 hover:text-white truncate">{profile.email}</a>
@@ -87,8 +88,20 @@ const PublicProfilePage: React.FC = () => {
                         )}
                         <div className="flex items-center space-x-3">
                             <Briefcase className="w-5 h-5 text-gray-400" />
-                            <span className="text-gray-300">Tarifa: {profile.hourly_rate_cents / 100}€/hora</span>
+                            <span className="text-gray-300">Tarifa base: {profile.hourly_rate_cents / 100}€/hora</span>
                         </div>
+                         {profile.preferred_hourly_rate_cents && (
+                            <div className="flex items-center space-x-3">
+                                <DollarSignIcon className="w-5 h-5 text-gray-400" />
+                                <span className="text-gray-300">Tarifa preferida: {(profile.preferred_hourly_rate_cents || 0) / 100}€/hora</span>
+                            </div>
+                         )}
+                         {profile.availability_hours && (
+                            <div className="flex items-center space-x-3">
+                                <ClockIcon className="w-5 h-5 text-gray-400" />
+                                <span className="text-gray-300">Disponible: {profile.availability_hours} h/semana</span>
+                            </div>
+                         )}
                     </div>
                 </CardContent>
             </Card>

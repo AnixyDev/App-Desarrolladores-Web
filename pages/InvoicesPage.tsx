@@ -122,8 +122,10 @@ const InvoicesPage: React.FC = () => {
         if (itemToDelete) {
             if (itemToDelete.type === 'single') {
                 deleteInvoice(itemToDelete.id);
+                addToast('Factura eliminada.', 'info');
             } else {
                 deleteRecurringInvoice(itemToDelete.id);
+                addToast('Factura recurrente eliminada.', 'info');
             }
             setIsConfirmModalOpen(false);
             setItemToDelete(null);
@@ -231,7 +233,7 @@ const InvoicesPage: React.FC = () => {
                                                     <div className="flex gap-2">
                                                         {!invoice.paid && <Button size="sm" variant="secondary" title="Copiar enlace de pago" onClick={() => handleCopyPaymentLink(invoice.id)}><LinkIcon className="w-4 h-4 text-purple-400"/></Button>}
                                                         {!invoice.paid && profile.payment_reminders_enabled && <Button size="sm" variant="secondary" title="Enviar Recordatorio" onClick={() => handleSendReminder(invoice)}><SendIcon className="w-4 h-4 text-blue-400"/></Button>}
-                                                        {!invoice.paid && <Button size="sm" variant="secondary" title="Marcar como pagada" aria-label={`Marcar como pagada la factura ${invoice.invoice_number}`} onClick={() => markInvoiceAsPaid(invoice.id)}><CheckCircleIcon className="w-4 h-4 text-green-400"/></Button>}
+                                                        {!invoice.paid && <Button size="sm" variant="secondary" title="Marcar como pagada" aria-label={`Marcar como pagada la factura ${invoice.invoice_number}`} onClick={() => { markInvoiceAsPaid(invoice.id); addToast(`Factura #${invoice.invoice_number} marcada como pagada.`, 'success');}}><CheckCircleIcon className="w-4 h-4 text-green-400"/></Button>}
                                                         <Button size="sm" variant="secondary" title="Descargar PDF" aria-label={`Descargar PDF de la factura ${invoice.invoice_number}`} onClick={() => handleDownloadPdf(invoice)} disabled={isDownloading === invoice.id}>
                                                             {isDownloading === invoice.id ? <RefreshCwIcon className="w-4 h-4 animate-spin" /> : <DownloadIcon className="w-4 h-4" />}
                                                         </Button>

@@ -4,9 +4,11 @@ import { useAppStore } from '../../hooks/useAppStore';
 import Card, { CardHeader, CardContent, CardFooter } from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { SignatureIcon, CheckCircleIcon } from '../../components/icons/Icon';
+import { useToast } from '../../hooks/useToast';
 
 const PortalContractViewPage: React.FC = () => {
     const { contractId } = useParams<{ contractId: string }>();
+    const { addToast } = useToast();
     const { contracts, getClientById, getProjectById, signContract } = useAppStore(state => ({
         contracts: state.contracts,
         getClientById: state.getClientById,
@@ -25,8 +27,11 @@ const PortalContractViewPage: React.FC = () => {
 
     const handleSign = () => {
         if (client) {
-            signContract(contract.id, client.name);
-            alert('Contrato firmado con éxito.');
+            const message = signContract(contract.id, client.name, 'dummy-signature-data');
+            if (message) {
+                addToast(message, 'info');
+            }
+            addToast('Contrato firmado con éxito.', 'success');
         }
     }
 

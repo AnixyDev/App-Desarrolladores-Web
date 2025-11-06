@@ -5,7 +5,7 @@ import { ProjectMessage, ProjectFile } from '../../types';
 export interface CollaborationSlice {
   projectComments: ProjectMessage[];
   projectFiles: ProjectFile[];
-  addProjectComment: (comment: Omit<ProjectMessage, 'id' | 'timestamp'>) => void;
+  addProjectComment: (comment: Omit<ProjectMessage, 'id' | 'timestamp'>) => string | null;
   addProjectFile: (file: Omit<ProjectFile, 'id' | 'uploadedAt'>) => void;
   deleteProjectFile: (fileId: string) => void;
 }
@@ -20,6 +20,14 @@ export const createCollaborationSlice: StateCreator<AppState, [], [], Collaborat
       timestamp: new Date().toISOString(),
     };
     set(state => ({ projectComments: [...state.projectComments, newComment]}));
+    
+    const { profile } = get();
+    // Only send notification if someone else posts a message
+    if (profile && profile.id !== comment.user_id && profile.email_notifications.on_new_project_message) {
+        const projectName = get().getProjectById(comment.project_id)?.name;
+        return `Simulación: Email enviado a ${profile.email} sobre un nuevo mensaje en el proyecto "${projectName}".`;
+    }
+    return null;
   },
   addProjectFile: (file) => {
     const newFile: ProjectFile = {

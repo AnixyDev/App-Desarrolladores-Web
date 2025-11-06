@@ -1,8 +1,9 @@
 
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 // FIX: Removed .tsx/.ts extensions from imports for consistency.
 import { useAppStore } from '../hooks/useAppStore';
+import { useToast } from '../hooks/useToast';
 import { SendIcon, SparklesIcon, UserIcon } from './icons/Icon';
 import { ProjectMessage } from '../types';
 import Input from './ui/Input';
@@ -13,12 +14,15 @@ interface ProjectChatProps {
 }
 
 const ProjectChat: React.FC<ProjectChatProps> = ({ projectId }) => {
-    const { profile } = useAppStore();
-    // In a real app, you would fetch messages for the projectId
-    const [messages, setMessages] = useState<ProjectMessage[]>([]);
+    const { profile, projectComments, addProjectComment } = useAppStore();
+    const { addToast } = useToast();
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const messages = useMemo(() => {
+        return projectComments.filter(c => c.project_id === projectId);
+    }, [projectComments, projectId]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -30,15 +34,17 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId }) => {
         e.preventDefault();
         if (input.trim() === '' || !profile) return;
 
-        const newMessage: ProjectMessage = {
-            id: `msg-${Date.now()}`,
+        const messageData = {
             project_id: projectId,
             user_id: profile.id,
             user_name: profile.full_name,
             text: input,
-            timestamp: new Date().toISOString()
         };
-        setMessages(prev => [...prev, newMessage]);
+
+        const emailMessage = addProjectComment(messageData);
+        if (emailMessage) {
+            addToast(emailMessage, 'info');
+        }
         setInput('');
     };
 
@@ -54,7 +60,7 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId }) => {
                 text: summary,
                 timestamp: new Date().toISOString()
             };
-            setMessages(prev => [...prev, aiMessage]);
+            addProjectComment(aiMessage); // Add summary via store
             setIsLoading(false);
         }, 1500);
     };

@@ -1,12 +1,11 @@
 import React from 'react';
 import { useToast, ToastType } from '../../hooks/useToast';
-// FIX: Remove .tsx extension from icon import to fix module resolution error.
-import { CheckCircleIcon, XCircleIcon } from '../icons/Icon';
+import { CheckCircleIcon, XCircleIcon, AlertTriangleIcon } from '../icons/Icon';
 
 const toastIcons: Record<ToastType, React.ElementType> = {
     success: CheckCircleIcon,
-    error: XCircleIcon,
-    info: CheckCircleIcon, // Using CheckCircle for info for now
+    error: AlertTriangleIcon,
+    info: CheckCircleIcon,
 };
 
 const toastColors: Record<ToastType, string> = {

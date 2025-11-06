@@ -143,12 +143,16 @@ const PaymentHandler = () => {
 
 function App() {
     const { isAuthenticated, checkInvoiceStatuses } = useAppStore();
+    const { addToast } = useToast();
 
     useEffect(() => {
         if (isAuthenticated) {
-            checkInvoiceStatuses();
+            const emailMessages = checkInvoiceStatuses();
+            emailMessages.forEach(msg => {
+                addToast(msg, 'info');
+            });
         }
-    }, [isAuthenticated, checkInvoiceStatuses]);
+    }, [isAuthenticated, checkInvoiceStatuses, addToast]);
 
     return (
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>

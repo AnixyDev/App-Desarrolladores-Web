@@ -138,7 +138,7 @@ const BudgetsPage: React.FC = () => {
                             </thead>
                             <tbody>
                                 {budgets.map(budget => (
-                                    <tr key={budget.id} className="border-b border-gray-800 hover:bg-gray-800/50">
+                                    <tr key={budget.id} className="border-b border-gray-800 hover:bg-gray-800 hover:shadow-lg transition-all duration-200 ease-in-out">
                                         <td className="p-4 text-white font-semibold">{budget.description}</td>
                                         <td className="p-4 text-primary-400">{getClientById(budget.client_id)?.name}</td>
                                         <td className="p-4 text-gray-300">{budget.created_at}</td>

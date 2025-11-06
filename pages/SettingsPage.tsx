@@ -6,6 +6,7 @@ import Button from '../components/ui/Button';
 import { Link } from 'react-router-dom';
 import { UserIcon } from '../components/icons/Icon';
 import { useToast } from '../hooks/useToast';
+import { Profile } from '../types';
 
 
 const SettingsPage: React.FC = () => {
@@ -53,7 +54,36 @@ const SettingsPage: React.FC = () => {
         }
     }
 
+    const handleNotificationChange = (key: keyof Profile['email_notifications'], value: boolean) => {
+        setFormData(prev => prev ? ({
+            ...prev,
+            email_notifications: {
+                ...prev.email_notifications,
+                [key]: value,
+            }
+        }) : null);
+    };
+
     if (!formData) return <div>Cargando perfil...</div>;
+
+    const ToggleSwitch: React.FC<{
+        id: string;
+        label: string;
+        enabled: boolean;
+        onChange: (enabled: boolean) => void;
+    }> = ({ id, label, enabled, onChange }) => (
+        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+            <label htmlFor={id} className="font-medium text-gray-200">{label}</label>
+            <button
+                type="button"
+                id={id}
+                onClick={() => onChange(!enabled)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${enabled ? 'bg-primary-600' : 'bg-gray-600'}`}
+            >
+                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+        </div>
+    );
 
     return (
         <div>
@@ -99,8 +129,45 @@ const SettingsPage: React.FC = () => {
                             <label htmlFor="bio" className="block text-sm font-medium text-gray-300 mb-1">Biografía Corta</label>
                             <textarea id="bio" name="bio" rows={4} value={formData.bio || ''} onChange={handleInputChange} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white" placeholder="Describe brevemente tu especialidad y experiencia."/>
                          </div>
+                        <Input label="Especialidad (ej. Frontend con React)" name="specialty" value={formData.specialty || ''} onChange={handleInputChange} placeholder="Tu principal área de expertise." />
                         <Input label="Habilidades Principales (separadas por comas)" name="skills" value={formData.skills?.join(', ') || ''} onChange={handleSkillsChange} placeholder="React, Node.js, Python, AWS..." />
                         <Input label="URL del Portafolio" name="portfolio_url" type="url" value={formData.portfolio_url || ''} onChange={handleInputChange} placeholder="https://github.com/tu-usuario" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Input label="Disponibilidad (horas/semana)" name="availability_hours" type="number" value={formData.availability_hours || ''} onChange={(e) => setFormData(p => p ? {...p, availability_hours: Number(e.target.value)} : null)} />
+                            <Input label="Tarifa Pública Preferida (€/hora)" name="preferred_hourly_rate_cents" type="number" value={(formData.preferred_hourly_rate_cents || 0) / 100} onChange={(e) => setFormData(p => p ? {...p, preferred_hourly_rate_cents: Number(e.target.value) * 100} : null)} />
+                        </div>
+                    </CardContent>
+                </Card>
+                
+                 <Card>
+                    <CardHeader>
+                        <h2 className="text-lg font-semibold text-white">Notificaciones por Email</h2>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <ToggleSwitch
+                            id="on_invoice_overdue"
+                            label="Cuando una factura vence"
+                            enabled={formData.email_notifications.on_invoice_overdue}
+                            onChange={(value) => handleNotificationChange('on_invoice_overdue', value)}
+                        />
+                        <ToggleSwitch
+                            id="on_proposal_status_change"
+                            label="Cuando un cliente acepta/rechaza una propuesta"
+                            enabled={formData.email_notifications.on_proposal_status_change}
+                            onChange={(value) => handleNotificationChange('on_proposal_status_change', value)}
+                        />
+                        <ToggleSwitch
+                            id="on_contract_signed"
+                            label="Cuando un cliente firma un contrato"
+                            enabled={formData.email_notifications.on_contract_signed}
+                            onChange={(value) => handleNotificationChange('on_contract_signed', value)}
+                        />
+                        <ToggleSwitch
+                            id="on_new_project_message"
+                            label="Cuando recibes un nuevo mensaje en un proyecto"
+                            enabled={formData.email_notifications.on_new_project_message}
+                            onChange={(value) => handleNotificationChange('on_new_project_message', value)}
+                        />
                     </CardContent>
                 </Card>
 

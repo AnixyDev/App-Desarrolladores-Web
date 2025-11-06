@@ -15,10 +15,20 @@ export interface Profile {
   bio?: string;
   skills?: string[];
   portfolio_url?: string;
+  specialty?: string;
+  availability_hours?: number;
+  preferred_hourly_rate_cents?: number;
   // --- Payment Automation ---
   payment_reminders_enabled: boolean;
   reminder_template_upcoming: string;
   reminder_template_overdue: string;
+  // --- Email Notifications ---
+  email_notifications: {
+    on_invoice_overdue: boolean;
+    on_proposal_status_change: boolean;
+    on_contract_signed: boolean;
+    on_new_project_message: boolean;
+  };
   // --- Affiliate Program ---
   affiliate_code: string;
   // --- Stripe Connect ---
