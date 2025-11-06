@@ -54,7 +54,7 @@ export const generateICSFile = (title: string, description: string, eventDate: D
     const startDate = formatDateForICS(eventDate);
     // For all-day events, DTEND is typically the day after DTSTART
     const endDate = formatDateForICS(new Date(eventDate.getTime() + 24 * 60 * 60 * 1000));
-    const now = formatDateForICS(new Date()) + 'T' + new Date().toTimeString().split(' ')[0].replace(/:/g, '') + 'Z';
+    const now = new Date().toISOString().replace(/-/g, '').replace(/:/g, '').substring(0, 15) + 'Z';
 
     const icsContent = [
         'BEGIN:VCALENDAR',
