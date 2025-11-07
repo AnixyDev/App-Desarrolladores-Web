@@ -61,7 +61,7 @@ const PortalProposalViewPage = lazy(() => import('./pages/portal/PortalProposalV
 const PortalContractViewPage = lazy(() => import('./pages/portal/PortalContractViewPage'));
 
 
-const GOOGLE_CLIENT_ID = "102738470388-s392h3093q9j7q3j9q3j9q3j9q3j9q3j.apps.googleusercontent.com"; // Placeholder Client ID
+const GOOGLE_CLIENT_ID = "457438236235-n2s8q6nvcjm32u0o3ut2lksd8po8gfqf.apps.googleusercontent.com";
 
 const AppLayout = () => {
     const isAuthenticated = useAppStore(state => state.isAuthenticated);
