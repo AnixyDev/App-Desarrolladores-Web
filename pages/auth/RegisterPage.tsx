@@ -7,7 +7,7 @@ import { useAppStore } from '../../hooks/useAppStore';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { GoogleJwtPayload } from '../../types';
 import { AlertTriangleIcon } from '../../components/icons/Icon';
-import { jwtDecode } from '../../lib/utils';
+import { jwtDecode, validateEmail } from '../../lib/utils';
 
 
 const RegisterPage: React.FC = () => {
@@ -18,12 +18,20 @@ const RegisterPage: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [emailError, setEmailError] = useState('');
     const [showGoogleConfigError, setShowGoogleConfigError] = useState(false);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setEmailError('');
         setShowGoogleConfigError(false);
+        
+        if (!validateEmail(email)) {
+            setEmailError('Por favor, introduce un correo electrónico válido.');
+            return;
+        }
+
         const success = register(name, email, password);
         if (success) {
             navigate('/');
@@ -92,8 +100,12 @@ const RegisterPage: React.FC = () => {
                     type="email" 
                     placeholder="tu@email.com" 
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                        setEmail(e.target.value);
+                        setEmailError('');
+                    }}
                     required
+                    error={emailError}
                 />
                 <Input 
                     label="Contraseña" 

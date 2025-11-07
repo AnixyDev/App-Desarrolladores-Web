@@ -86,3 +86,12 @@ export const generateICSFile = (title: string, description: string, eventDate: D
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 };
+
+export const validateEmail = (email: string): boolean => {
+  if (!email) return false;
+  // A common and reasonably effective email regex.
+  const re = new RegExp(
+    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+  );
+  return re.test(String(email).toLowerCase());
+};

@@ -10,6 +10,7 @@ import { Client, NewClient } from '../types';
 import { EditIcon, TrashIcon, PhoneIcon, MailIcon, Users as UsersIcon, SearchIcon, DownloadIcon } from '../components/icons/Icon';
 import { useToast } from '../hooks/useToast';
 import EmptyState from '../components/ui/EmptyState';
+import { validateEmail } from '../lib/utils';
 
 const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal'));
 const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal'));
@@ -32,6 +33,7 @@ const ClientsPage: React.FC = () => {
     const [formData, setFormData] = useState<NewClient | Client>(initialClientState);
     const [editingClient, setEditingClient] = useState<Client | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [emailError, setEmailError] = useState('');
 
     const filteredClients = useMemo(() => {
         if (!searchTerm) return clients;
@@ -45,6 +47,9 @@ const ClientsPage: React.FC = () => {
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        if (name === 'email') {
+            setEmailError('');
+        }
     };
 
     const handleOpenAddModal = () => {
@@ -67,10 +72,16 @@ const ClientsPage: React.FC = () => {
         setIsModalOpen(false);
         setEditingClient(null);
         setFormData(initialClientState);
+        setEmailError('');
     }
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (!validateEmail(formData.email)) {
+            setEmailError('Por favor, introduce un correo electrónico válido.');
+            return;
+        }
+
         if (formData.name && formData.email) {
             if (editingClient) {
                 updateClient(formData as Client);
@@ -213,7 +224,7 @@ const ClientsPage: React.FC = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <Input name="name" label="Nombre Completo" value={formData.name} onChange={handleInputChange} required />
                     <Input name="company" label="Empresa (Opcional)" value={formData.company} onChange={handleInputChange} />
-                    <Input name="email" label="Email" type="email" value={formData.email} onChange={handleInputChange} required />
+                    <Input name="email" label="Email" type="email" value={formData.email} onChange={handleInputChange} required error={emailError} />
                     <Input name="phone" label="Teléfono (Opcional)" value={formData.phone} onChange={handleInputChange} />
                     <div className="flex justify-end pt-4">
                         <Button type="submit">Guardar Cliente</Button>

@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { UserIcon } from '../components/icons/Icon';
 import { useToast } from '../hooks/useToast';
 import { Profile } from '../types';
+import { validateEmail } from '../lib/utils';
 
 
 const SettingsPage: React.FC = () => {
@@ -14,6 +15,7 @@ const SettingsPage: React.FC = () => {
     const { addToast } = useToast();
     const [formData, setFormData] = useState(profile);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [emailError, setEmailError] = useState('');
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
@@ -22,6 +24,9 @@ const SettingsPage: React.FC = () => {
              setFormData(prev => prev ? ({ ...prev, [name]: checked }) : null);
         } else {
              setFormData(prev => prev ? ({ ...prev, [name]: value }) : null);
+        }
+        if (name === 'email') {
+            setEmailError('');
         }
     };
     
@@ -49,6 +54,10 @@ const SettingsPage: React.FC = () => {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (formData) {
+            if (!validateEmail(formData.email)) {
+                setEmailError('Por favor, introduce un correo electrónico válido.');
+                return;
+            }
             updateProfile(formData);
             addToast('Perfil actualizado con éxito.', 'success');
         }
@@ -112,7 +121,7 @@ const SettingsPage: React.FC = () => {
                             </div>
                         </div>
                         <Input label="Nombre Completo" name="full_name" value={formData.full_name} onChange={handleInputChange} />
-                        <Input label="Email" name="email" type="email" value={formData.email} onChange={handleInputChange} />
+                        <Input label="Email" name="email" type="email" value={formData.email} onChange={handleInputChange} error={emailError} />
                         <Input label="Nombre del Negocio" name="business_name" value={formData.business_name} onChange={handleInputChange} />
                         <Input label="NIF/CIF" name="tax_id" value={formData.tax_id} onChange={handleInputChange} />
                         <Input label="Tarifa por Hora (€)" name="hourly_rate_cents" type="number" value={formData.hourly_rate_cents / 100} onChange={(e) => setFormData(p => p ? {...p, hourly_rate_cents: Number(e.target.value) * 100} : null)} />

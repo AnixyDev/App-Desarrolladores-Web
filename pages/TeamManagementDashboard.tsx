@@ -3,6 +3,8 @@ import { Users, UserPlus, Trash2, MailIcon as Mail, X, UserIcon as User, Refresh
 import { useAppStore } from '../hooks/useAppStore';
 import { UserData } from '../types';
 import { useToast } from '../hooks/useToast';
+import Input from '../components/ui/Input';
+import { validateEmail } from '../lib/utils';
 
 const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal'));
 
@@ -27,10 +29,16 @@ const TeamManagementDashboard: React.FC = () => {
   const [memberToDelete, setMemberToDelete] = useState<UserData | null>(null);
   const [newMember, setNewMember] = useState<NewMember>({ name: '', email: '', role: roles[0] });
   const [isSending, setIsSending] = useState(false);
+  const [emailError, setEmailError] = useState('');
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMember.name || !newMember.email) return;
+
+    if (!validateEmail(newMember.email)) {
+        setEmailError('Por favor, introduce un correo electrónico válido.');
+        return;
+    }
     
     setIsSending(true);
     try {
@@ -47,6 +55,7 @@ const TeamManagementDashboard: React.FC = () => {
       
       setNewMember({ name: '', email: '', role: roles[0] });
       setShowInviteModal(false);
+      setEmailError('');
 
     } catch (error) {
       addToast('Error al enviar la invitación. Por favor, inténtalo de nuevo.', 'error');
@@ -86,32 +95,30 @@ const TeamManagementDashboard: React.FC = () => {
         </div>
         
         <form onSubmit={handleInvite} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Nombre Completo</label>
-            <input
+            <Input
+              label="Nombre Completo"
               type="text"
               value={newMember.name}
               onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
-              className="w-full p-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 outline-none"
               required
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Correo Electrónico</label>
-            <input
+            <Input
+              label="Correo Electrónico"
               type="email"
               value={newMember.email}
-              onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
-              className="w-full p-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 outline-none"
+              onChange={(e) => {
+                setNewMember({ ...newMember, email: e.target.value });
+                setEmailError('');
+              }}
+              error={emailError}
               required
             />
-          </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">Rol y Permisos</label>
             <select
               value={newMember.role}
               onChange={(e) => setNewMember({ ...newMember, role: e.target.value as UserData['role'] })}
-              className="w-full p-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-fuchsia-500 outline-none"
+              className="w-full px-3 py-2 bg-gray-800 text-white rounded-md border border-gray-600 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 outline-none"
             >
               {roles.map(role => (
                 <option key={role} value={role}>{role}</option>

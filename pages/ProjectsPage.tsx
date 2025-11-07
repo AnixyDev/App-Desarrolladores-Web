@@ -11,6 +11,7 @@ import StatusChip from '../components/ui/StatusChip';
 import EmptyState from '../components/ui/EmptyState';
 import { BriefcaseIcon, PlusIcon } from '../components/icons/Icon';
 import { useToast } from '../hooks/useToast';
+import { validateEmail } from '../lib/utils';
 
 const ProjectsPage: React.FC = () => {
     const { projects, clients, addProject, getClientById, addClient } = useAppStore();
@@ -18,6 +19,7 @@ const ProjectsPage: React.FC = () => {
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
     const [filterStatus, setFilterStatus] = useState<'all' | Project['status']>('all');
+    const [clientEmailError, setClientEmailError] = useState('');
 
     const initialProjectState: NewProject = {
         name: '',
@@ -46,6 +48,9 @@ const ProjectsPage: React.FC = () => {
     const handleClientInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setNewClient(prev => ({ ...prev, [name]: value }));
+        if (name === 'email') {
+            setClientEmailError('');
+        }
     };
 
     const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,6 +72,10 @@ const ProjectsPage: React.FC = () => {
     const handleClientSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (newClient.name && newClient.email) {
+            if (!validateEmail(newClient.email)) {
+                setClientEmailError('Por favor, introduce un correo electrónico válido.');
+                return;
+            }
             const createdClient = addClient(newClient);
             setNewProject(prev => ({ ...prev, client_id: createdClient.id }));
             setIsClientModalOpen(false);
@@ -171,10 +180,10 @@ const ProjectsPage: React.FC = () => {
                 </form>
             </Modal>
             
-            <Modal isOpen={isClientModalOpen} onClose={() => setIsClientModalOpen(false)} title="Añadir Cliente Rápido">
+            <Modal isOpen={isClientModalOpen} onClose={() => { setIsClientModalOpen(false); setClientEmailError(''); }}>
                 <form onSubmit={handleClientSubmit} className="space-y-4">
                     <Input name="name" label="Nombre Completo" value={newClient.name} onChange={handleClientInputChange} required />
-                    <Input name="email" label="Email" type="email" value={newClient.email} onChange={handleClientInputChange} required />
+                    <Input name="email" label="Email" type="email" value={newClient.email} onChange={handleClientInputChange} required error={clientEmailError} />
                     <div className="flex justify-end pt-4">
                         <Button type="submit">Guardar Cliente</Button>
                     </div>
