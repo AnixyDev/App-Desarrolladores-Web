@@ -46,22 +46,37 @@ export const createNotificationSlice: StateCreator<AppState, [], [], Notificatio
             }
 
             const dueDate = new Date(invoice.due_date);
-            const clientName = getClientById(invoice.client_id)?.name || 'un cliente';
+            const client = getClientById(invoice.client_id);
+            const clientName = client?.name || 'un cliente';
             const diffTime = dueDate.getTime() - today.getTime();
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
+
             let shouldNotify = false;
             let inAppMessage = '';
+            const isOverdue = diffDays < 0;
+            const isUpcoming = diffDays >= 0 && diffDays <= 3;
 
-            if (diffDays < 0) {
+            if (isOverdue) {
                 shouldNotify = true;
                 inAppMessage = `¡Alerta! La factura #${invoice.invoice_number} para ${clientName} ha vencido.`;
+
+                // Freelancer email notification
                 if (profile.email_notifications.on_invoice_overdue) {
-                    emailMessages.push(`Simulación: Email enviado a ${profile.email} por la factura vencida #${invoice.invoice_number} para ${clientName}.`);
+                    emailMessages.push(`Simulación: Email para ti sobre la factura vencida #${invoice.invoice_number}.`);
                 }
-            } else if (diffDays <= 3) {
+
+                // Client reminder
+                if (profile.payment_reminders_enabled && client?.email) {
+                    emailMessages.push(`Simulación: Recordatorio de pago VENCIDO enviado a ${client.name} (${client.email}).`);
+                }
+            } else if (isUpcoming) {
                 shouldNotify = true;
                 inAppMessage = `La factura #${invoice.invoice_number} para ${clientName} vence en ${diffDays === 0 ? 'hoy' : `${diffDays} día(s)`}.`;
+
+                // Client reminder
+                if (profile.payment_reminders_enabled && client?.email) {
+                    emailMessages.push(`Simulación: Recordatorio de pago PRÓXIMO a vencer enviado a ${client.name} (${client.email}).`);
+                }
             }
 
             if (shouldNotify) {
