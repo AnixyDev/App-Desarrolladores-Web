@@ -45,6 +45,7 @@ export const STRIPE_ITEMS = {
     },
     // This is a dynamic item for invoices, so it won't have a static price ID here.
     invoicePayment: {
+        priceId: null, // No price ID for dynamic payments
         mode: 'payment' as const,
         name: 'Pago de Factura',
     }
@@ -52,9 +53,31 @@ export const STRIPE_ITEMS = {
 
 export type StripeItemKey = keyof typeof STRIPE_ITEMS;
 
+// Access the global Stripe object from the script tag in index.html
+declare const Stripe: any;
+
+let stripePromise: Promise<any> | null = null;
+const getStripe = () => {
+    if (!stripePromise) {
+        // According to instructions, all API keys must come from process.env.API_KEY.
+        // For Stripe's client-side library, this needs to be a *Publishable Key*.
+        // We assume the environment is configured to provide the correct key.
+        const stripePublishableKey = process.env.API_KEY;
+
+        if (!stripePublishableKey) {
+            console.error("Stripe publishable key is not available in process.env.API_KEY.");
+            return null;
+        }
+        stripePromise = Stripe(stripePublishableKey);
+    }
+    return stripePromise;
+};
+
+
 /**
  * Redirects the user to a Stripe Checkout session.
- * This is a mock function that simulates a call to a serverless function.
+ * This function now attempts a real client-side redirect for predefined products.
+ * For dynamic payments like invoices, it falls back to a simulation.
  * @param itemKey The key of the item in STRIPE_ITEMS.
  * @param extraParams Additional parameters to pass to the checkout session, like invoice_id.
  */
@@ -64,25 +87,49 @@ export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Re
     if (!item) {
         throw new Error('El artículo de compra no es válido.');
     }
-
-    // In a real application, you would make a POST request to a backend endpoint.
-    // This endpoint would create a Stripe Checkout Session and return its URL.
-    // For this simulation, we'll just redirect to a success or cancelled URL with parameters.
-    // This mimics Stripe's redirect behavior.
-    console.log(`Simulating Stripe checkout for: ${item.name}`, extraParams);
     
-    // In a real application, you would provide success_url and cancel_url to Stripe.
-    // Stripe would then redirect to these URLs.
-    // For this mock, we build the success URL ourselves.
-    
-    const successUrl = new URL(window.location.origin);
-    successUrl.searchParams.set('payment', 'success');
-    successUrl.searchParams.set('item', itemKey);
-    for (const key in extraParams) {
-        successUrl.searchParams.set(key, extraParams[key]);
+    // --- SIMULATION FOR INVOICE PAYMENTS ---
+    // Real checkout for invoices requires a backend to create a dynamic price & session.
+    // Since this is a frontend-only app, we will simulate the payment for invoices.
+    if (itemKey === 'invoicePayment' || !item.priceId) {
+        console.log(`Simulating Stripe checkout for dynamic payment: ${item.name}`, extraParams);
+        
+        const currentUrl = new URL(window.location.href);
+        const params = new URLSearchParams(currentUrl.search);
+        params.set('payment', 'success');
+        params.set('item', itemKey);
+        for (const key in extraParams) {
+            params.set(key, extraParams[key]);
+        }
+        
+        // Reconstruct the URL for HashRouter compatibility
+        const newUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}${window.location.hash}`;
+        
+        // Directly navigate to the success URL to simulate payment completion.
+        window.location.href = newUrl;
+        return; // End execution for simulation
     }
-    
-    // Simulate redirecting to Stripe and then back to our app.
-    // We'll just directly go to the success URL for this mock.
-    window.location.href = successUrl.toString();
+
+    // --- REAL CLIENT-SIDE CHECKOUT FOR PREDEFINED PRODUCTS ---
+    const stripe = await getStripe();
+    if (!stripe) {
+        throw new Error('Stripe.js no se ha cargado correctamente o la clave de API no está configurada.');
+    }
+
+    const successUrl = `${window.location.origin}${window.location.pathname}?payment=success&item=${itemKey}`;
+    const cancelUrl = `${window.location.origin}${window.location.pathname}?payment=cancelled`;
+
+    const checkoutOptions: any = {
+        lineItems: [{ price: item.priceId, quantity: 1 }],
+        mode: item.mode,
+        successUrl: successUrl,
+        cancelUrl: cancelUrl,
+    };
+
+    const { error } = await stripe.redirectToCheckout(checkoutOptions);
+
+    if (error) {
+        console.error('Stripe redirectToCheckout error:', error);
+        throw new Error(error.message || 'No se pudo redirigir a la página de pago.');
+    }
 };
