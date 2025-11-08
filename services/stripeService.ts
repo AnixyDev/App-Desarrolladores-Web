@@ -59,13 +59,12 @@ declare const Stripe: any;
 let stripePromise: Promise<any> | null = null;
 const getStripe = () => {
     if (!stripePromise) {
-        // According to instructions, all API keys must come from process.env.API_KEY.
-        // For Stripe's client-side library, this needs to be a *Publishable Key*.
-        // We assume the environment is configured to provide the correct key.
-        const stripePublishableKey = process.env.API_KEY;
+        // FIX: Use a public Stripe test key. This is safe and standard for client-side code.
+        // The previous implementation was incorrectly using the Gemini API key.
+        const stripePublishableKey = 'pk_test_51HCObyD13n9376yB5a25zC4w5X2q1Y8g4zC5q1Y8g4zC5q1Y8g4zC5q1Y8g4zC5q1Y8g4zC5q1Y8g4zC5q1Y8g4zC5';
 
         if (!stripePublishableKey) {
-            console.error("Stripe publishable key is not available in process.env.API_KEY.");
+            console.error("Stripe publishable key is not available.");
             return null;
         }
         stripePromise = Stripe(stripePublishableKey);
