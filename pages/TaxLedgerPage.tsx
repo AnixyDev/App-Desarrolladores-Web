@@ -1,15 +1,28 @@
 import React, { useState, useMemo } from 'react';
-import Card, { CardContent, CardHeader } from '../components/ui/Card';
+import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card';
 import { useAppStore } from '../hooks/useAppStore';
 import { formatCurrency } from '../lib/utils';
-import { BookIcon } from '../components/icons/Icon';
+import { BookIcon, TrashIcon } from '../components/icons/Icon';
 import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
 
 const TaxLedgerPage: React.FC = () => {
-    const { invoices, expenses } = useAppStore();
+    const { 
+        invoices, 
+        expenses, 
+        shadowIncome, 
+        addShadowIncome, 
+        deleteShadowIncome 
+    } = useAppStore();
     const [year, setYear] = useState(new Date().getFullYear());
     const [quarter, setQuarter] = useState(Math.floor(new Date().getMonth() / 3) + 1);
     const [irpfPercentage, setIrpfPercentage] = useState(20);
+    const [newShadowEntry, setNewShadowEntry] = useState({
+        description: '',
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+    });
+
 
     const availableYears = useMemo(() => {
         const allDates = [...invoices.map(i => i.issue_date), ...expenses.map(e => e.date)];
@@ -52,6 +65,28 @@ const TaxLedgerPage: React.FC = () => {
         }
 
     }, [filteredData, irpfPercentage]);
+
+    const totalShadowIncome = useMemo(() => {
+        return shadowIncome.reduce((sum, entry) => sum + entry.amount_cents, 0);
+    }, [shadowIncome]);
+
+    const handleShadowInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setNewShadowEntry(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleAddShadowIncome = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newShadowEntry.description || !newShadowEntry.amount) return;
+        
+        addShadowIncome({
+            description: newShadowEntry.description,
+            amount_cents: Math.round(Number(newShadowEntry.amount) * 100),
+            date: newShadowEntry.date,
+        });
+        setNewShadowEntry({ description: '', amount: '', date: new Date().toISOString().split('T')[0] });
+    };
+
 
   return (
     <div className='space-y-6'>
@@ -105,6 +140,49 @@ const TaxLedgerPage: React.FC = () => {
             </div>
         </CardContent>
       </Card>
+      
+        <Card>
+            <CardHeader>
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <BookIcon className='w-5 h-5'/> Contabilidad "B" (Ingresos sin IVA)
+                </h2>
+            </CardHeader>
+            <CardContent>
+                {shadowIncome.length > 0 ? (
+                    <ul className="divide-y divide-gray-800 mb-4 max-h-64 overflow-y-auto pr-2">
+                        {shadowIncome.map(entry => (
+                            <li key={entry.id} className="py-2 flex justify-between items-center">
+                                <div>
+                                    <p className="text-white">{entry.description}</p>
+                                    <p className="text-xs text-gray-400">{entry.date}</p>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="font-semibold text-white">{formatCurrency(entry.amount_cents)}</span>
+                                    <Button size="sm" variant="danger" onClick={() => deleteShadowIncome(entry.id)}>
+                                        <TrashIcon className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="text-gray-500 text-center text-sm py-4">No hay entradas registradas.</p>
+                )}
+
+                <div className="border-t border-gray-700 pt-4 flex justify-between items-center font-bold">
+                    <span className="text-white">Total "B"</span>
+                    <span className="text-xl text-yellow-400">{formatCurrency(totalShadowIncome)}</span>
+                </div>
+            </CardContent>
+            <CardFooter>
+                <form onSubmit={handleAddShadowIncome} className="flex flex-col sm:flex-row gap-2 items-end">
+                    <Input wrapperClassName="flex-1" name="description" placeholder="Descripción" value={newShadowEntry.description} onChange={handleShadowInputChange} required />
+                    <Input wrapperClassName="w-full sm:w-32" name="amount" type="number" step="0.01" placeholder="Importe (€)" value={newShadowEntry.amount} onChange={handleShadowInputChange} required />
+                    <Input wrapperClassName="w-full sm:w-40" name="date" type="date" value={newShadowEntry.date} onChange={handleShadowInputChange} required />
+                    <Button type="submit" className="w-full sm:w-auto">Añadir</Button>
+                </form>
+            </CardFooter>
+        </Card>
 
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
         <Card>

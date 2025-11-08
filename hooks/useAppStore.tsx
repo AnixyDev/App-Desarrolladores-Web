@@ -65,6 +65,7 @@ export const useAppStore = create<AppState>()(
         notifications: state.notifications,
         projectComments: state.projectComments,
         projectFiles: state.projectFiles,
+        shadowIncome: state.shadowIncome,
         // FIX: Add state from new slices to the partialize function for persistence.
         inboxItems: state.inboxItems,
         portalComments: state.portalComments,

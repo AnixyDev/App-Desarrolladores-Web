@@ -5,6 +5,7 @@ import Card, { CardHeader, CardContent, CardFooter } from '../../components/ui/C
 import { formatCurrency } from '../../lib/utils';
 import Button from '../../components/ui/Button';
 import { redirectToCheckout } from '../../services/stripeService';
+import { CreditCard, AlertTriangleIcon } from '../../components/icons/Icon';
 
 const PortalInvoiceViewPage: React.FC = () => {
     const { invoiceId } = useParams<{ invoiceId: string }>();
@@ -40,7 +41,25 @@ const PortalInvoiceViewPage: React.FC = () => {
                     <p className="text-gray-400">Fecha de vencimiento: {invoice.due_date}</p>
                 </div>
                 {!invoice.paid && (
-                     <Button onClick={handlePay}>Pagar Factura</Button>
+                     <div className="text-right">
+                        {profile.stripe_onboarding_complete ? (
+                            <Button onClick={handlePay}>
+                                <CreditCard className="w-4 h-4 mr-2"/>
+                                Pagar Factura con Tarjeta
+                            </Button>
+                        ) : (
+                            <div className="text-right">
+                                <Button disabled>
+                                    <CreditCard className="w-4 h-4 mr-2"/>
+                                    Pagar Factura con Tarjeta
+                                </Button>
+                                <p className="text-xs text-yellow-400/80 mt-2 flex items-center justify-end gap-1">
+                                    <AlertTriangleIcon className="w-3 h-3"/>
+                                    Pagos online no habilitados.
+                                </p>
+                            </div>
+                        )}
+                    </div>
                 )}
             </CardHeader>
             <CardContent>

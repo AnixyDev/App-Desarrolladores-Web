@@ -265,6 +265,13 @@ export interface ProjectFile {
     uploadedAt: string;
 }
 
+export interface ShadowIncomeEntry {
+  id: string;
+  description: string;
+  amount_cents: number;
+  date: string;
+}
+
 
 export interface GoogleJwtPayload {
   name: string;

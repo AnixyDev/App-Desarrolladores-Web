@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { Invoice, Expense, RecurringExpense, Budget, Proposal, Contract, RecurringInvoice } from '../../types';
+import { Invoice, Expense, RecurringExpense, Budget, Proposal, Contract, RecurringInvoice, ShadowIncomeEntry } from '../../types';
 import { AppState } from '../useAppStore';
 
 export interface FinanceSlice {
@@ -10,6 +10,7 @@ export interface FinanceSlice {
   budgets: Budget[];
   proposals: Proposal[];
   contracts: Contract[];
+  shadowIncome: ShadowIncomeEntry[];
   monthlyGoalCents: number;
   addInvoice: (invoiceData: any, timeEntryIdsToBill?: string[]) => Invoice;
   deleteInvoice: (id: string) => void;
@@ -30,6 +31,8 @@ export interface FinanceSlice {
   signContract: (id: string, signerName: string, signature: string) => string | null;
   setContractExpiration: (id: string, expiresAt: string) => void;
   setMonthlyGoal: (goal: number) => void;
+  addShadowIncome: (entry: Omit<ShadowIncomeEntry, 'id'>) => void;
+  deleteShadowIncome: (id: string) => void;
 }
 
 export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = (set, get) => ({
@@ -40,6 +43,7 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
     budgets: [],
     proposals: [],
     contracts: [],
+    shadowIncome: [],
     monthlyGoalCents: 0,
     addInvoice: (invoiceData, timeEntryIdsToBill) => {
         const subtotal = invoiceData.items.reduce((sum: number, item: any) => sum + item.price_cents * item.quantity, 0);
@@ -211,4 +215,16 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
         contracts: state.contracts.map(c => c.id === id ? { ...c, expires_at: expiresAt } : c)
     })),
     setMonthlyGoal: (goal) => set({ monthlyGoalCents: goal }),
+    addShadowIncome: (entry) => {
+        const newEntry: ShadowIncomeEntry = {
+            ...entry,
+            id: `si-${Date.now()}`,
+        };
+        set(state => ({
+            shadowIncome: [...state.shadowIncome, newEntry].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        }));
+    },
+    deleteShadowIncome: (id) => set(state => ({
+        shadowIncome: state.shadowIncome.filter(e => e.id !== id)
+    })),
 });
