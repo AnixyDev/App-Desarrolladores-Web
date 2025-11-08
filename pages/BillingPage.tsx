@@ -113,7 +113,7 @@ const BillingPage: React.FC = () => {
                 <PlanCard
                     plan="Pro"
                     title="Plan Pro"
-                    price="12,95€"
+                    price="3,95€"
                     features={[
                         "Facturas y clientes ilimitados",
                         "Perfil público de freelancer",
@@ -148,20 +148,27 @@ const BillingPage: React.FC = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <p className="text-gray-400">Tus créditos de IA se usan para funciones avanzadas como la generación de propuestas, resúmenes de candidatos y análisis financieros. Tu saldo actual es: <span className="font-bold text-white">{profile.ai_credits}</span>.</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="p-4 bg-gray-800/50 rounded-lg flex justify-between items-center">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="p-4 bg-gray-800/50 rounded-lg flex flex-col justify-between">
+                            <div>
+                                <p className="font-semibold text-white">Paquete de 100 Créditos</p>
+                                <p className="text-2xl font-bold text-white">1,95€</p>
+                            </div>
+                            <Button className="mt-4 w-full" onClick={() => handlePurchase('aiCredits100')} disabled={!!isLoading}>{isLoading === 'aiCredits100' ? '...' : 'Comprar'}</Button>
+                        </div>
+                        <div className="p-4 bg-gray-800/50 rounded-lg flex flex-col justify-between">
                             <div>
                                 <p className="font-semibold text-white">Paquete de 500 Créditos</p>
-                                <p className="text-2xl font-bold text-white">4,95€</p>
+                                <p className="text-2xl font-bold text-white">3,95€</p>
                             </div>
-                            <Button onClick={() => handlePurchase('aiCredits500')} disabled={!!isLoading}>{isLoading === 'aiCredits500' ? '...' : 'Comprar'}</Button>
+                            <Button className="mt-4 w-full" onClick={() => handlePurchase('aiCredits500')} disabled={!!isLoading}>{isLoading === 'aiCredits500' ? '...' : 'Comprar'}</Button>
                         </div>
-                        <div className="p-4 bg-gray-800/50 rounded-lg flex justify-between items-center">
+                        <div className="p-4 bg-gray-800/50 rounded-lg flex flex-col justify-between">
                             <div>
-                                <p className="font-semibold text-white">Paquete de 1500 Créditos</p>
-                                <p className="text-2xl font-bold text-white">11,95€</p>
+                                <p className="font-semibold text-white">Paquete de 1000 Créditos</p>
+                                <p className="text-2xl font-bold text-white">5,95€</p>
                             </div>
-                            <Button onClick={() => handlePurchase('aiCredits1500')} disabled={!!isLoading}>{isLoading === 'aiCredits1500' ? '...' : 'Comprar'}</Button>
+                            <Button className="mt-4 w-full" onClick={() => handlePurchase('aiCredits1000')} disabled={!!isLoading}>{isLoading === 'aiCredits1000' ? '...' : 'Comprar'}</Button>
                         </div>
                     </div>
                 </CardContent>

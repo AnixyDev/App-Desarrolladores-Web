@@ -27,6 +27,9 @@ const TaxLedgerPage: React.FC = () => {
     const availableYears = useMemo(() => {
         const allDates = [...invoices.map(i => i.issue_date), ...expenses.map(e => e.date)];
         const years = new Set(allDates.map(d => new Date(d).getFullYear()));
+        const currentYear = new Date().getFullYear();
+        years.add(currentYear); // Ensure current year is always an option
+        years.add(currentYear - 1); // Add last year as well
         return Array.from(years).sort((a, b) => b - a);
     }, [invoices, expenses]);
 
@@ -90,18 +93,24 @@ const TaxLedgerPage: React.FC = () => {
 
   return (
     <div className='space-y-6'>
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <h1 className="text-2xl font-semibold text-white">Libro Fiscal</h1>
-            <div className='flex gap-2 items-center bg-gray-900 p-2 rounded-lg'>
-                <select value={quarter} onChange={e => setQuarter(Number(e.target.value))} className="px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
-                    <option value={1}>Trimestre 1</option>
-                    <option value={2}>Trimestre 2</option>
-                    <option value={3}>Trimestre 3</option>
-                    <option value={4}>Trimestre 4</option>
-                </select>
-                 <select value={year} onChange={e => setYear(Number(e.target.value))} className="px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
-                    {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
+            <div className='flex flex-wrap gap-4 items-end bg-gray-900 p-3 rounded-lg'>
+                <div>
+                    <label htmlFor="quarter-select" className="block text-sm font-medium text-gray-300 mb-1">Trimestre</label>
+                    <select id="quarter-select" value={quarter} onChange={e => setQuarter(Number(e.target.value))} className="px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
+                        <option value={1}>Trimestre 1 (Ene-Mar)</option>
+                        <option value={2}>Trimestre 2 (Abr-Jun)</option>
+                        <option value={3}>Trimestre 3 (Jul-Sep)</option>
+                        <option value={4}>Trimestre 4 (Oct-Dic)</option>
+                    </select>
+                </div>
+                <div>
+                    <label htmlFor="year-select" className="block text-sm font-medium text-gray-300 mb-1">Año</label>
+                    <select id="year-select" value={year} onChange={e => setYear(Number(e.target.value))} className="px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
+                        {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                </div>
                 <div className="w-40">
                      <Input 
                         label="IRPF Est. (%)" 

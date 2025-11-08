@@ -1,33 +1,41 @@
+// services/stripeService.ts
+
 // These item keys match what's expected in the PaymentHandler component
 export const STRIPE_ITEMS = {
     proPlan: {
-        priceId: 'price_pro_plan_monthly', // Example Price ID from Stripe
+        priceId: 'price_1SOgUF8oC5awQy15dOEM5jGS', // From CSV
         mode: 'subscription' as const,
-        name: 'Plan Pro',
-        description: 'Acceso ilimitado y funciones avanzadas.',
+        name: 'Pro Plan',
+        description: 'Plan de equipos de desarrolladores/freelancers',
     },
     teamsPlan: {
-        priceId: 'price_teams_plan_monthly',
+        priceId: 'price_1SOggV8oC5awQy15YW1wAgcg', // From CSV
         mode: 'subscription' as const,
-        name: 'Plan Teams',
-        description: 'Colaboración en equipo y gestión de roles.'
+        name: 'Plan de equipos',
+        description: 'Plan equipo mensual',
+    },
+    aiCredits100: {
+        priceId: 'price_1SOgpy8oC5awQy15TW22fBot', // From CSV
+        mode: 'payment' as const,
+        name: '100 Créditos de IA',
+        credits: 100,
     },
     aiCredits500: {
-        priceId: 'price_credits_500',
+        priceId: 'price_1SOgr18oC5awQy15o1gTM2VM', // From CSV
         mode: 'payment' as const,
         name: '500 Créditos de IA',
         credits: 500,
     },
-    aiCredits1500: {
-        priceId: 'price_credits_1500',
+    aiCredits1000: {
+        priceId: 'price_1SOguC8oC5awQy15LGchpkVG', // From CSV
         mode: 'payment' as const,
-        name: '1500 Créditos de IA',
-        credits: 1500,
+        name: '1000 Créditos de IA',
+        credits: 1000,
     },
     featuredJobPost: {
-        priceId: 'price_featured_job_post',
+        priceId: 'price_1SOlOv8oC5awQy15Q2aXoEg7', // From CSV
         mode: 'payment' as const,
-        name: 'Oferta de Trabajo Destacada',
+        name: 'Oferta de empleo destacada',
     },
     // This is a dynamic item for invoices, so it won't have a static price ID here.
     invoicePayment: {
