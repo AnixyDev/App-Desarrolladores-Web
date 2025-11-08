@@ -1,7 +1,7 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { Briefcase, DollarSign, Clock, Hash, Send, Zap, Star } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
-import { redirectToCheckout } from '../services/stripeService';
+import { redirectToCheckout, STRIPE_ITEMS } from '../services/stripeService';
 import { useAppStore } from '../hooks/useAppStore';
 import { useNavigate } from 'react-router-dom';
 import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card';
@@ -124,7 +124,7 @@ const JobPostForm: React.FC = () => {
                  <div className="p-4 bg-fuchsia-900/30 border border-fuchsia-600/50 rounded-lg flex items-start gap-4">
                     <Star className="w-6 h-6 text-fuchsia-400 shrink-0 mt-1"/>
                     <div>
-                        <h4 className="font-semibold text-white">Destaca tu oferta (5,95€)</h4>
+                        <h4 className="font-semibold text-white">Destaca tu oferta ({STRIPE_ITEMS.featuredJobPost.price})</h4>
                         <p className="text-sm text-fuchsia-200">Tu oferta aparecerá en la parte superior de los resultados de búsqueda para una mayor visibilidad.</p>
                         <label className="flex items-center mt-3 cursor-pointer">
                             <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-primary-600 focus:ring-primary-500"/>

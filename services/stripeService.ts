@@ -6,12 +6,14 @@ export const STRIPE_ITEMS = {
         priceId: 'price_1SOgUF8oC5awQy15dOEM5jGS', // From CSV
         mode: 'subscription' as const,
         name: 'Pro Plan',
+        price: "3,95€",
         description: 'Plan de equipos de desarrolladores/freelancers',
     },
     teamsPlan: {
         priceId: 'price_1SOggV8oC5awQy15YW1wAgcg', // From CSV
         mode: 'subscription' as const,
         name: 'Plan de equipos',
+        price: "35,95€",
         description: 'Plan equipo mensual',
     },
     aiCredits100: {
@@ -19,23 +21,27 @@ export const STRIPE_ITEMS = {
         mode: 'payment' as const,
         name: '100 Créditos de IA',
         credits: 100,
+        price: "1,95€",
     },
     aiCredits500: {
         priceId: 'price_1SOgr18oC5awQy15o1gTM2VM', // From CSV
         mode: 'payment' as const,
         name: '500 Créditos de IA',
         credits: 500,
+        price: "3,95€",
     },
     aiCredits1000: {
         priceId: 'price_1SOguC8oC5awQy15LGchpkVG', // From CSV
         mode: 'payment' as const,
         name: '1000 Créditos de IA',
         credits: 1000,
+        price: "5,95€",
     },
     featuredJobPost: {
         priceId: 'price_1SOlOv8oC5awQy15Q2aXoEg7', // From CSV
         mode: 'payment' as const,
         name: 'Oferta de empleo destacada',
+        price: "5,95€",
     },
     // This is a dynamic item for invoices, so it won't have a static price ID here.
     invoicePayment: {

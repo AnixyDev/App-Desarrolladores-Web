@@ -4,7 +4,7 @@ import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { CheckCircleIcon, SparklesIcon, CreditCard, Users, RefreshCwIcon, LinkIcon } from '../components/icons/Icon';
-import { redirectToCheckout, StripeItemKey } from '../services/stripeService';
+import { redirectToCheckout, StripeItemKey, STRIPE_ITEMS } from '../services/stripeService';
 import { useToast } from '../hooks/useToast';
 
 const BillingPage: React.FC = () => {
@@ -113,7 +113,7 @@ const BillingPage: React.FC = () => {
                 <PlanCard
                     plan="Pro"
                     title="Plan Pro"
-                    price="3,95€"
+                    price={STRIPE_ITEMS.proPlan.price}
                     features={[
                         "Facturas y clientes ilimitados",
                         "Perfil público de freelancer",
@@ -128,7 +128,7 @@ const BillingPage: React.FC = () => {
                 <PlanCard
                     plan="Teams"
                     title="Plan Teams"
-                    price="35,95€"
+                    price={STRIPE_ITEMS.teamsPlan.price}
                     features={[
                         "Todas las funciones del Plan Pro",
                         "Invita a miembros a tu equipo",
@@ -152,21 +152,21 @@ const BillingPage: React.FC = () => {
                         <div className="p-4 bg-gray-800/50 rounded-lg flex flex-col justify-between">
                             <div>
                                 <p className="font-semibold text-white">Paquete de 100 Créditos</p>
-                                <p className="text-2xl font-bold text-white">1,95€</p>
+                                <p className="text-2xl font-bold text-white">{STRIPE_ITEMS.aiCredits100.price}</p>
                             </div>
                             <Button className="mt-4 w-full" onClick={() => handlePurchase('aiCredits100')} disabled={!!isLoading}>{isLoading === 'aiCredits100' ? '...' : 'Comprar'}</Button>
                         </div>
                         <div className="p-4 bg-gray-800/50 rounded-lg flex flex-col justify-between">
                             <div>
                                 <p className="font-semibold text-white">Paquete de 500 Créditos</p>
-                                <p className="text-2xl font-bold text-white">3,95€</p>
+                                <p className="text-2xl font-bold text-white">{STRIPE_ITEMS.aiCredits500.price}</p>
                             </div>
                             <Button className="mt-4 w-full" onClick={() => handlePurchase('aiCredits500')} disabled={!!isLoading}>{isLoading === 'aiCredits500' ? '...' : 'Comprar'}</Button>
                         </div>
                         <div className="p-4 bg-gray-800/50 rounded-lg flex flex-col justify-between">
                             <div>
                                 <p className="font-semibold text-white">Paquete de 1000 Créditos</p>
-                                <p className="text-2xl font-bold text-white">5,95€</p>
+                                <p className="text-2xl font-bold text-white">{STRIPE_ITEMS.aiCredits1000.price}</p>
                             </div>
                             <Button className="mt-4 w-full" onClick={() => handlePurchase('aiCredits1000')} disabled={!!isLoading}>{isLoading === 'aiCredits1000' ? '...' : 'Comprar'}</Button>
                         </div>
