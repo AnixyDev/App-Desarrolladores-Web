@@ -4,10 +4,11 @@ import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import { Link } from 'react-router-dom';
-import { UserIcon } from '../components/icons/Icon';
+import { UserIcon, DownloadIcon } from '../components/icons/Icon';
 import { useToast } from '../hooks/useToast';
 import { Profile } from '../types';
 import { validateEmail } from '../lib/utils';
+import { logoPngDataUri } from '../components/icons/Logo';
 
 
 const SettingsPage: React.FC = () => {
@@ -72,6 +73,17 @@ const SettingsPage: React.FC = () => {
             }
         }) : null);
     };
+    
+    const handleDownloadLogo = () => {
+        const link = document.createElement('a');
+        link.href = logoPngDataUri;
+        link.download = 'logo.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        addToast('Logo descargado como logo.png', 'success');
+    };
+
 
     if (!formData) return <div>Cargando perfil...</div>;
 
@@ -129,6 +141,27 @@ const SettingsPage: React.FC = () => {
                     </CardContent>
                 </Card>
                 
+                <Card>
+                    <CardHeader>
+                        <h2 className="text-lg font-semibold text-white">Recursos de Marca</h2>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
+                            <div className="flex items-center gap-4">
+                                <img src={logoPngDataUri} alt="Logo Preview" className="h-12 w-12 rounded-md bg-white p-1" />
+                                <div>
+                                    <h3 className="font-semibold text-white">Logo de la Empresa</h3>
+                                    <p className="text-sm text-gray-400">Usa tu logo en facturas, Stripe y otros materiales.</p>
+                                </div>
+                            </div>
+                            <Button onClick={handleDownloadLogo} variant="secondary">
+                                <DownloadIcon className="w-4 h-4 mr-2"/>
+                                Descargar
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <Card>
                     <CardHeader>
                         <h2 className="text-lg font-semibold text-white">Perfil Público de Freelancer</h2>

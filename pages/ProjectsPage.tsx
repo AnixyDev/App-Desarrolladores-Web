@@ -180,7 +180,8 @@ const ProjectsPage: React.FC = () => {
                 </form>
             </Modal>
             
-            <Modal isOpen={isClientModalOpen} onClose={() => { setIsClientModalOpen(false); setClientEmailError(''); }}>
+            {/* FIX: Add missing 'title' prop to the Modal component. */}
+            <Modal isOpen={isClientModalOpen} onClose={() => { setIsClientModalOpen(false); setClientEmailError(''); }} title="Añadir Nuevo Cliente">
                 <form onSubmit={handleClientSubmit} className="space-y-4">
                     <Input name="name" label="Nombre Completo" value={newClient.name} onChange={handleClientInputChange} required />
                     <Input name="email" label="Email" type="email" value={newClient.email} onChange={handleClientInputChange} required error={clientEmailError} />

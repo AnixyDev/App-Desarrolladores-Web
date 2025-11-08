@@ -61,7 +61,7 @@ const getStripe = () => {
     if (!stripePromise) {
         // FIX: Use a public Stripe test key. This is safe and standard for client-side code.
         // The previous implementation was incorrectly using the Gemini API key.
-        const stripePublishableKey = 'pk_test_51HCObyD13n9376yB5a25zC4w5X2q1Y8g4zC5q1Y8g4zC5q1Y8g4zC5q1Y8g4zC5q1Y8g4zC5q1Y8g4zC5q1Y8g4zC5';
+        const stripePublishableKey = 'pk_test_51SDWQy6cXnycOZkp6L9sF3NNMjTLJKuIFDaVcKQC9C17XZJm2jCSDR2XoNhilRqOXkgils51SjgeIpt923lOc2AL00GTkifTGo';
 
         if (!stripePublishableKey) {
             console.error("Stripe publishable key is not available.");
