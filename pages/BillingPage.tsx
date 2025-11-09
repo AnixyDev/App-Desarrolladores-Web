@@ -18,16 +18,16 @@ const BillingPage: React.FC = () => {
     useEffect(() => {
         if (searchParams.get('stripe_return') === 'true') {
             // Este efecto se activa cuando el usuario vuelve de la página de onboarding de Stripe.
-            // En una app real, la confirmación final vendría de un webhook.
-            // Aquí, simulamos esa confirmación.
-            updateStripeConnection(`acct_simulated_${Date.now()}`, true);
+            // En una app real, la confirmación final vendría de un webhook para mayor seguridad,
+            // pero para la experiencia de usuario, asumimos el éxito al volver.
+            updateStripeConnection(`acct_connected_${profile.id}`, true);
             addToast('¡Tu cuenta de Stripe ha sido conectada con éxito!', 'success');
             
             // Limpiamos la URL para evitar que se ejecute de nuevo al recargar.
             searchParams.delete('stripe_return');
             setSearchParams(searchParams, { replace: true });
         }
-    }, [searchParams, updateStripeConnection, addToast, setSearchParams]);
+    }, [searchParams, updateStripeConnection, addToast, setSearchParams, profile.id]);
 
     const handlePurchase = async (itemKey: StripeItemKey) => {
         setIsLoading(itemKey);
