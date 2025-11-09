@@ -91,8 +91,18 @@ export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Re
         });
 
         if (!response.ok) {
-            const { error } = await response.json();
-            throw new Error(error || 'Error al crear la sesión de pago.');
+            // Evita el error de parsing JSON leyendo la respuesta como texto primero.
+            // Esto maneja errores del servidor que devuelven HTML o texto plano.
+            const errorText = await response.text();
+            let errorMessage = errorText;
+            try {
+                // Intenta parsear como JSON por si el backend SÍ envió un error JSON válido
+                const jsonError = JSON.parse(errorText);
+                errorMessage = jsonError.error || errorText;
+            } catch (e) {
+                // No es JSON, usa el texto del error directamente.
+            }
+            throw new Error(errorMessage || 'Error al crear la sesión de pago.');
         }
 
         const { sessionId } = await response.json();
