@@ -19,7 +19,7 @@ const GoogleIcon = () => (
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { login, loginWithGoogle } = useAppStore();
+    const { login, loginWithGoogle, loginWithGithub } = useAppStore();
     const { addToast } = useToast();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -48,9 +48,8 @@ const LoginPage: React.FC = () => {
         try {
             if (provider === 'google') {
                 await loginWithGoogle();
-            } else {
-                 addToast('El inicio de sesión con GitHub no está implementado.', 'info');
-                 setIsLoading(false);
+            } else if (provider === 'github') {
+                await loginWithGithub();
             }
         } catch (err) {
             setError((err as Error).message);

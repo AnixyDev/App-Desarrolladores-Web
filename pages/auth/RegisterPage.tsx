@@ -18,7 +18,7 @@ const GoogleIcon = () => (
 
 const RegisterPage: React.FC = () => {
     const navigate = useNavigate();
-    const { register, loginWithGoogle } = useAppStore();
+    const { register, loginWithGoogle, loginWithGithub } = useAppStore();
     const { addToast } = useToast();
 
     const [name, setName] = useState('');
@@ -54,9 +54,8 @@ const RegisterPage: React.FC = () => {
         try {
             if (provider === 'google') {
                 await loginWithGoogle();
-            } else {
-                 addToast('El registro con GitHub no está implementado.', 'info');
-                 setIsLoading(false);
+            } else if (provider === 'github') {
+                await loginWithGithub();
             }
         } catch (err) {
             setError((err as Error).message);

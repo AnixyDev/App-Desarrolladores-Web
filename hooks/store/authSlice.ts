@@ -12,6 +12,7 @@ export interface AuthSlice {
     setSession: (session: Session | null) => void;
     login: (email: string, pass: string) => Promise<void>;
     loginWithGoogle: () => Promise<void>;
+    loginWithGithub: () => Promise<void>;
     register: (name: string, email: string, pass: string) => Promise<void>;
     logout: () => Promise<void>;
     reauthenticate: () => Promise<void>;
@@ -38,6 +39,19 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     loginWithGoogle: async () => {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
+            options: { 
+                redirectTo: window.location.origin,
+                queryParams: {
+                    client_id: '1234567890-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com'
+                }
+            },
+        });
+        if (error) throw error;
+    },
+
+    loginWithGithub: async () => {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'github',
             options: { redirectTo: window.location.origin },
         });
         if (error) throw error;
