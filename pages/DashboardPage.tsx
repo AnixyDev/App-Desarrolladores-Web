@@ -6,6 +6,8 @@ import { formatCurrency } from '../lib/utils';
 import { Link } from 'react-router-dom';
 import { DollarSignIcon, ClockIcon, BriefcaseIcon, FileTextIcon, SparklesIcon, RefreshCwIcon, AlertTriangleIcon } from '../components/icons/Icon';
 import { getDashboardInsights } from '../services/geminiService';
+import OnboardingGuide from '../components/OnboardingGuide';
+import Skeleton from '../components/ui/Skeleton';
 
 const IncomeExpenseChart = lazy(() => import('../components/charts/IncomeExpenseChart'));
 
@@ -67,7 +69,11 @@ const AICoachWidget: React.FC = () => {
             <CardHeader><h2 className="text-lg font-semibold text-white flex items-center gap-2"><SparklesIcon className="text-purple-400"/> Perspectivas de la IA</h2></CardHeader>
             <CardContent>
                 {isLoading ? (
-                    <div className="flex items-center gap-2 text-gray-400"><RefreshCwIcon className="w-4 h-4 animate-spin" /> Analizando tu negocio...</div>
+                    <div className="space-y-3">
+                        <Skeleton className="h-4 w-5/6" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-4/6" />
+                    </div>
                 ) : (
                     <ul className="space-y-2">
                         {insights.map((insight, index) => (
@@ -110,6 +116,8 @@ const DashboardPage: React.FC = () => {
 
     return (
         <div className="space-y-6">
+            {profile.isNewUser && <OnboardingGuide />}
+
             <h1 className="text-2xl font-semibold text-white">Hola, {profile?.full_name?.split(' ')[0]}</h1>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -158,7 +166,7 @@ const DashboardPage: React.FC = () => {
                         <h2 className="text-lg font-semibold text-white">Ingresos vs. Gastos (Últimos meses)</h2>
                     </CardHeader>
                     <CardContent>
-                        <Suspense fallback={<div className="h-[300px] flex items-center justify-center text-gray-400">Cargando gráfico...</div>}>
+                        <Suspense fallback={<div className="h-[300px]"><Skeleton className="h-full w-full"/></div>}>
                             <IncomeExpenseChart invoices={invoices} expenses={expenses} />
                         </Suspense>
                     </CardContent>
@@ -171,7 +179,7 @@ const DashboardPage: React.FC = () => {
                     <CardContent className="p-0">
                          <ul className="divide-y divide-gray-800">
                             {invoices.slice(0, 5).map(invoice => (
-                                <li key={invoice.id} className="p-4 flex justify-between items-center hover:bg-gray-800/50">
+                                <li key={invoice.id} className="p-4 flex justify-between items-center">
                                     <div>
                                         <p className="font-semibold text-white font-mono">{invoice.invoice_number}</p>
                                         <Link to={`/clients/${invoice.client_id}`} className="text-sm text-primary-400 hover:underline">{getClientById(invoice.client_id)?.name}</Link>

@@ -15,6 +15,7 @@ const initialProfile: Profile = {
     ai_credits: 150,
     hourly_rate_cents: 6500,
     pdf_color: '#d9009f',
+    isNewUser: false,
     bio: 'Desarrollador Full-Stack con 8 años de experiencia especializado en React, Node.js y arquitecturas serverless. Apasionado por crear productos escalables y de alta calidad.',
     skills: ['React', 'TypeScript', 'Node.js', 'Next.js', 'AWS', 'Serverless'],
     portfolio_url: 'https://github.com/carlossantana-dev',
@@ -47,6 +48,7 @@ const createNewProfile = (name: string, email: string, avatar?: string): Profile
     ai_credits: 10,
     hourly_rate_cents: 5000,
     pdf_color: '#d9009f',
+    isNewUser: true,
     bio: '',
     skills: [],
     portfolio_url: '',
@@ -80,6 +82,7 @@ export interface AuthSlice {
   purchaseCredits: (amount: number) => void;
   consumeCredits: (amount: number) => boolean;
   updateStripeConnection: (accountId: string, onboardingComplete: boolean) => void;
+  completeOnboarding: () => void;
 }
 
 const handleReferralRegistration = (get: () => AppState, set: (partial: Partial<AppState>) => void, newProfile: Profile) => {
@@ -193,4 +196,9 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
             } as Profile
         }));
     },
+    completeOnboarding: () => {
+        set(state => ({
+            profile: { ...state.profile, isNewUser: false } as Profile
+        }));
+    }
 });

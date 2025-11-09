@@ -8,6 +8,8 @@ import { Proposal } from '../types';
 import { formatCurrency } from '../lib/utils';
 import { Link } from 'react-router-dom';
 import StatusChip from '../components/ui/StatusChip';
+import EmptyState from '../components/ui/EmptyState';
+import { MessageSquareIcon } from '../components/icons/Icon';
 
 
 const ProposalsPage: React.FC = () => {
@@ -54,37 +56,46 @@ const ProposalsPage: React.FC = () => {
                 <Button onClick={() => setIsModalOpen(true)}>Crear Propuesta</Button>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <h2 className="text-lg font-semibold text-white">Listado de Propuestas</h2>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <div className="hidden md:block">
-                        <table className="w-full text-left">
-                            <thead className="border-b border-gray-800">
-                                <tr>
-                                    <th className="p-4">Título</th>
-                                    <th className="p-4">Cliente</th>
-                                    <th className="p-4">Fecha</th>
-                                    <th className="p-4">Importe</th>
-                                    <th className="p-4">Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {proposals.map(proposal => (
-                                    <tr key={proposal.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                                        <td className="p-4 text-white font-semibold">{proposal.title}</td>
-                                        <td className="p-4 text-primary-400"><Link to={`/clients/${proposal.client_id}`}>{getClientById(proposal.client_id)?.name}</Link></td>
-                                        <td className="p-4 text-gray-300">{proposal.created_at}</td>
-                                        <td className="p-4 text-white">{formatCurrency(proposal.amount_cents)}</td>
-                                        <td className="p-4"><StatusChip type="proposal" status={proposal.status} /></td>
+            {proposals.length === 0 ? (
+                <EmptyState
+                    icon={MessageSquareIcon}
+                    title="No tienes propuestas"
+                    message="Crea propuestas profesionales para enviar a tus clientes y ganar nuevos proyectos."
+                    action={{ text: "Crear Propuesta", onClick: () => setIsModalOpen(true) }}
+                />
+            ) : (
+                <Card>
+                    <CardHeader>
+                        <h2 className="text-lg font-semibold text-white">Listado de Propuestas</h2>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="border-b border-gray-800">
+                                    <tr>
+                                        <th className="p-4">Título</th>
+                                        <th className="p-4">Cliente</th>
+                                        <th className="p-4">Fecha</th>
+                                        <th className="p-4">Importe</th>
+                                        <th className="p-4">Estado</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </CardContent>
-            </Card>
+                                </thead>
+                                <tbody>
+                                    {proposals.map(proposal => (
+                                        <tr key={proposal.id} className="border-b border-gray-800">
+                                            <td className="p-4 text-white font-semibold">{proposal.title}</td>
+                                            <td className="p-4 text-primary-400"><Link to={`/clients/${proposal.client_id}`}>{getClientById(proposal.client_id)?.name}</Link></td>
+                                            <td className="p-4 text-gray-300">{proposal.created_at}</td>
+                                            <td className="p-4 text-white">{formatCurrency(proposal.amount_cents)}</td>
+                                            <td className="p-4"><StatusChip type="proposal" status={proposal.status} /></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Crear Nueva Propuesta">
                 <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">

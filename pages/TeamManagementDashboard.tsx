@@ -5,6 +5,8 @@ import { UserData } from '../types';
 import { useToast } from '../hooks/useToast';
 import Input from '../components/ui/Input';
 import { validateEmail } from '../lib/utils';
+import Modal from '../components/ui/Modal';
+import Button from '../components/ui/Button';
 
 const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal'));
 
@@ -93,13 +95,7 @@ const TeamManagementDashboard: React.FC = () => {
   };
 
   const InviteMemberModal = () => (
-    <div className="fixed inset-0 bg-gray-950 bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 p-8 rounded-xl w-full max-w-lg border border-fuchsia-600/50 shadow-2xl">
-        <div className="flex justify-between items-center border-b border-gray-800 pb-4 mb-6">
-          <h2 className="text-2xl font-bold text-white flex items-center"><UserPlus className="w-6 h-6 mr-3 text-fuchsia-500" /> Invitar Nuevo Miembro</h2>
-          <button onClick={() => setShowInviteModal(false)} className="text-gray-400 hover:text-white"><X /></button>
-        </div>
-        
+    <Modal isOpen={showInviteModal} onClose={() => setShowInviteModal(false)} title="Invitar Nuevo Miembro">
         <form onSubmit={handleInvite} className="space-y-4">
             <Input
               label="Nombre Completo"
@@ -124,20 +120,20 @@ const TeamManagementDashboard: React.FC = () => {
             <select
               value={newMember.role}
               onChange={(e) => setNewMember({ ...newMember, role: e.target.value as UserData['role'] })}
-              className="w-full px-3 py-2 bg-gray-800 text-white rounded-md border border-gray-600 focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 outline-none"
+              className="w-full px-3 py-2 bg-slate-800 text-white rounded-md border border-slate-600 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none"
             >
               {roles.map(role => (
                 <option key={role} value={role}>{role}</option>
               ))}
             </select>
-            <p className="text-xs text-gray-500 mt-2">El rol define su acceso a Facturación, Proyectos y CRM.</p>
+            <p className="text-xs text-slate-500 mt-2">El rol define su acceso a Facturación, Proyectos y CRM.</p>
           </div>
           
           <div className="pt-4 flex justify-end">
-            <button
+            <Button
               type="submit"
               disabled={isSending}
-              className="px-6 py-3 font-semibold rounded-lg transition duration-200 bg-fuchsia-600 text-black hover:bg-fuchsia-700 shadow-lg shadow-fuchsia-500/50 flex items-center disabled:bg-fuchsia-800/50 disabled:cursor-not-allowed"
+              className="flex items-center"
             >
               {isSending ? (
                 <RefreshCwIcon className="w-5 h-5 mr-2 animate-spin" />
@@ -145,38 +141,37 @@ const TeamManagementDashboard: React.FC = () => {
                 <Mail className="w-5 h-5 mr-2" />
               )}
               {isSending ? 'Enviando...' : 'Enviar Invitación'}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 
   return (
-    <div className="min-h-screen bg-gray-950 p-4 sm:p-8">
-      {showInviteModal && <InviteMemberModal />}
+    <div className="min-h-screen bg-slate-950 p-4 sm:p-8">
+      <InviteMemberModal />
 
       <div className="max-w-7xl mx-auto">
-        <header className="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
+        <header className="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
           <h1 className="text-3xl font-bold text-white flex items-center">
-            <Users className="w-7 h-7 text-fuchsia-500 mr-3" />
+            <Users className="w-7 h-7 text-primary-400 mr-3" />
             DevFreelancer Teams
           </h1>
-          <button
+          <Button
             onClick={() => setShowInviteModal(true)}
-            className="px-6 py-2 font-semibold rounded-lg transition duration-200 bg-fuchsia-600 text-black hover:bg-fuchsia-700 shadow-md shadow-fuchsia-500/30 flex items-center"
+            className="flex items-center"
           >
             <UserPlus className="w-5 h-5 mr-2" />
             Invitar Miembro
-          </button>
+          </Button>
         </header>
 
-        <div className="bg-gray-900 rounded-xl p-6 shadow-xl">
-          <h2 className="text-xl font-semibold text-white mb-4 border-b border-gray-800 pb-2">Miembros del Equipo ({users.length})</h2>
+        <div className="bg-slate-900 rounded-xl p-6 shadow-xl border border-slate-800">
+          <h2 className="text-xl font-semibold text-white mb-4 border-b border-slate-800 pb-2">Miembros del Equipo ({users.length})</h2>
 
           <div className="overflow-x-auto">
             <table className="w-full min-w-[700px] text-left">
-              <thead className="text-xs text-gray-400 uppercase tracking-wider">
+              <thead className="text-xs text-slate-400 uppercase tracking-wider">
                 <tr>
                   <th className="p-4">Miembro</th>
                   <th className="p-4">Rol</th>
@@ -187,15 +182,15 @@ const TeamManagementDashboard: React.FC = () => {
               </thead>
               <tbody>
                 {users.map(member => (
-                  <tr key={member.id} className="border-t border-gray-800 hover:bg-gray-800/50">
+                  <tr key={member.id} className="border-t border-slate-800">
                     <td className="p-4">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center mr-3">
-                          <User className="text-fuchsia-400" />
+                        <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center mr-3">
+                          <User className="text-primary-400" />
                         </div>
                         <div>
                           <p className="font-semibold text-white">{member.name}</p>
-                          <p className="text-sm text-gray-400">{member.email}</p>
+                          <p className="text-sm text-slate-400">{member.email}</p>
                         </div>
                       </div>
                     </td>
@@ -207,9 +202,9 @@ const TeamManagementDashboard: React.FC = () => {
                         {member.status}
                       </span>
                     </td>
-                    <td className="p-4 text-gray-300">{member.invitedOn || 'N/A'}</td>
+                    <td className="p-4 text-slate-300">{member.invitedOn || 'N/A'}</td>
                     <td className="p-4 text-right">
-                      <button onClick={() => handleDelete(member)} className="text-gray-400 hover:text-red-500 p-2 rounded-full transition duration-200">
+                      <button onClick={() => handleDelete(member)} className="text-slate-400 hover:text-red-500 p-2 rounded-full transition duration-200">
                         <Trash2 className="w-5 h-5" />
                       </button>
                     </td>

@@ -8,6 +8,7 @@ import { formatCurrency } from '../lib/utils';
 import { SendIcon, FileSignatureIcon } from '../components/icons/Icon';
 import StatusChip from '../components/ui/StatusChip';
 import { ContractCard } from '../contracts/ContractCard';
+import EmptyState from '../components/ui/EmptyState';
 
 const CONTRACT_TEMPLATE = `CONTRATO DE PRESTACIÓN DE SERVICIOS FREELANCE
 
@@ -111,78 +112,87 @@ const ContractsPage: React.FC = () => {
                 <Button onClick={() => setIsModalOpen(true)}>Crear Contrato</Button>
             </div>
 
-            <Card>
-                <CardContent className="p-0">
-                    {/* Mobile View */}
-                    <div className="md:hidden space-y-4 p-4">
-                        {contracts.map(contract => {
-                            const project = getProjectById(contract.project_id);
-                            const client = getClientById(contract.client_id);
-                            return (
-                                <ContractCard 
-                                    key={contract.id}
-                                    contract={contract}
-                                    projectName={project?.name}
-                                    clientName={client?.name}
-                                    onSend={handleSendEmail}
-                                    onSetExpiration={setContractExpiration}
-                                />
-                            );
-                        })}
-                    </div>
+            {contracts.length === 0 ? (
+                <EmptyState
+                    icon={FileSignatureIcon}
+                    title="No tienes contratos"
+                    message="Formaliza tus acuerdos creando y enviando contratos digitales para que tus clientes los firmen."
+                    action={{ text: "Crear Contrato", onClick: () => setIsModalOpen(true) }}
+                />
+            ) : (
+                <Card>
+                    <CardContent className="p-0">
+                        {/* Mobile View */}
+                        <div className="md:hidden space-y-4 p-4">
+                            {contracts.map(contract => {
+                                const project = getProjectById(contract.project_id);
+                                const client = getClientById(contract.client_id);
+                                return (
+                                    <ContractCard 
+                                        key={contract.id}
+                                        contract={contract}
+                                        projectName={project?.name}
+                                        clientName={client?.name}
+                                        onSend={handleSendEmail}
+                                        onSetExpiration={setContractExpiration}
+                                    />
+                                );
+                            })}
+                        </div>
 
-                    {/* Desktop View */}
-                    <div className="hidden md:block overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="border-b border-slate-800">
-                                <tr>
-                                    <th className="p-4 font-semibold whitespace-nowrap">Proyecto</th>
-                                    <th className="p-4 font-semibold whitespace-nowrap">Cliente</th>
-                                    <th className="p-4 font-semibold whitespace-nowrap">Fecha</th>
-                                    <th className="p-4 font-semibold whitespace-nowrap">Estado</th>
-                                    <th className="p-4 font-semibold whitespace-nowrap">Vencimiento</th>
-                                    <th className="p-4 font-semibold whitespace-nowrap">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {contracts.map(contract => {
-                                    const project = getProjectById(contract.project_id);
-                                    const client = getClientById(contract.client_id);
-                                    return (
-                                        <tr key={contract.id} className="border-b border-slate-800 hover:bg-slate-800/50">
-                                            <td className="p-4 text-white">{project?.name}</td>
-                                            <td className="p-4 text-slate-300">{client?.name}</td>
-                                            <td className="p-4 text-slate-300">{new Date(contract.created_at).toLocaleDateString()}</td>
-                                            <td className="p-4">
-                                                <StatusChip type="contract" status={contract.status} />
-                                            </td>
-                                            <td className="p-4">
-                                                {contract.status === 'draft' ? (
-                                                    <input
-                                                        type="date"
-                                                        value={contract.expires_at || ''}
-                                                        onChange={(e) => setContractExpiration(contract.id, e.target.value)}
-                                                        className="px-2 py-1 border border-slate-600 rounded-md bg-slate-700 text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-                                                    />
-                                                ) : (
-                                                    <span className="text-slate-500">N/A</span>
-                                                )}
-                                            </td>
-                                            <td className="p-4">
-                                                {contract.status === 'draft' && (
-                                                    <Button size="sm" variant="secondary" onClick={() => handleSendEmail(contract)} title="Enviar por Email">
-                                                        <SendIcon className="w-4 h-4" />
-                                                    </Button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                </CardContent>
-            </Card>
+                        {/* Desktop View */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="border-b border-slate-800">
+                                    <tr>
+                                        <th className="p-4 font-semibold whitespace-nowrap">Proyecto</th>
+                                        <th className="p-4 font-semibold whitespace-nowrap">Cliente</th>
+                                        <th className="p-4 font-semibold whitespace-nowrap">Fecha</th>
+                                        <th className="p-4 font-semibold whitespace-nowrap">Estado</th>
+                                        <th className="p-4 font-semibold whitespace-nowrap">Vencimiento</th>
+                                        <th className="p-4 font-semibold whitespace-nowrap">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {contracts.map(contract => {
+                                        const project = getProjectById(contract.project_id);
+                                        const client = getClientById(contract.client_id);
+                                        return (
+                                            <tr key={contract.id} className="border-b border-slate-800">
+                                                <td className="p-4 text-white">{project?.name}</td>
+                                                <td className="p-4 text-slate-300">{client?.name}</td>
+                                                <td className="p-4 text-slate-300">{new Date(contract.created_at).toLocaleDateString()}</td>
+                                                <td className="p-4">
+                                                    <StatusChip type="contract" status={contract.status} />
+                                                </td>
+                                                <td className="p-4">
+                                                    {contract.status === 'draft' ? (
+                                                        <input
+                                                            type="date"
+                                                            value={contract.expires_at || ''}
+                                                            onChange={(e) => setContractExpiration(contract.id, e.target.value)}
+                                                            className="px-2 py-1 border border-slate-600 rounded-md bg-slate-700 text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                                        />
+                                                    ) : (
+                                                        <span className="text-slate-500">N/A</span>
+                                                    )}
+                                                </td>
+                                                <td className="p-4">
+                                                    {contract.status === 'draft' && (
+                                                        <Button size="sm" variant="secondary" onClick={() => handleSendEmail(contract)} title="Enviar por Email">
+                                                            <SendIcon className="w-4 h-4" />
+                                                        </Button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Crear Nuevo Contrato">
                 <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] flex flex-col">

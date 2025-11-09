@@ -11,6 +11,7 @@ export interface Profile {
   ai_credits: number;
   hourly_rate_cents: number;
   pdf_color: string;
+  isNewUser: boolean;
   // --- Freelancer Profile ---
   bio?: string;
   skills?: string[];

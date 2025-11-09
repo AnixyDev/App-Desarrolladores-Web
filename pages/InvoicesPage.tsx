@@ -6,10 +6,11 @@ import Button from '../components/ui/Button';
 import { Invoice, RecurringInvoice } from '../types';
 import { formatCurrency, generateICSFile } from '../lib/utils';
 import { generateInvoicePdf } from '../services/pdfService';
-import { DownloadIcon, TrashIcon, CheckCircleIcon, ClockIcon, RefreshCwIcon, SendIcon, RepeatIcon, LinkIcon, FilterIcon, FileTextIcon, CalendarPlus } from '../components/icons/Icon';
+import { DownloadIcon, TrashIcon, CheckCircleIcon, ClockIcon, RefreshCwIcon, SendIcon, RepeatIcon, LinkIcon, FilterIcon, FileTextIcon, CalendarPlus, CreditCard } from '../components/icons/Icon';
 import StatusChip from '../components/ui/StatusChip';
 import { useToast } from '../hooks/useToast';
 import EmptyState from '../components/ui/EmptyState';
+import { redirectToCheckout } from '../services/stripeService';
 
 const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal'));
 const InvoiceFromTimeModal = lazy(() => import('../components/modals/InvoiceFromTimeModal'));
@@ -144,6 +145,18 @@ const InvoicesPage: React.FC = () => {
         navigator.clipboard.writeText(portalLink);
         addToast('Enlace de pago copiado al portapapeles', 'success');
     };
+
+    const handlePayInvoice = async (invoice: Invoice) => {
+        try {
+            await redirectToCheckout('invoicePayment', { 
+                invoice_id: invoice.id,
+                amount_cents: invoice.total_cents,
+                description: `Pago de Factura #${invoice.invoice_number}`
+            });
+        } catch (error) {
+            addToast((error as Error).message, 'error');
+        }
+    };
     
     const handleAddToCalendar = (invoice: Invoice) => {
         const client = getClientById(invoice.client_id);
@@ -242,6 +255,17 @@ const InvoicesPage: React.FC = () => {
                                                 <td className="p-4"><StatusChip type="invoice" status={invoice.paid ? 'paid' : 'pending'} dueDate={invoice.due_date} /></td>
                                                 <td className="p-4">
                                                     <div className="flex gap-2">
+                                                        {!invoice.paid && (
+                                                            <Button 
+                                                                size="sm" 
+                                                                variant="secondary" 
+                                                                title={profile.stripe_onboarding_complete ? "Procesar pago con Stripe" : "Conecta Stripe para habilitar pagos"} 
+                                                                onClick={() => handlePayInvoice(invoice)}
+                                                                disabled={!profile.stripe_onboarding_complete}
+                                                            >
+                                                                <CreditCard className="w-4 h-4 text-green-400"/>
+                                                            </Button>
+                                                        )}
                                                         {!invoice.paid && <Button size="sm" variant="secondary" title="Añadir al Calendario" onClick={() => handleAddToCalendar(invoice)}><CalendarPlus className="w-4 h-4 text-purple-400"/></Button>}
                                                         {!invoice.paid && <Button size="sm" variant="secondary" title="Copiar enlace de pago" onClick={() => handleCopyPaymentLink(invoice.id)}><LinkIcon className="w-4 h-4 text-purple-400"/></Button>}
                                                         {!invoice.paid && profile.payment_reminders_enabled && <Button size="sm" variant="secondary" title="Enviar Recordatorio" onClick={() => handleSendReminder(invoice)}><SendIcon className="w-4 h-4 text-blue-400"/></Button>}
