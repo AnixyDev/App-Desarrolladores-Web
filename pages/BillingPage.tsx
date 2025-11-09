@@ -1,17 +1,33 @@
 // pages/BillingPage.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { CheckCircleIcon, SparklesIcon, CreditCard, Users, RefreshCwIcon, LinkIcon } from '../components/icons/Icon';
 import { redirectToCheckout, StripeItemKey, STRIPE_ITEMS } from '../services/stripeService';
 import { useToast } from '../hooks/useToast';
+import { useSearchParams } from 'react-router-dom';
 
 const BillingPage: React.FC = () => {
     const { profile, updateStripeConnection } = useAppStore();
     const { addToast } = useToast();
     const [isLoading, setIsLoading] = useState<string | null>(null);
     const [isConnectingStripe, setIsConnectingStripe] = useState(false);
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    useEffect(() => {
+        if (searchParams.get('stripe_return') === 'true') {
+            // Este efecto se activa cuando el usuario vuelve de la página de onboarding de Stripe.
+            // En una app real, la confirmación final vendría de un webhook.
+            // Aquí, simulamos esa confirmación.
+            updateStripeConnection(`acct_simulated_${Date.now()}`, true);
+            addToast('¡Tu cuenta de Stripe ha sido conectada con éxito!', 'success');
+            
+            // Limpiamos la URL para evitar que se ejecute de nuevo al recargar.
+            searchParams.delete('stripe_return');
+            setSearchParams(searchParams, { replace: true });
+        }
+    }, [searchParams, updateStripeConnection, addToast, setSearchParams]);
 
     const handlePurchase = async (itemKey: StripeItemKey) => {
         setIsLoading(itemKey);
@@ -25,21 +41,24 @@ const BillingPage: React.FC = () => {
 
     const handleStripeConnect = async () => {
         setIsConnectingStripe(true);
-        addToast('Redirigiendo a Stripe para la conexión de tu cuenta...', 'info');
-        // Simulación de una llamada a un backend para crear una cuenta de Stripe Connect
-        setTimeout(() => {
-            const simulatedAccountId = `acct_${Date.now()}`;
-            // Simulación de la redirección a la URL de onboarding de Stripe.
-            // En una app real, esta URL vendría de tu backend.
-            console.log("Simulating redirect to Stripe Onboarding...");
-            
-            // Simulación del regreso del usuario a la app y actualización del estado.
-            setTimeout(() => {
-                updateStripeConnection(simulatedAccountId, true);
-                addToast('¡Tu cuenta de Stripe ha sido conectada con éxito!', 'success');
-                setIsConnectingStripe(false);
-            }, 2000); // Simula el tiempo que el usuario pasa en la página de Stripe
-        }, 1500);
+        try {
+            const response = await fetch('/api/create-connect-account', {
+                method: 'POST',
+            });
+
+            if (!response.ok) {
+                const { error } = await response.json();
+                throw new Error(error || 'No se pudo iniciar la conexión con Stripe.');
+            }
+
+            const { url } = await response.json();
+            // Redirigimos al usuario a la URL de onboarding de Stripe.
+            window.location.href = url;
+
+        } catch (error) {
+            addToast((error as Error).message, 'error');
+            setIsConnectingStripe(false);
+        }
     };
 
     const isPro = profile.plan === 'Pro';
