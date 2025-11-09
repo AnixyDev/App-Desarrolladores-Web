@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 
 interface CardProps {
@@ -8,7 +9,7 @@ interface CardProps {
 
 const Card: React.FC<CardProps> = ({ children, className = '' }) => {
   return (
-    <div className={`bg-gray-900 border border-gray-800 rounded-lg shadow-lg ${className}`}>
+    <div className={`bg-slate-900 border border-slate-800 rounded-lg shadow-lg transition-all hover:border-slate-700/80 ${className}`}>
       {children}
     </div>
   );
@@ -20,7 +21,7 @@ interface CardHeaderProps {
 }
 
 export const CardHeader: React.FC<CardHeaderProps> = ({ children, className = '' }) => {
-  return <div className={`p-4 border-b border-gray-800 ${className}`}>{children}</div>;
+  return <div className={`p-4 border-b border-slate-800 ${className}`}>{children}</div>;
 };
 
 
@@ -39,7 +40,7 @@ interface CardFooterProps {
   className?: string;
 }
 export const CardFooter: React.FC<CardFooterProps> = ({ children, className = '' }) => {
-  return <div className={`p-4 border-t border-gray-800 bg-gray-800/30 rounded-b-lg ${className}`}>{children}</div>;
+  return <div className={`p-4 border-t border-slate-800 bg-slate-800/20 rounded-b-lg ${className}`}>{children}</div>;
 };
 
 export default Card;

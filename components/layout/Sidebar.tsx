@@ -1,5 +1,6 @@
 
 
+
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { SIDEBAR_STRUCTURE } from '../../constants';
@@ -37,8 +38,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
                 ></div>
             )}
 
-            <aside className={`fixed md:relative inset-y-0 left-0 w-64 bg-black/80 backdrop-blur-sm border-r border-gray-800 flex flex-col shrink-0 transform transition-transform duration-300 ease-in-out z-30 ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
-                <div className="h-20 flex items-center px-6 border-b border-gray-800 space-x-3">
+            <aside className={`fixed md:relative inset-y-0 left-0 w-64 bg-slate-950/80 backdrop-blur-sm border-r border-slate-800 flex flex-col shrink-0 transform transition-transform duration-300 ease-in-out z-30 ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+                <div className="h-20 flex items-center px-6 border-b border-slate-800 space-x-3">
                     <Logo className="h-8 w-8" />
                     <span className="text-xl font-bold text-white">DevFreelancer</span>
                 </div>
@@ -52,10 +53,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
                                     end={item.href === '/'}
                                     onClick={handleLinkClick}
                                     className={({ isActive }) =>
-                                        `flex items-center px-3 py-2 text-gray-300 rounded-md text-sm font-medium transition-colors ${
+                                        `flex items-center px-3 py-2 text-slate-300 rounded-md text-sm font-medium transition-colors ${
                                         isActive
                                             ? 'bg-primary-600/20 text-primary-400'
-                                            : 'hover:bg-gray-800 hover:text-white'
+                                            : 'hover:bg-slate-800 hover:text-white'
                                         }`
                                     }
                                 >
@@ -71,7 +72,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
                                 <div key={item.label}>
                                     <button
                                         onClick={() => handleGroupClick(item.label)}
-                                        className="w-full flex items-center justify-between px-3 py-2 text-gray-300 rounded-md text-sm font-medium hover:bg-gray-800 hover:text-white transition-colors"
+                                        className="w-full flex items-center justify-between px-3 py-2 text-slate-300 rounded-md text-sm font-medium hover:bg-slate-800 hover:text-white transition-colors"
                                     >
                                         <div className="flex items-center">
                                             <item.icon className="w-5 h-5 mr-3" />
@@ -88,10 +89,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
                                                     to={subItem.href}
                                                     onClick={handleLinkClick}
                                                     className={({ isActive }) =>
-                                                        `flex items-center px-3 py-2 text-gray-400 rounded-md text-sm font-medium transition-colors ${
+                                                        `flex items-center px-3 py-2 text-slate-400 rounded-md text-sm font-medium transition-colors ${
                                                         isActive
-                                                            ? 'bg-gray-700 text-white'
-                                                            : 'hover:bg-gray-700/50 hover:text-gray-200'
+                                                            ? 'bg-slate-700 text-white'
+                                                            : 'hover:bg-slate-700/50 hover:text-slate-200'
                                                         }`
                                                     }
                                                 >

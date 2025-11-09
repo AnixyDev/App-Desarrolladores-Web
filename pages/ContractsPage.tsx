@@ -7,6 +7,7 @@ import { Contract } from '../types';
 import { formatCurrency } from '../lib/utils';
 import { SendIcon, FileSignatureIcon } from '../components/icons/Icon';
 import StatusChip from '../components/ui/StatusChip';
+import { ContractCard } from '../contracts/ContractCard';
 
 const CONTRACT_TEMPLATE = `CONTRATO DE PRESTACIÓN DE SERVICIOS FREELANCE
 
@@ -111,51 +112,29 @@ const ContractsPage: React.FC = () => {
             </div>
 
             <Card>
-                <CardContent className="p-4 md:p-0">
+                <CardContent className="p-0">
                     {/* Mobile View */}
-                    <div className="md:hidden space-y-4">
+                    <div className="md:hidden space-y-4 p-4">
                         {contracts.map(contract => {
                             const project = getProjectById(contract.project_id);
                             const client = getClientById(contract.client_id);
                             return (
-                                <div key={contract.id} className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <p className="font-semibold text-white pr-2">{project?.name}</p>
-                                            <p className="text-sm text-gray-300">{client?.name}</p>
-                                        </div>
-                                        <StatusChip type="contract" status={contract.status} />
-                                    </div>
-                                    <div className="text-sm space-y-2 text-gray-400 border-t border-gray-700 pt-3 mt-3">
-                                        <p className='flex justify-between'><span>Fecha:</span> <span className="text-gray-200">{new Date(contract.created_at).toLocaleDateString()}</span></p>
-                                    </div>
-                                    {contract.status === 'draft' && (
-                                        <div className="mt-3 pt-3 border-t border-gray-700">
-                                            <label className="block text-xs font-medium text-gray-400 mb-1">Fecha de Vencimiento</label>
-                                            <input
-                                                type="date"
-                                                value={contract.expires_at || ''}
-                                                onChange={(e) => setContractExpiration(contract.id, e.target.value)}
-                                                className="w-full px-2 py-1 border border-gray-600 rounded-md bg-gray-700 text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
-                                            />
-                                        </div>
-                                    )}
-                                    <div className="flex justify-end mt-4">
-                                        {contract.status === 'draft' && (
-                                            <Button size="sm" variant="secondary" onClick={() => handleSendEmail(contract)} title="Enviar por Email">
-                                                <SendIcon className="w-4 h-4 mr-2" /> Enviar
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
+                                <ContractCard 
+                                    key={contract.id}
+                                    contract={contract}
+                                    projectName={project?.name}
+                                    clientName={client?.name}
+                                    onSend={handleSendEmail}
+                                    onSetExpiration={setContractExpiration}
+                                />
                             );
                         })}
                     </div>
 
                     {/* Desktop View */}
-                    <div className="hidden md:block">
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left">
-                            <thead className="border-b border-gray-800">
+                            <thead className="border-b border-slate-800">
                                 <tr>
                                     <th className="p-4 font-semibold whitespace-nowrap">Proyecto</th>
                                     <th className="p-4 font-semibold whitespace-nowrap">Cliente</th>
@@ -170,10 +149,10 @@ const ContractsPage: React.FC = () => {
                                     const project = getProjectById(contract.project_id);
                                     const client = getClientById(contract.client_id);
                                     return (
-                                        <tr key={contract.id} className="border-b border-gray-800 hover:bg-gray-800/50">
+                                        <tr key={contract.id} className="border-b border-slate-800 hover:bg-slate-800/50">
                                             <td className="p-4 text-white">{project?.name}</td>
-                                            <td className="p-4 text-gray-300">{client?.name}</td>
-                                            <td className="p-4 text-gray-300">{new Date(contract.created_at).toLocaleDateString()}</td>
+                                            <td className="p-4 text-slate-300">{client?.name}</td>
+                                            <td className="p-4 text-slate-300">{new Date(contract.created_at).toLocaleDateString()}</td>
                                             <td className="p-4">
                                                 <StatusChip type="contract" status={contract.status} />
                                             </td>
@@ -183,10 +162,10 @@ const ContractsPage: React.FC = () => {
                                                         type="date"
                                                         value={contract.expires_at || ''}
                                                         onChange={(e) => setContractExpiration(contract.id, e.target.value)}
-                                                        className="px-2 py-1 border border-gray-600 rounded-md bg-gray-700 text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                                        className="px-2 py-1 border border-slate-600 rounded-md bg-slate-700 text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
                                                     />
                                                 ) : (
-                                                    <span className="text-gray-500">N/A</span>
+                                                    <span className="text-slate-500">N/A</span>
                                                 )}
                                             </td>
                                             <td className="p-4">
@@ -209,14 +188,14 @@ const ContractsPage: React.FC = () => {
                 <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] flex flex-col">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">Cliente</label>
-                            <select value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
+                            <label className="block text-sm font-medium text-slate-300 mb-1">Cliente</label>
+                            <select value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)} className="block w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-slate-800 text-white">
                                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
                          <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">Proyecto</label>
-                            <select value={selectedProjectId} onChange={e => setSelectedProjectId(e.target.value)} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white" disabled={clientProjects.length === 0}>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">Proyecto</label>
+                            <select value={selectedProjectId} onChange={e => setSelectedProjectId(e.target.value)} className="block w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-slate-800 text-white" disabled={clientProjects.length === 0}>
                                 {clientProjects.length > 0 ? (
                                     clientProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)
                                 ) : (
@@ -226,12 +205,12 @@ const ContractsPage: React.FC = () => {
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Contenido del Contrato</label>
+                        <label className="block text-sm font-medium text-slate-300 mb-1">Contenido del Contrato</label>
                         <textarea
                             value={contractContent}
                             onChange={e => setContractContent(e.target.value)}
                             rows={15}
-                            className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white font-mono text-xs"
+                            className="block w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm placeholder-slate-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-slate-800 text-white font-mono text-xs"
                             disabled={!selectedProjectId}
                         />
                     </div>

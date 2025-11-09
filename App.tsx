@@ -72,11 +72,11 @@ const AppLayout = () => {
     }
 
     return (
-        <div className="flex h-screen bg-gray-950 text-gray-100">
+        <div className="flex h-screen bg-slate-950 text-slate-100">
             <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
             <div className="flex-1 flex flex-col overflow-hidden">
                 <Header setSidebarOpen={setSidebarOpen} />
-                <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 lg:p-8">
+                <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
                     <Suspense fallback={<div className="text-center p-8">Cargando página...</div>}>
                         <Outlet />
                     </Suspense>

@@ -23,11 +23,23 @@
       /* Base styles */
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #030712; /* bg-gray-950 */
-        color: #f9fafb; /* text-gray-50 */
+        background-color: #020617; /* bg-slate-950 */
+        color: #f8fafc; /* text-slate-50 */
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
       }
+      *, *::before, *::after {
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, box-shadow;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      ::-webkit-scrollbar-track { background: #0f172a; }
+      ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
       /* Custom primary color palette */
       :root {
         --primary-400: #f000b8;
@@ -42,6 +54,7 @@
       .focus\\:ring-primary-500:focus { --tw-ring-color: var(--primary-500); }
       .focus\\:border-primary-500:focus { border-color: var(--primary-500); }
       .bg-primary-600\\/20 { background-color: rgba(192, 38, 211, 0.2); }
+      .border-primary-500 { border-color: var(--primary-500); }
       
       /* Custom fuchsia colors for static pages */
       .text-fuchsia-500 { color: #f000b8; }
@@ -62,7 +75,7 @@
       .prose h1, .prose h2, .prose h3 { font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; color: #fff; }
       .prose p { margin-bottom: 1rem; }
       .prose ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
-      .prose pre { padding: 1rem; border-radius: 0.5rem; background-color: #1f2937; white-space: pre-wrap; }
+      .prose pre { padding: 1rem; border-radius: 0.5rem; background-color: #1e293b; white-space: pre-wrap; }
       .prose code { color: #d1d5db; }
       .prose-invert { /* already dark */ }
 
@@ -86,23 +99,23 @@
 <script type="importmap">
 {
   "imports": {
-    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.5",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "zustand/": "https://aistudiocdn.com/zustand@^5.0.8/",
-    "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.553.0",
-    "jspdf": "https://aistudiocdn.com/jspdf@^3.0.3",
-    "marked": "https://aistudiocdn.com/marked@^17.0.0",
-    "recharts": "https://aistudiocdn.com/recharts@^3.3.0",
-    "jspdf-autotable": "https://aistudiocdn.com/jspdf-autotable@^5.0.2",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.5",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "@react-oauth/google": "https://aistudiocdn.com/@react-oauth/google@^0.12.2",
-    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.0",
-    "vite": "https://aistudiocdn.com/vite@^7.2.2",
+    "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
+    "zustand/": "https://aistudiocdn.com/zustand@^5.0.8/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.553.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.3.0",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0",
-    "resend": "https://aistudiocdn.com/resend@^6.4.2"
+    "jspdf": "https://aistudiocdn.com/jspdf@^3.0.3",
+    "jspdf-autotable": "https://aistudiocdn.com/jspdf-autotable@^5.0.2",
+    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
+    "marked": "https://aistudiocdn.com/marked@^17.0.0",
+    "resend": "https://aistudiocdn.com/resend@^6.4.2",
+    "vite": "https://aistudiocdn.com/vite@^7.2.2",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.0"
   }
 }
 </script>
