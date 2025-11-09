@@ -41,9 +41,6 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
             provider: 'google',
             options: { 
                 redirectTo: window.location.origin,
-                queryParams: {
-                    client_id: '1234567890-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com'
-                }
             },
         });
         if (error) throw error;

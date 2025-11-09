@@ -45,14 +45,17 @@ const LoginPage: React.FC = () => {
     
     const handleSocialSignIn = async (provider: 'google' | 'github') => {
         setIsLoading(true);
+        setError('');
         try {
             if (provider === 'google') {
                 await loginWithGoogle();
             } else if (provider === 'github') {
                 await loginWithGithub();
             }
+            // La redirección ocurrirá aquí, por lo que el código siguiente puede no ejecutarse.
         } catch (err) {
-            setError((err as Error).message);
+            const errorMessage = (err as Error).message || 'No se pudo iniciar la sesión social. Revisa la consola o la configuración.';
+            setError(errorMessage);
             setIsLoading(false);
         }
     };
