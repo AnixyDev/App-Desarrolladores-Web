@@ -1,7 +1,7 @@
 import React from 'react';
 
-export const logoPngDataUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACYElEQVR4nO2bv2sUURDHJ5GgoLWFhZ3F1k7EQsT/gI2Fna2FYCgWFhYWorUQsRAstBEllQo2go2FnaAIImifhVgr4l7gSna53N29vbvA4S7v3rnnN/Odb2Y3oihFU3AEXAOrwCFwA/yWc+Y+cAf44QzwCngM/AJeAz8BD4FXwDfgK/AWeAP8AnwFjgEvgV/AP+B30/gB3AD+A48l8Bq4C3wCfgPHS+AR8AhY4CfwCXhcApcAV4GvwAfgaglcAdwHfgEfgOsksAX4Evi8BJwAfgFfgY/AE+AlcDvY9/s0eB7pA/A2aHxMmh+A+8DDJPAZeBvo97HjV+A5uB/M+4s0LwAXgJ1E8B34Fmg22/sS+B5oN4P7bRoTgA3AzR+B98DLQIvRPSaB9wGtBvvYNA0A4HqgV0v2lQkAcJzQF9/qBwA4w2j28E6BAAhj2MM3CgSAOIx8+aRAAMQj4d0HBEA8Ev6eIgAC4E+GvyERAGDMhO/PBEA44oSPyAQAOGfCp3MEADgV4S+IBEA4E+FPEQDgmAj/gAQAcCjCHyQBAM6K8MdIAIDjIvwhEgDgTIS/RwIAvCrCHyMGAOC5iP6oBAD4LKI/IgEAHorgP4kEAChE9H8kAQAC0f0lCQCgjOjvSAKAEYj+jAQA0Ef0JyQBAHqiX5AEAHxEv6gEAPhH9H8kAQDAi/T/XfR+qW7A9i/u4L9V3D/A8/T+E/geQ49Ag/D+d+Bp1B8DLwD1v0P/A2cAg+Bz350+i/wM0r/+D/g7Q8uIajgA4b2bQAAAABJRU5ErkJggg==";
+export const logoSvgDataUri = `data:image/svg+xml,%3csvg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cdefs%3e%3clinearGradient id='logoGradient' x1='0' y1='0' x2='32' y2='32' gradientUnits='userSpaceOnUse'%3e%3cstop stop-color='%23F000B8'/%3e%3cstop offset='1' stop-color='%239D00FF'/%3e%3c/linearGradient%3e%3c/defs%3e%3ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='20' font-family='Inter, sans-serif' font-weight='800' fill='url(%23logoGradient)'%3eDF%3c/text%3e%3c/svg%3e`;
 
 export const Logo: React.FC<React.ImgHTMLAttributes<HTMLImageElement>> = (props) => (
-    <img src={logoPngDataUri} alt="DevFreelancer Logo" {...props} />
+    <img src={logoSvgDataUri} alt="DevFreelancer Logo" {...props} />
 );

@@ -8,9 +8,8 @@ const Stripe = require('stripe');
 // La clave secreta NUNCA debe estar aquí. Se lee de las variables de entorno.
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Aquí debes mapear los `itemKey` del frontend a los IDs de precios REALES (live) de tu dashboard de Stripe.
-// Estos son los datos que me proporcionarías en el archivo .csv.
-// He dejado los de prueba como ejemplo. ¡DEBES REEMPLAZARLOS!
+// Aquí se mapean los `itemKey` del frontend a los IDs de precios REALES (live) de tu dashboard de Stripe.
+// Estos son los datos del archivo .csv que has proporcionado.
 const LIVE_PRICE_IDS = {
     proPlan: 'price_1SOgUF8oC5awQy15dOEM5jGS',
     teamsPlan: 'price_1SOggV8oC5awQy15YW1wAgcg',

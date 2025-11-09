@@ -8,7 +8,7 @@ import { UserIcon, DownloadIcon } from '../components/icons/Icon';
 import { useToast } from '../hooks/useToast';
 import { Profile } from '../types';
 import { validateEmail } from '../lib/utils';
-import { logoPngDataUri } from '../components/icons/Logo';
+import { logoSvgDataUri } from '../components/icons/Logo';
 
 
 const SettingsPage: React.FC = () => {
@@ -76,12 +76,12 @@ const SettingsPage: React.FC = () => {
     
     const handleDownloadLogo = () => {
         const link = document.createElement('a');
-        link.href = logoPngDataUri;
-        link.download = 'logo.png';
+        link.href = logoSvgDataUri;
+        link.download = 'logo.svg';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        addToast('Logo descargado como logo.png', 'success');
+        addToast('Logo descargado como logo.svg', 'success');
     };
 
 
@@ -148,7 +148,7 @@ const SettingsPage: React.FC = () => {
                     <CardContent>
                         <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
                             <div className="flex items-center gap-4">
-                                <img src={logoPngDataUri} alt="Logo Preview" className="h-12 w-12 rounded-md bg-white p-1" />
+                                <img src={logoSvgDataUri} alt="Logo Preview" className="h-12 w-12 rounded-md bg-gray-900 p-1" />
                                 <div>
                                     <h3 className="font-semibold text-white">Logo de la Empresa</h3>
                                     <p className="text-sm text-gray-400">Usa tu logo en facturas, Stripe y otros materiales.</p>
