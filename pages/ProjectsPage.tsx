@@ -57,26 +57,26 @@ const ProjectsPage: React.FC = () => {
         setNewProject(prev => ({ ...prev, budget_cents: Math.round(Number(e.target.value) * 100) }));
     };
 
-    const handleProjectSubmit = (e: React.FormEvent) => {
+    const handleProjectSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newProject.client_id) {
             addToast('Por favor, selecciona o crea un cliente.', 'error');
             return;
         }
-        addProject(newProject);
+        await addProject(newProject);
         setIsProjectModalOpen(false);
         setNewProject(initialProjectState);
         addToast('Proyecto añadido con éxito.', 'success');
     };
 
-    const handleClientSubmit = (e: React.FormEvent) => {
+    const handleClientSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newClient.name && newClient.email) {
             if (!validateEmail(newClient.email)) {
                 setClientEmailError('Por favor, introduce un correo electrónico válido.');
                 return;
             }
-            const createdClient = addClient(newClient);
+            const createdClient = await addClient(newClient);
             setNewProject(prev => ({ ...prev, client_id: createdClient.id }));
             setIsClientModalOpen(false);
             setNewClient(initialClientState);
@@ -180,7 +180,6 @@ const ProjectsPage: React.FC = () => {
                 </form>
             </Modal>
             
-            {/* FIX: Add missing 'title' prop to the Modal component. */}
             <Modal isOpen={isClientModalOpen} onClose={() => { setIsClientModalOpen(false); setClientEmailError(''); }} title="Añadir Nuevo Cliente">
                 <form onSubmit={handleClientSubmit} className="space-y-4">
                     <Input name="name" label="Nombre Completo" value={newClient.name} onChange={handleClientInputChange} required />

@@ -1,7 +1,12 @@
 // /api/create-connect-account.js
-// Esta función crea una cuenta de Stripe Connect y un enlace para que el usuario se registre.
+import { createClient } from '@supabase/supabase-js';
 const Stripe = require('stripe');
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -9,32 +14,44 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Crear una cuenta de Stripe Express para el usuario.
-    // En una app real, podrías pasar el email del usuario y pre-rellenar datos.
+    // 1. Authenticate the user
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized: Missing token' });
+    }
+    const token = authHeader.split(' ')[1];
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+
+    if (userError) {
+        return res.status(401).json({ error: `Authentication error: ${userError.message}` });
+    }
+
+    // 2. Create a Stripe Express account for the user.
     const account = await stripe.accounts.create({
       type: 'express',
+      email: user.email,
       capabilities: {
         card_payments: { requested: true },
         transfers: { requested: true },
       },
+       metadata: {
+        user_id: user.id,
+      }
     });
 
-    // 2. Crear un enlace de onboarding para esa cuenta.
-    // El usuario será redirigido a este enlace para completar el formulario de Stripe.
+    // 3. Create an onboarding link for that account.
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
-      refresh_url: `${req.headers.origin}/billing`, // A dónde volver si el enlace expira
-      // A dónde volver cuando el usuario complete el onboarding.
-      // Añadimos un parámetro para que el frontend sepa que el usuario está volviendo.
+      refresh_url: `${req.headers.origin}/#/billing`, 
       return_url: `${req.headers.origin}/?stripe_return=true#/billing`,
       type: 'account_onboarding',
     });
 
-    // 3. Devolver la URL del enlace de onboarding al frontend.
+    // 4. Return the onboarding link URL to the frontend.
     res.status(200).json({ url: accountLink.url });
 
   } catch (err) {
-    console.error('Error al crear la cuenta de Stripe Connect:', err);
+    console.error('Error creating Stripe Connect account:', err);
     res.status(err.statusCode || 500).json({ error: err.message });
   }
 }

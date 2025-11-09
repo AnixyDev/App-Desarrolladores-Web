@@ -5,6 +5,8 @@ import Card, { CardHeader, CardContent, CardFooter } from '../../components/ui/C
 import Button from '../../components/ui/Button';
 import { SignatureIcon, CheckCircleIcon } from '../../components/icons/Icon';
 import { useToast } from '../../hooks/useToast';
+import CommentThread from '../../components/portal/CommentThread';
+import FileList from '../../components/portal/FileList';
 
 const PortalContractViewPage: React.FC = () => {
     const { contractId } = useParams<{ contractId: string }>();
@@ -36,36 +38,47 @@ const PortalContractViewPage: React.FC = () => {
     }
 
     return (
-        <Card className="max-w-4xl mx-auto">
-            <CardHeader>
-                <h2 className="text-2xl font-bold text-white">Contrato de Servicios</h2>
-                <p className="text-gray-400">Proyecto: {project?.name}</p>
-            </CardHeader>
-            <CardContent className="prose prose-invert prose-p:text-gray-300 max-w-none">
-                <pre className="whitespace-pre-wrap font-sans text-gray-300">{contract.content}</pre>
-            </CardContent>
-            <CardFooter className='flex flex-col sm:flex-row justify-between items-center gap-4'>
-                <span className={`px-3 py-1 rounded-full text-sm capitalize ${
-                    contract.status === 'sent' ? 'bg-blue-500/20 text-blue-400' :
-                    contract.status === 'signed' ? 'bg-green-500/20 text-green-400' :
-                    'bg-gray-500/20 text-gray-400'
-                }`}>
-                    Estado: {contract.status}
-                </span>
-                {contract.status === 'sent' && (
-                    <Button onClick={handleSign}>
-                        <SignatureIcon className='w-4 h-4 mr-2'/>
-                        Firmar Contrato
-                    </Button>
-                )}
-                {contract.status === 'signed' && (
-                    <div className="flex items-center gap-2 text-green-400 text-sm">
-                        <CheckCircleIcon className="w-5 h-5" />
-                        <span>Firmado por {contract.signed_by} el {new Date(contract.signed_at || '').toLocaleDateString()}</span>
-                    </div>
-                )}
-            </CardFooter>
-        </Card>
+         <div className="max-w-4xl mx-auto space-y-6">
+            <Card>
+                <CardHeader>
+                    <h2 className="text-2xl font-bold text-white">Contrato de Servicios</h2>
+                    <p className="text-gray-400">Proyecto: {project?.name}</p>
+                </CardHeader>
+                <CardContent className="prose prose-invert prose-p:text-gray-300 max-w-none">
+                    <pre className="whitespace-pre-wrap font-sans text-gray-300">{contract.content}</pre>
+                </CardContent>
+                <CardFooter className='flex flex-col sm:flex-row justify-between items-center gap-4'>
+                    <span className={`px-3 py-1 rounded-full text-sm capitalize ${
+                        contract.status === 'sent' ? 'bg-blue-500/20 text-blue-400' :
+                        contract.status === 'signed' ? 'bg-green-500/20 text-green-400' :
+                        'bg-gray-500/20 text-gray-400'
+                    }`}>
+                        Estado: {contract.status}
+                    </span>
+                    {contract.status === 'sent' && (
+                        <Button onClick={handleSign}>
+                            <SignatureIcon className='w-4 h-4 mr-2'/>
+                            Firmar Contrato
+                        </Button>
+                    )}
+                    {contract.status === 'signed' && (
+                        <div className="flex items-center gap-2 text-green-400 text-sm">
+                            <CheckCircleIcon className="w-5 h-5" />
+                            <span>Firmado por {contract.signed_by} el {new Date(contract.signed_at || '').toLocaleDateString()}</span>
+                        </div>
+                    )}
+                </CardFooter>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <h3 className="text-lg font-semibold text-white">Comentarios y Archivos</h3>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {client && <CommentThread entityId={contract.id} currentUser={{ name: client.name, avatar: '' }} />}
+                    {client && <FileList entityId={contract.id} currentUser={{ name: client.name }} />}
+                </CardContent>
+            </Card>
+        </div>
     );
 };
 

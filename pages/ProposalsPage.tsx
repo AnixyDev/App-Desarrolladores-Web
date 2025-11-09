@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import StatusChip from '../components/ui/StatusChip';
 import EmptyState from '../components/ui/EmptyState';
 import { MessageSquareIcon } from '../components/icons/Icon';
+import { useToast } from '../hooks/useToast';
 
 
 const ProposalsPage: React.FC = () => {
@@ -17,8 +18,11 @@ const ProposalsPage: React.FC = () => {
         proposals, 
         clients, 
         addProposal,
-        getClientById 
+        getClientById,
+        proposalTemplates,
+        addProposalTemplate
     } = useAppStore();
+    const { addToast } = useToast();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     
@@ -27,24 +31,58 @@ const ProposalsPage: React.FC = () => {
         title: '',
         content: '',
         amount_cents: 0,
+        saveAsTemplate: false,
+        templateName: '',
     };
     const [newProposal, setNewProposal] = useState(initialProposalState);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setNewProposal(prev => ({ ...prev, [name]: value }));
+        const { name, value, type } = e.target;
+        const isCheckbox = type === 'checkbox';
+        setNewProposal(prev => ({ 
+            ...prev, 
+            [name]: isCheckbox ? (e.target as HTMLInputElement).checked : value 
+        }));
     };
 
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        // Permite un string vacío para limpiar el input, si no, lo convierte a número
         const amountInCents = value === '' ? 0 : Math.round(Number(value) * 100);
         setNewProposal(prev => ({ ...prev, amount_cents: amountInCents }));
     };
 
+    const handleLoadTemplate = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const templateId = e.target.value;
+        const template = proposalTemplates.find(t => t.id === templateId);
+        if (template) {
+            setNewProposal(prev => ({
+                ...prev,
+                title: template.title_template,
+                content: template.content_template,
+            }));
+            addToast(`Plantilla "${template.name}" cargada.`, 'info');
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        addProposal(newProposal);
+        
+        if (newProposal.saveAsTemplate && newProposal.templateName) {
+            addProposalTemplate({
+                name: newProposal.templateName,
+                title_template: newProposal.title,
+                content_template: newProposal.content,
+            });
+            addToast(`Plantilla "${newProposal.templateName}" guardada.`, 'success');
+        }
+
+        addProposal({
+            client_id: newProposal.client_id,
+            title: newProposal.title,
+            content: newProposal.content,
+            amount_cents: newProposal.amount_cents,
+        });
+
         setIsModalOpen(false);
         setNewProposal(initialProposalState);
     };
@@ -99,6 +137,13 @@ const ProposalsPage: React.FC = () => {
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Crear Nueva Propuesta">
                 <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                     <div>
+                         <label className="block text-sm font-medium text-gray-300 mb-1">Cargar desde Plantilla</label>
+                         <select onChange={handleLoadTemplate} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
+                            <option value="">Seleccionar plantilla...</option>
+                            {proposalTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                    </div>
                     <div>
                          <label className="block text-sm font-medium text-gray-300 mb-1">Cliente</label>
                          <select name="client_id" value={newProposal.client_id} onChange={handleInputChange} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
@@ -119,6 +164,24 @@ const ProposalsPage: React.FC = () => {
                         onChange={handleAmountChange} 
                         required 
                     />
+
+                    <div className="pt-4 border-t border-gray-700 space-y-3">
+                        <div className="flex items-center gap-3">
+                             <input type="checkbox" id="saveAsTemplate" name="saveAsTemplate" checked={newProposal.saveAsTemplate} onChange={handleInputChange} className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-primary-600 focus:ring-primary-500"/>
+                            <label htmlFor="saveAsTemplate" className="font-medium text-gray-200">Guardar como Plantilla</label>
+                        </div>
+                        {newProposal.saveAsTemplate && (
+                            <Input
+                                label="Nombre de la Plantilla"
+                                name="templateName"
+                                value={newProposal.templateName}
+                                onChange={handleInputChange}
+                                placeholder="Ej: Propuesta de Desarrollo Web"
+                                required
+                            />
+                        )}
+                    </div>
+
                     <div className="flex justify-end pt-4">
                         <Button type="submit">Guardar y Enviar Propuesta</Button>
                     </div>

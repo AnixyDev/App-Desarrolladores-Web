@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../../hooks/useAppStore';
-// FIX: Imported the correctly named icons and aliased them to match usage in the component.
-import { MenuIcon as Menu, BellIcon as Bell, LogOutIcon as LogOut, UserIcon as User, FileTextIcon, BriefcaseIcon, Users as UsersIcon } from '../icons/Icon';
+// FIX: Correctly import aliased icons from Icon.tsx
+import { MenuIcon, BellIcon, LogOutIcon, UserIcon, FileTextIcon, BriefcaseIcon, Users as UsersIcon } from '../icons/Icon';
 import { Link } from 'react-router-dom';
 
 const getNotificationIcon = (link: string) => {
     if (link.includes('/invoices')) return <FileTextIcon className="w-5 h-5 text-green-400" />;
     if (link.includes('/projects')) return <BriefcaseIcon className="w-5 h-5 text-purple-400" />;
     if (link.includes('/my-job-posts')) return <UsersIcon className="w-5 h-5 text-blue-400" />;
-    return <Bell className="w-5 h-5 text-gray-400" />;
+    return <BellIcon className="w-5 h-5 text-gray-400" />;
 };
 
 
@@ -45,7 +45,7 @@ const Header: React.FC<{ setSidebarOpen: (isOpen: boolean) => void; }> = ({ setS
                 className="md:hidden text-slate-400 hover:text-white"
                 onClick={() => setSidebarOpen(true)}
             >
-                <Menu className="w-6 h-6" />
+                <MenuIcon className="w-6 h-6" />
             </button>
 
             {/* Placeholder for search or breadcrumbs on larger screens */}
@@ -57,7 +57,7 @@ const Header: React.FC<{ setSidebarOpen: (isOpen: boolean) => void; }> = ({ setS
             <div className="flex items-center space-x-4">
                 <div className="relative" ref={notificationRef}>
                     <button onClick={() => setIsDropdownOpen(prev => !prev)} className="text-slate-400 hover:text-white relative">
-                        <Bell className="w-6 h-6" />
+                        <BellIcon className="w-6 h-6" />
                         {unreadCount > 0 && (
                             <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary-500 text-xs font-bold text-white ring-2 ring-slate-950">
                                 {unreadCount}
@@ -101,7 +101,7 @@ const Header: React.FC<{ setSidebarOpen: (isOpen: boolean) => void; }> = ({ setS
                         {profile?.avatar_url ? (
                             <img src={profile.avatar_url} alt="Perfil" className="w-8 h-8 rounded-full object-cover" />
                         ) : (
-                            <User className="w-8 h-8 rounded-full bg-slate-700 text-slate-300 p-1" />
+                            <UserIcon className="w-8 h-8 rounded-full bg-slate-700 text-slate-300 p-1" />
                         )}
                         <div className="hidden sm:block text-left">
                             <p className="text-sm font-semibold text-white">{profile?.full_name}</p>
@@ -120,7 +120,7 @@ const Header: React.FC<{ setSidebarOpen: (isOpen: boolean) => void; }> = ({ setS
                                     }}
                                     className="w-full text-left flex items-center px-4 py-2 text-sm text-red-400 hover:bg-red-500/20 hover:text-red-300"
                                 >
-                                    <LogOut className="w-4 h-4 mr-2" />
+                                    <LogOutIcon className="w-4 h-4 mr-2" />
                                     Cerrar Sesión
                                 </button>
                             </div>

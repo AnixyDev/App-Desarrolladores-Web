@@ -4,7 +4,7 @@ import {
     DollarSign, BookOpen, MessageSquare, FileSignature, Clock,
     Settings, Sparkles, TrendingUp, Share2, Shield,
     BrainCircuit, Zap, Plus, Star, Send, User, Building,
-    ShoppingBag
+    ShoppingBag, Copy as CopyIcon
 } from 'lucide-react';
 
 export const SIDEBAR_STRUCTURE = [
@@ -60,6 +60,7 @@ export const SIDEBAR_STRUCTURE = [
         { href: '/settings', label: 'Ajustes Generales', icon: Settings },
         { href: '/public-profile', label: 'Perfil Público', icon: User },
         { href: '/billing', label: 'Facturación y Plan', icon: DollarSign },
+        { href: '/templates', label: 'Plantillas', icon: CopyIcon },
         { href: '/integrations', label: 'Integraciones', icon: Zap },
         { href: '/affiliate', label: 'Afiliados', icon: Share2 },
     ]},

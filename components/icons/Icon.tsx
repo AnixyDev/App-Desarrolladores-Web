@@ -1,4 +1,3 @@
-// FIX: Changed 'import' to 'export' to make icons available for other components.
 export {
   LayoutDashboard,
   Users,

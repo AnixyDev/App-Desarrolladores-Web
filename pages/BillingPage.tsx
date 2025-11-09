@@ -1,197 +1,182 @@
-// pages/BillingPage.tsx
-import React, { useState, useEffect } from 'react';
+
+
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useAppStore } from '../hooks/useAppStore';
-import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card';
+import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import { CheckCircleIcon, SparklesIcon, CreditCard, Users, RefreshCwIcon, LinkIcon } from '../components/icons/Icon';
-import { redirectToCheckout, StripeItemKey, STRIPE_ITEMS } from '../services/stripeService';
+import { CheckCircleIcon, SparklesIcon, DollarSignIcon, CreditCard, RefreshCwIcon } from '../components/icons/Icon';
 import { useToast } from '../hooks/useToast';
-import { useSearchParams } from 'react-router-dom';
+import { redirectToCheckout, createConnectAccount } from '../services/stripeService';
+
+const UpgradeModal = lazy(() => import('../components/modals/UpgradeModal'));
 
 const BillingPage: React.FC = () => {
-    const { profile, updateStripeConnection } = useAppStore();
+    const { profile, upgradePlan, purchaseCredits, updateStripeConnection } = useAppStore();
     const { addToast } = useToast();
-    const [isLoading, setIsLoading] = useState<string | null>(null);
+    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
     const [isConnectingStripe, setIsConnectingStripe] = useState(false);
-    const [searchParams, setSearchParams] = useSearchParams();
-
+    
+    // Handle Stripe Connect return
     useEffect(() => {
-        if (searchParams.get('stripe_return') === 'true') {
-            // Este efecto se activa cuando el usuario vuelve de la página de onboarding de Stripe.
-            // En una app real, la confirmación final vendría de un webhook para mayor seguridad,
-            // pero para la experiencia de usuario, asumimos el éxito al volver.
-            updateStripeConnection(`acct_connected_${profile.id}`, true);
-            addToast('¡Tu cuenta de Stripe ha sido conectada con éxito!', 'success');
-            
-            // Limpiamos la URL para evitar que se ejecute de nuevo al recargar.
-            searchParams.delete('stripe_return');
-            setSearchParams(searchParams, { replace: true });
+        const query = new URLSearchParams(window.location.search);
+        if (query.get('stripe_return') === 'true') {
+            // In a real app, you would fetch the account status from your backend
+            // to verify the onboarding is complete. Here we simulate it.
+            if (profile && !profile.stripe_onboarding_complete) {
+                // A better approach would be to get the accountId from the backend after creation
+                updateStripeConnection('acct_simulation_id', true);
+                addToast('¡Tu cuenta de Stripe ha sido conectada con éxito!', 'success');
+            }
+             // Clean up URL
+             window.history.replaceState(null, '', window.location.pathname + window.location.hash);
         }
-    }, [searchParams, updateStripeConnection, addToast, setSearchParams, profile.id]);
+    }, [profile, updateStripeConnection, addToast]);
 
-    const handlePurchase = async (itemKey: StripeItemKey) => {
-        setIsLoading(itemKey);
+    if (!profile) {
+        return <div>Cargando información de facturación...</div>;
+    }
+
+    // FIX: Changed signature to accept all plan types to fix type error.
+    const handleUpgrade = async (newPlan: 'Free' | 'Pro' | 'Teams') => {
+        if (newPlan === 'Teams') {
+            setIsUpgradeModalOpen(true);
+            return;
+        }
         try {
-            await redirectToCheckout(itemKey);
+            await upgradePlan(newPlan);
+            addToast(`¡Has actualizado al plan ${newPlan}!`, 'success');
         } catch (error) {
-            addToast((error as Error).message, 'error');
-            setIsLoading(null);
+            addToast('Hubo un error al actualizar tu plan.', 'error');
         }
     };
 
-    const handleStripeConnect = async () => {
+    const handleBuyCredits = async (amount: number, priceId: string) => {
+        try {
+            // In a real implementation, you'd fetch a priceId from your backend
+            // For this simulation, we pass a dummy priceId
+            console.log(`Simulating purchase for priceId: ${priceId}`);
+            await purchaseCredits(amount);
+            addToast(`${amount} créditos añadidos con éxito.`, 'success');
+
+            // The code below would be used with a real Stripe setup:
+            // await redirectToCheckout([{ price: priceId, quantity: 1 }]);
+
+        } catch (error) {
+            addToast((error as Error).message, 'error');
+        }
+    };
+    
+    const handleConnectStripe = async () => {
         setIsConnectingStripe(true);
         try {
-            const response = await fetch('/api/create-connect-account', {
-                method: 'POST',
-            });
-
-            if (!response.ok) {
-                const { error } = await response.json();
-                throw new Error(error || 'No se pudo iniciar la conexión con Stripe.');
-            }
-
-            const { url } = await response.json();
-            // Redirigimos al usuario a la URL de onboarding de Stripe.
-            window.location.href = url;
-
+            await createConnectAccount();
         } catch (error) {
             addToast((error as Error).message, 'error');
             setIsConnectingStripe(false);
         }
     };
-
-    const isPro = profile.plan === 'Pro';
-    const isTeams = profile.plan === 'Teams';
-
+    
     const PlanCard: React.FC<{
-        plan: 'Pro' | 'Teams';
+        plan: 'Free' | 'Pro' | 'Teams';
         title: string;
         price: string;
         features: string[];
         isCurrent: boolean;
-        itemKey: 'proPlan' | 'teamsPlan';
-        icon: React.ElementType;
-    }> = ({ plan, title, price, features, isCurrent, itemKey, icon: Icon }) => (
-        <Card className={`flex flex-col ${isCurrent ? 'border-primary-500' : ''}`}>
-            <CardHeader className="text-center">
-                <Icon className="w-8 h-8 mx-auto text-primary-400 mb-2" />
-                <h3 className="text-xl font-bold text-white">{title}</h3>
-                <p className="text-3xl font-extrabold text-white mt-2">{price}<span className="text-base font-normal text-gray-400">/mes</span></p>
+    }> = ({ plan, title, price, features, isCurrent }) => (
+        <Card className={`flex flex-col ${isCurrent ? 'border-primary-500' : 'border-gray-800'}`}>
+            <CardHeader>
+                <h3 className="text-xl font-bold text-center text-white">{title}</h3>
+                <p className="text-2xl font-bold text-center text-primary-400">{price}</p>
+                <p className="text-sm text-center text-gray-400">{plan === 'Teams' ? 'por usuario/mes' : '/mes'}</p>
             </CardHeader>
-            <CardContent className="flex-grow space-y-3">
-                {features.map((feature, i) => (
-                    <p key={i} className="flex items-start gap-2"><CheckCircleIcon className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />{feature}</p>
+            <CardContent className="flex-grow space-y-2">
+                {features.map(feat => (
+                    <p key={feat} className="flex items-center gap-2 text-sm text-gray-300">
+                        <CheckCircleIcon className="w-4 h-4 text-green-400" /> {feat}
+                    </p>
                 ))}
             </CardContent>
-            <CardFooter>
+            <div className="p-4 mt-auto">
                 {isCurrent ? (
-                    <Button className="w-full" disabled>Plan Actual</Button>
+                    <Button disabled className="w-full">Tu Plan Actual</Button>
                 ) : (
-                    <Button className="w-full" onClick={() => handlePurchase(itemKey)} disabled={!!isLoading}>
-                        {isLoading === itemKey ? 'Procesando...' : 'Actualizar Plan'}
+                    <Button onClick={() => handleUpgrade(plan)} className="w-full">
+                        {plan === 'Free' ? 'Bajar a Free' : `Actualizar a ${plan}`}
                     </Button>
                 )}
-            </CardFooter>
+            </div>
         </Card>
     );
 
     return (
         <div className="space-y-8">
-            <div className="text-center">
-                <h1 className="text-3xl font-bold text-white">Facturación y Planes</h1>
-                <p className="text-gray-400 mt-2">Tu plan actual es: <span className="font-semibold text-primary-400">{profile.plan}</span></p>
-            </div>
+            <h1 className="text-2xl font-semibold text-white">Facturación y Plan</h1>
 
-            <Card>
-                <CardHeader>
-                    <h2 className="text-xl font-semibold text-white">Métodos de Pago y Cobro</h2>
-                </CardHeader>
-                <CardContent>
-                    <div className="p-4 bg-gray-800/50 rounded-lg flex flex-col sm:flex-row justify-between items-center">
-                        <div>
-                             <h3 className="font-semibold text-white">Recibe pagos con Stripe</h3>
-                             <p className="text-sm text-gray-400">Conecta tu cuenta de Stripe para que tus clientes puedan pagarte con tarjeta de crédito directamente desde sus facturas.</p>
-                        </div>
-                        {profile.stripe_onboarding_complete ? (
-                             <div className="text-center mt-4 sm:mt-0">
-                                <p className="flex items-center gap-2 text-green-400 font-semibold"><CheckCircleIcon/> Conectado</p>
-                                <Button variant="secondary" size="sm" className="mt-2">Gestionar cuenta</Button>
-                             </div>
-                        ) : (
-                            <Button onClick={handleStripeConnect} disabled={isConnectingStripe} className="mt-4 sm:mt-0">
-                                {isConnectingStripe ? <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin" /> : <LinkIcon className="w-4 h-4 mr-2" />}
-                                {isConnectingStripe ? 'Conectando...' : 'Conectar con Stripe'}
-                            </Button>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <PlanCard
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                 <PlanCard
+                    plan="Free"
+                    title="Plan Básico"
+                    price="0€"
+                    features={['1 Cliente', 'Proyectos ilimitados', 'Facturación básica', '10 Créditos de IA']}
+                    isCurrent={profile.plan === 'Free'}
+                />
+                 <PlanCard
                     plan="Pro"
-                    title="Plan Pro"
-                    price={STRIPE_ITEMS.proPlan.price}
-                    features={[
-                        "Facturas y clientes ilimitados",
-                        "Perfil público de freelancer",
-                        "Acceso al Marketplace de Proyectos",
-                        "Aplicar a ofertas con IA",
-                        "Alertas de nuevos trabajos"
-                    ]}
-                    isCurrent={isPro}
-                    itemKey="proPlan"
-                    icon={CreditCard}
+                    title="Plan Profesional"
+                    price="12,95€"
+                    features={['Clientes ilimitados', 'Perfil Público', 'Marketplace de Proyectos', '100 Créditos de IA/mes']}
+                    isCurrent={profile.plan === 'Pro'}
                 />
                 <PlanCard
                     plan="Teams"
-                    title="Plan Teams"
-                    price={STRIPE_ITEMS.teamsPlan.price}
-                    features={[
-                        "Todas las funciones del Plan Pro",
-                        "Invita a miembros a tu equipo",
-                        "Gestión de roles y permisos",
-                        "Base de Conocimiento colaborativa",
-                        "Integraciones y Webhooks"
-                    ]}
-                    isCurrent={isTeams}
-                    itemKey="teamsPlan"
-                    icon={Users}
+                    title="Plan de Equipo"
+                    price="35,95€"
+                    features={['Todo en Pro', 'Gestión de Equipo', 'Knowledge Base', 'Webhooks y Automatización']}
+                    isCurrent={profile.plan === 'Teams'}
                 />
             </div>
 
             <Card>
                 <CardHeader>
-                     <h2 className="text-xl font-semibold text-white flex items-center gap-2"><SparklesIcon className="text-purple-400" /> Créditos de IA</h2>
+                    <h2 className="text-lg font-semibold text-white flex items-center gap-2"><SparklesIcon/> Créditos de IA</h2>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <p className="text-gray-400">Tus créditos de IA se usan para funciones avanzadas como la generación de propuestas, resúmenes de candidatos y análisis financieros. Tu saldo actual es: <span className="font-bold text-white">{profile.ai_credits}</span>.</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        <div className="p-4 bg-gray-800/50 rounded-lg flex flex-col justify-between">
-                            <div>
-                                <p className="font-semibold text-white">Paquete de 100 Créditos</p>
-                                <p className="text-2xl font-bold text-white">{STRIPE_ITEMS.aiCredits100.price}</p>
-                            </div>
-                            <Button className="mt-4 w-full" onClick={() => handlePurchase('aiCredits100')} disabled={!!isLoading}>{isLoading === 'aiCredits100' ? '...' : 'Comprar'}</Button>
-                        </div>
-                        <div className="p-4 bg-gray-800/50 rounded-lg flex flex-col justify-between">
-                            <div>
-                                <p className="font-semibold text-white">Paquete de 500 Créditos</p>
-                                <p className="text-2xl font-bold text-white">{STRIPE_ITEMS.aiCredits500.price}</p>
-                            </div>
-                            <Button className="mt-4 w-full" onClick={() => handlePurchase('aiCredits500')} disabled={!!isLoading}>{isLoading === 'aiCredits500' ? '...' : 'Comprar'}</Button>
-                        </div>
-                        <div className="p-4 bg-gray-800/50 rounded-lg flex flex-col justify-between">
-                            <div>
-                                <p className="font-semibold text-white">Paquete de 1000 Créditos</p>
-                                <p className="text-2xl font-bold text-white">{STRIPE_ITEMS.aiCredits1000.price}</p>
-                            </div>
-                            <Button className="mt-4 w-full" onClick={() => handlePurchase('aiCredits1000')} disabled={!!isLoading}>{isLoading === 'aiCredits1000' ? '...' : 'Comprar'}</Button>
-                        </div>
+                <CardContent className="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div>
+                        <p className="text-sm text-gray-400">Créditos disponibles</p>
+                        <p className="text-3xl font-bold text-purple-400">{profile.ai_credits}</p>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                        <Button variant="secondary" onClick={() => handleBuyCredits(50, 'price_123_50')}>Comprar 50 créditos (5€)</Button>
+                        <Button variant="secondary" onClick={() => handleBuyCredits(200, 'price_123_200')}>Comprar 200 créditos (15€)</Button>
+                        <Button variant="secondary" onClick={() => handleBuyCredits(1000, 'price_123_1000')}>Comprar 1000 créditos (50€)</Button>
                     </div>
                 </CardContent>
             </Card>
+            
+             <Card>
+                <CardHeader>
+                    <h2 className="text-lg font-semibold text-white flex items-center gap-2"><CreditCard/> Pagos y Transferencias</h2>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-gray-300 mb-4">Conecta tu cuenta de Stripe para recibir pagos de clientes y gestionar tus comisiones de afiliado de forma segura.</p>
+                    {profile.stripe_onboarding_complete ? (
+                        <div className="p-4 bg-green-900/50 border border-green-700 rounded-lg text-center">
+                            <CheckCircleIcon className="w-8 h-8 mx-auto text-green-400 mb-2"/>
+                            <p className="font-semibold text-green-300">¡Tu cuenta de Stripe está conectada!</p>
+                            <p className="text-xs text-green-400">Puedes gestionar tu cuenta desde el panel de Stripe.</p>
+                        </div>
+                    ) : (
+                        <Button onClick={handleConnectStripe} disabled={isConnectingStripe}>
+                            {isConnectingStripe ? <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin"/> : null}
+                            {isConnectingStripe ? 'Conectando...' : 'Conectar con Stripe'}
+                        </Button>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Suspense fallback={null}>
+                <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} />
+            </Suspense>
         </div>
     );
 };

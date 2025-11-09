@@ -210,6 +210,7 @@ export interface Referral {
 
 export interface KnowledgeArticle {
     id: string;
+    user_id: string;
     title: string;
     content: string;
     tags: string[];
@@ -281,4 +282,40 @@ export interface GoogleJwtPayload {
   name: string;
   email: string;
   picture: string;
+}
+
+// --- NEW TEMPLATE TYPES ---
+export interface InvoiceTemplate {
+    id: string;
+    name: string;
+    items: InvoiceItem[];
+    tax_percent: number;
+}
+
+export interface ProposalTemplate {
+    id: string;
+    name: string;
+    title_template: string;
+    content_template: string;
+}
+
+
+// --- ENHANCED PORTAL TYPES ---
+export interface PortalComment {
+  id: string;
+  entityId: string; // e.g., invoiceId, proposalId, contractId
+  userName: string;
+  userAvatar: string;
+  text: string;
+  timestamp: string;
+}
+
+export interface PortalFile {
+  id:string;
+  entityId: string;
+  fileName: string;
+  fileType: string;
+  url: string;
+  uploadedAt: string;
+  uploadedBy: string;
 }

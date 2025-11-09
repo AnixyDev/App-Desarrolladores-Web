@@ -1,121 +1,108 @@
-// services/stripeService.ts
+import { loadStripe } from '@stripe/stripe-js';
+import { supabase } from '../lib/supabaseClient.js';
 
-// Estos item keys coinciden con lo que espera el componente PaymentHandler
-export const STRIPE_ITEMS = {
-    proPlan: {
-        priceId: 'price_1SOgUF8oC5awQy15dOEM5jGS', // DEPRECADO EN FRONTEND, AHORA SE GESTIONA EN BACKEND
-        mode: 'subscription' as const,
-        name: 'Pro Plan',
-        price: "3,95€",
-        description: 'Plan de equipos de desarrolladores/freelancers',
-    },
-    teamsPlan: {
-        priceId: 'price_1SOggV8oC5awQy15YW1wAgcg', // DEPRECADO EN FRONTEND
-        mode: 'subscription' as const,
-        name: 'Plan de equipos',
-        price: "35,95€",
-        description: 'Plan equipo mensual',
-    },
-    aiCredits100: {
-        priceId: 'price_1SOgpy8oC5awQy15TW22fBot', // DEPRECADO EN FRONTEND
-        mode: 'payment' as const,
-        name: '100 Créditos de IA',
-        credits: 100,
-        price: "1,95€",
-    },
-    aiCredits500: {
-        priceId: 'price_1SOgr18oC5awQy15o1gTM2VM', // DEPRECADO EN FRONTEND
-        mode: 'payment' as const,
-        name: '500 Créditos de IA',
-        credits: 500,
-        price: "3,95€",
-    },
-    aiCredits1000: {
-        priceId: 'price_1SOguC8oC5awQy15LGchpkVG', // DEPRECADO EN FRONTEND
-        mode: 'payment' as const,
-        name: '1000 Créditos de IA',
-        credits: 1000,
-        price: "5,95€",
-    },
-    featuredJobPost: {
-        priceId: 'price_1SOlOv8oC5awQy15Q2aXoEg7', // DEPRECADO EN FRONTEND
-        mode: 'payment' as const,
-        name: 'Oferta de empleo destacada',
-        price: "5,95€",
-    },
-    invoicePayment: {
-        priceId: null,
-        mode: 'payment' as const,
-        name: 'Pago de Factura',
-    }
-};
-
-export type StripeItemKey = keyof typeof STRIPE_ITEMS;
-
-declare const Stripe: any;
+// FIX: The `/// <reference types="vite/client" />` directive was causing a type definition error.
+// Casting `import.meta` to `any` allows access to Vite's environment variables without TypeScript errors.
+const STRIPE_PUBLISHABLE_KEY = (import.meta as any).env.VITE_STRIPE_PUBLISHABLE_KEY;
 
 let stripePromise: Promise<any> | null = null;
 const getStripe = () => {
-    if (!stripePromise) {
-        // Usamos la clave publicable de producción que proporcionaste.
-        const stripePublishableKey = 'pk_live_51SDWPB8oC5awQy1545zGz4ujNU8tnMm7YDT8FME95jWrGHttn8cHN7koOrcVOGqz7jXxODYmKslH1aqSaYULJPgn00WD4Bq8SD';
+  if (!stripePromise && STRIPE_PUBLISHABLE_KEY) {
+    stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
+  }
+  return stripePromise;
+};
 
-        if (!stripePublishableKey) {
-            console.error("La clave publicable de Stripe no está disponible.");
-            return null;
-        }
-        stripePromise = Stripe(stripePublishableKey);
+const getAuthToken = async (): Promise<string> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) {
+        throw new Error("No estás autenticado. No se puede realizar la operación.");
     }
-    return stripePromise;
+    return token;
 };
 
 /**
- * Llama al backend para crear una sesión de Checkout y luego redirige al usuario.
- * @param itemKey La clave del artículo en STRIPE_ITEMS.
- * @param extraParams Parámetros adicionales como `invoice_id` para pagos dinámicos.
+ * Redirige al usuario a la página de pago de Stripe.
+ * @param itemKey La clave del producto a comprar (ej. 'proPlan')
+ * @param invoiceDetails Detalles para pagos de facturas dinámicas
  */
-export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Record<string, any> = {}) => {
-    const stripe = await getStripe();
-    if (!stripe) {
-        throw new Error('Stripe.js no se ha cargado correctamente.');
+export const redirectToCheckout = async (itemKey: string, invoiceDetails?: { invoiceId: string, amount_cents: number, description: string }) => {
+  if (!STRIPE_PUBLISHABLE_KEY) {
+    alert('Error de Configuración: La clave publicable de Stripe no está configurada.');
+    throw new Error('La clave publicable de Stripe no está configurada.');
+  }
+  
+  const token = await getAuthToken();
+
+  const response = await fetch('/api/create-checkout-session', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ itemKey, ...invoiceDetails }),
+  });
+  
+  if (!response.ok) {
+    const { error } = await response.json();
+    throw new Error(error || 'No se pudo crear la sesión de pago.');
+  }
+
+  const { sessionId } = await response.json();
+  const stripe = await getStripe();
+  if (!stripe) {
+     throw new Error('Stripe.js no se ha cargado.');
+  }
+
+  const { error } = await stripe.redirectToCheckout({ sessionId });
+  if (error) {
+    console.error('Error al redirigir a Stripe:', error);
+    throw new Error('No se pudo redirigir a la página de pago.');
+  }
+};
+
+
+/**
+ * Inicia el proceso de onboarding de Stripe Connect.
+ */
+export const createConnectAccount = async () => {
+    const token = await getAuthToken();
+    const response = await fetch('/api/create-connect-account', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!response.ok) {
+        const { error } = await response.json();
+        throw new Error(error || 'No se pudo crear el enlace de Stripe Connect.');
     }
 
-    try {
-        // Llama a la función serverless para crear la sesión de pago.
-        const response = await fetch('/api/create-checkout-session', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ itemKey, extraParams }),
-        });
+    const { url } = await response.json();
+    window.location.href = url;
+};
 
-        if (!response.ok) {
-            // Evita el error de parsing JSON leyendo la respuesta como texto primero.
-            // Esto maneja errores del servidor que devuelven HTML o texto plano.
-            const errorText = await response.text();
-            let errorMessage = errorText;
-            try {
-                // Intenta parsear como JSON por si el backend SÍ envió un error JSON válido
-                const jsonError = JSON.parse(errorText);
-                errorMessage = jsonError.error || errorText;
-            } catch (e) {
-                // No es JSON, usa el texto del error directamente.
-            }
-            throw new Error(errorMessage || 'Error al crear la sesión de pago.');
-        }
-
-        const { sessionId } = await response.json();
-
-        // Redirige al usuario a la página de pago de Stripe.
-        const { error } = await stripe.redirectToCheckout({ sessionId });
-
-        if (error) {
-            console.error('Error al redirigir a Stripe:', error);
-            throw new Error(error.message || 'No se pudo redirigir a la página de pago.');
-        }
-    } catch (error) {
-        console.error('Error en el proceso de checkout:', error);
-        throw error;
+/**
+ * Redirige a un cliente al Portal de Cliente de Stripe para gestionar sus métodos de pago.
+ */
+export const redirectToCustomerPortal = async (client: { email: string; name: string; id: string; }) => {
+    const token = await getAuthToken();
+    const response = await fetch('/api/create-portal-session', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+            clientEmail: client.email, 
+            clientName: client.name,
+            clientId: client.id
+        }),
+    });
+    if (!response.ok) {
+        const { error } = await response.json();
+        throw new Error(error || 'No se pudo crear el portal de cliente.');
     }
+    const { url } = await response.json();
+    window.location.href = url;
 };

@@ -6,7 +6,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import { InvoiceItem } from '../types';
-import { PlusIcon, TrashIcon, SparklesIcon, RepeatIcon } from '../components/icons/Icon';
+import { PlusIcon, TrashIcon, SparklesIcon, RepeatIcon, SaveIcon } from '../components/icons/Icon';
 import { useToast } from '../hooks/useToast';
 import { generateItemsForDocument, AI_CREDIT_COSTS } from '../services/geminiService';
 import BuyCreditsModal from '../components/modals/BuyCreditsModal';
@@ -20,7 +20,9 @@ const CreateInvoicePage: React.FC = () => {
         profile, 
         addInvoice,
         addRecurringInvoice,
-        consumeCredits
+        consumeCredits,
+        invoiceTemplates,
+        addInvoiceTemplate
     } = useAppStore();
     const navigate = useNavigate();
     const location = useLocation();
@@ -43,6 +45,8 @@ const CreateInvoicePage: React.FC = () => {
     const [aiPrompt, setAiPrompt] = useState('');
     const [isAiLoading, setIsAiLoading] = useState(false);
     const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
+    const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+    const [templateName, setTemplateName] = useState('');
     
     useEffect(() => {
         const { projectId, clientId, timeEntryIds, budgetItems } = location.state || {};
@@ -126,6 +130,32 @@ const CreateInvoicePage: React.FC = () => {
         }
     };
 
+    const handleSaveTemplate = () => {
+        if (templateName) {
+            addInvoiceTemplate({
+                name: templateName,
+                items: newInvoice.items,
+                tax_percent: newInvoice.tax_percent
+            });
+            addToast(`Plantilla "${templateName}" guardada.`, 'success');
+            setIsTemplateModalOpen(false);
+            setTemplateName('');
+        }
+    };
+
+    const handleLoadTemplate = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const templateId = e.target.value;
+        const template = invoiceTemplates.find(t => t.id === templateId);
+        if (template) {
+            setNewInvoice(prev => ({
+                ...prev,
+                items: template.items,
+                tax_percent: template.tax_percent
+            }));
+            addToast(`Plantilla "${template.name}" cargada.`, 'info');
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (newInvoice.isRecurring) {
@@ -183,6 +213,14 @@ const CreateInvoicePage: React.FC = () => {
                 <Button type="button" variant="secondary" onClick={() => navigate('/invoices')}>Cancelar</Button>
             </div>
             <Card>
+                <CardHeader>
+                    <div className="flex justify-end">
+                         <select onChange={handleLoadTemplate} className="block w-full sm:w-auto px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
+                            <option value="">Cargar desde plantilla...</option>
+                            {invoiceTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                    </div>
+                </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -243,7 +281,10 @@ const CreateInvoicePage: React.FC = () => {
                     ))}
                     <Button type="button" variant="secondary" size="sm" onClick={addItem}><PlusIcon className="w-4 h-4 mr-1"/>Añadir Concepto</Button>
                 </CardContent>
-                <CardFooter className="flex justify-end">
+                <CardFooter className="flex justify-end gap-2">
+                     <Button type="button" variant="secondary" onClick={() => setIsTemplateModalOpen(true)}>
+                        <SaveIcon className="w-4 h-4 mr-2" />Guardar como Plantilla
+                     </Button>
                      <Button type="submit">Guardar Factura</Button>
                 </CardFooter>
             </Card>
@@ -256,6 +297,17 @@ const CreateInvoicePage: React.FC = () => {
                     <div className="flex justify-end pt-2">
                         <Button onClick={handleAiGenerate} disabled={isAiLoading || !aiPrompt}>
                            {isAiLoading ? 'Generando...' : `Generar (${AI_CREDIT_COSTS.generateInvoiceItems} créditos)`}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+            
+            <Modal isOpen={isTemplateModalOpen} onClose={() => setIsTemplateModalOpen(false)} title="Guardar Plantilla de Factura">
+                <div className="space-y-4">
+                    <Input label="Nombre de la Plantilla" value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="Ej: Factura de Mantenimiento Mensual" />
+                    <div className="flex justify-end pt-2">
+                        <Button onClick={handleSaveTemplate} disabled={!templateName}>
+                            Guardar Plantilla
                         </Button>
                     </div>
                 </div>

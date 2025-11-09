@@ -1,3 +1,4 @@
+
 // pages/ClientDetailPage.tsx
 import React, { useState, lazy, Suspense, useMemo, useEffect } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -12,6 +13,7 @@ import StatusChip from '../components/ui/StatusChip';
 import EmptyState from '../components/ui/EmptyState';
 import Input from '../components/ui/Input';
 import { useToast } from '../hooks/useToast';
+import { redirectToCustomerPortal } from '../services/stripeService';
 
 
 const ClientIncomeChart = lazy(() => import('../components/charts/ClientIncomeChart'));
@@ -87,21 +89,11 @@ const ClientDetailPage: React.FC = () => {
     const handleManagePaymentMethods = async () => {
         setIsPortalLoading(true);
         try {
-            const response = await fetch('/api/create-portal-session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    clientEmail: client.email, 
-                    clientName: client.name,
-                    clientId: client.id
-                }),
+            await redirectToCustomerPortal({
+                email: client.email,
+                name: client.name,
+                id: client.id
             });
-            if (!response.ok) {
-                const { error } = await response.json();
-                throw new Error(error || 'No se pudo crear el portal de cliente.');
-            }
-            const { url } = await response.json();
-            window.location.href = url;
         } catch (error) {
             addToast((error as Error).message, 'error');
             setIsPortalLoading(false);

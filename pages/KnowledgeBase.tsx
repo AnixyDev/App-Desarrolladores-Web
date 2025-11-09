@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import { BookIcon, PlusIcon, SearchIcon, EditIcon, TrashIcon, SparklesIcon, FileSignatureIcon, BrainCircuitIcon } from '../components/icons/Icon';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
@@ -194,9 +195,9 @@ const KnowledgeBase: React.FC = () => {
             {isModalOpen && currentArticle && (
                 <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={currentArticle.id ? "Editar Artículo" : "Nuevo Artículo"}>
                     <div className="space-y-4">
-                        <Input label="Título" value={currentArticle.title} onChange={(e) => setCurrentArticle(prev => ({...prev, title: e.target.value}))} />
-                        <textarea value={currentArticle.content} onChange={(e) => setCurrentArticle(prev => ({...prev, content: e.target.value}))} rows={10} className="w-full p-2 bg-gray-800 text-gray-300 border border-gray-700 rounded-md" placeholder="Contenido del artículo (soporta Markdown)..." />
-                        <Input label="Tags (separados por comas)" value={Array.isArray(currentArticle.tags) ? currentArticle.tags.join(', ') : ''} onChange={(e) => setCurrentArticle(prev => ({...prev, tags: e.target.value.split(',').map(t => t.trim())}))} />
+                        <Input label="Título" value={currentArticle.title} onChange={(e) => setCurrentArticle(prev => prev ? ({...prev, title: e.target.value}) : null)} />
+                        <textarea value={currentArticle.content} onChange={(e) => setCurrentArticle(prev => prev ? ({...prev, content: e.target.value}) : null)} rows={10} className="w-full p-2 bg-gray-800 text-gray-300 border border-gray-700 rounded-md" placeholder="Contenido del artículo (soporta Markdown)..." />
+                        <Input label="Tags (separados por comas)" value={Array.isArray(currentArticle.tags) ? currentArticle.tags.join(', ') : ''} onChange={(e) => setCurrentArticle(prev => prev ? ({...prev, tags: e.target.value.split(',').map(t => t.trim())}) : null)} />
                         <div className="flex justify-between pt-4">
                              <Button variant="secondary" onClick={handleGenerateQuiz} disabled={!currentArticle.content || isLoading}><BrainCircuitIcon className="w-4 h-4 mr-2"/>Crear Cuestionario</Button>
                              <Button onClick={handleSave}>Guardar Artículo</Button>
