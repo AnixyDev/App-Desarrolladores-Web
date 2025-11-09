@@ -34,7 +34,10 @@ const ProposalsPage: React.FC = () => {
     };
 
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setNewProposal(prev => ({ ...prev, amount_cents: Math.round(Number(e.target.value) * 100) }));
+        const value = e.target.value;
+        // Permite un string vacío para limpiar el input, si no, lo convierte a número
+        const amountInCents = value === '' ? 0 : Math.round(Number(value) * 100);
+        setNewProposal(prev => ({ ...prev, amount_cents: amountInCents }));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -96,7 +99,15 @@ const ProposalsPage: React.FC = () => {
                         <label className="block text-sm font-medium text-gray-300 mb-1">Contenido</label>
                          <textarea name="content" rows={8} value={newProposal.content} onChange={handleInputChange} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white" />
                     </div>
-                    <Input label="Importe Total (€)" name="amount_cents" type="number" step="0.01" onChange={handleAmountChange} required />
+                    <Input 
+                        label="Importe Total (€)" 
+                        name="amount_cents" 
+                        type="number" 
+                        step="0.01" 
+                        value={newProposal.amount_cents === 0 ? '' : newProposal.amount_cents / 100}
+                        onChange={handleAmountChange} 
+                        required 
+                    />
                     <div className="flex justify-end pt-4">
                         <Button type="submit">Guardar y Enviar Propuesta</Button>
                     </div>
