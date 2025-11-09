@@ -299,6 +299,12 @@ export interface ProposalTemplate {
     content_template: string;
 }
 
+export interface ContractTemplate {
+    id: string;
+    name: string;
+    content_template: string;
+}
+
 
 // --- ENHANCED PORTAL TYPES ---
 export interface PortalComment {

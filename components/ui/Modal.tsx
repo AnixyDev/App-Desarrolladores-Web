@@ -27,10 +27,11 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
       aria-labelledby="modal-title"
     >
       <div
-        className={`bg-slate-900 rounded-lg shadow-2xl w-full border border-slate-700 animate-modal-fade-in ${sizeClasses[size]}`}
+        className={`relative bg-slate-900 rounded-lg shadow-2xl w-full border border-slate-700 animate-modal-fade-in ${sizeClasses[size]} overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center p-4 border-b border-slate-800">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-fuchsia-600 to-purple-600"></div>
+        <div className="flex justify-between items-center p-4 pt-6">
           <h3 id="modal-title" className="text-lg font-semibold text-white">{title}</h3>
           <button
             onClick={onClose}
@@ -40,7 +41,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-6">
+        <div className="p-6 pt-2 bg-slate-900/50">
           {children}
         </div>
       </div>

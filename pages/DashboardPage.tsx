@@ -11,12 +11,10 @@ import Skeleton from '../components/ui/Skeleton';
 
 const IncomeExpenseChart = lazy(() => import('../components/charts/IncomeExpenseChart'));
 
-const StatCard: React.FC<{ icon: React.ElementType; title: string; value: string | number; link?: string }> = ({ icon: Icon, title, value, link }) => {
+const StatCard: React.FC<{ icon: React.ElementType; title: string; value: string | number; link?: string; iconColor?: string; }> = ({ icon: Icon, title, value, link, iconColor = 'text-primary-400' }) => {
     const content = (
         <CardContent className="flex items-center p-4">
-            <div className="p-3 rounded-full bg-primary-600/20 text-primary-400 mr-4">
-                <Icon className="w-6 h-6" />
-            </div>
+            <Icon className={`w-7 h-7 mr-4 ${iconColor}`} />
             <div>
                 <p className="text-sm text-gray-400">{title}</p>
                 <p className="text-2xl font-bold text-white">{value}</p>
@@ -24,10 +22,16 @@ const StatCard: React.FC<{ icon: React.ElementType; title: string; value: string
         </CardContent>
     );
 
+    const cardElement = (
+        <Card className="h-full">
+            {content}
+        </Card>
+    );
+
     if (link) {
-        return <Link to={link} className="block hover:bg-gray-800/50 rounded-lg"><Card>{content}</Card></Link>;
+        return <Link to={link} className="block h-full">{cardElement}</Link>;
     }
-    return <Card>{content}</Card>;
+    return cardElement;
 };
 
 const AICoachWidget: React.FC = () => {
@@ -121,10 +125,10 @@ const DashboardPage: React.FC = () => {
             <h1 className="text-2xl font-semibold text-white">Hola, {profile?.full_name?.split(' ')[0]}</h1>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard icon={DollarSignIcon} title="Ingresos este Mes" value={formatCurrency(stats.paidThisMonth)} />
-                <StatCard icon={FileTextIcon} title="Pendiente de Cobro" value={formatCurrency(stats.pendingInvoices)} />
-                <StatCard icon={BriefcaseIcon} title="Proyectos Activos" value={stats.activeProjects} />
-                <StatCard icon={ClockIcon} title="Horas (Últimos 7 días)" value={`${stats.hoursThisWeek.toFixed(1)}h`} />
+                <StatCard icon={DollarSignIcon} title="Ingresos este Mes" value={formatCurrency(stats.paidThisMonth)} iconColor="text-green-400" />
+                <StatCard icon={FileTextIcon} title="Pendiente de Cobro" value={formatCurrency(stats.pendingInvoices)} iconColor="text-yellow-400" />
+                <StatCard icon={BriefcaseIcon} title="Proyectos Activos" value={stats.activeProjects} iconColor="text-blue-400" />
+                <StatCard icon={ClockIcon} title="Horas (Últimos 7 días)" value={`${stats.hoursThisWeek.toFixed(1)}h`} iconColor="text-purple-400"/>
             </div>
 
             <AICoachWidget />
@@ -154,7 +158,7 @@ const DashboardPage: React.FC = () => {
                             <span>{goalProgress.toFixed(0)}%</span>
                         </div>
                         <div className="w-full bg-gray-700 rounded-full h-2.5">
-                            <div className="bg-primary-600 h-2.5 rounded-full" style={{ width: `${Math.min(goalProgress, 100)}%` }}></div>
+                            <div className="bg-gradient-to-r from-fuchsia-600 to-purple-600 h-2.5 rounded-full" style={{ width: `${Math.min(goalProgress, 100)}%` }}></div>
                         </div>
                     </div>
                 </CardContent>

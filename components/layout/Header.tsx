@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../../hooks/useAppStore';
-// FIX: Correctly import aliased icons from Icon.tsx
 import { MenuIcon, BellIcon, LogOutIcon, UserIcon, FileTextIcon, BriefcaseIcon, Users as UsersIcon } from '../icons/Icon';
 import { Link } from 'react-router-dom';
 
@@ -65,8 +64,8 @@ const Header: React.FC<{ setSidebarOpen: (isOpen: boolean) => void; }> = ({ setS
                         )}
                     </button>
                     {isDropdownOpen && (
-                        <div className="absolute right-0 top-full w-80 pt-2 z-20">
-                            <div className="bg-slate-800 border border-slate-700 rounded-md shadow-lg">
+                        <div className="absolute right-0 top-full w-80 pt-2 z-20 animate-fade-in-down">
+                            <div className="bg-slate-800 border border-slate-700/50 rounded-md shadow-2xl">
                                 <div className="p-3 flex justify-between items-center border-b border-slate-700">
                                     <h4 className="font-semibold text-white">Notificaciones</h4>
                                     <button onClick={handleMarkAllRead} className="text-xs text-primary-400 hover:underline">Marcar todo como leído</button>
@@ -109,8 +108,8 @@ const Header: React.FC<{ setSidebarOpen: (isOpen: boolean) => void; }> = ({ setS
                         </div>
                     </button>
                     {isUserMenuOpen && (
-                        <div className="absolute right-0 top-full w-56 pt-2 z-20">
-                            <div className="bg-slate-800 border border-slate-700 rounded-md shadow-lg py-1">
+                        <div className="absolute right-0 top-full w-56 pt-2 z-20 animate-fade-in-down">
+                            <div className="bg-slate-800 border border-slate-700/50 rounded-md shadow-2xl py-1">
                                 <Link to="/settings" onClick={() => setIsUserMenuOpen(false)} className="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700">Mi Perfil y Ajustes</Link>
                                 <div className="border-t border-slate-700 my-1"></div>
                                 <button

@@ -30,26 +30,33 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId }) => {
 
     useEffect(scrollToBottom, [messages]);
 
-    const handleSend = (e: React.FormEvent) => {
+    const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
         if (input.trim() === '' || !profile) return;
 
-        const messageData = {
-            project_id: projectId,
-            user_id: profile.id,
-            user_name: profile.full_name,
-            text: input,
-        };
+        setIsLoading(true);
+        try {
+            const messageData = {
+                project_id: projectId,
+                user_id: profile.id,
+                user_name: profile.full_name,
+                text: input,
+            };
 
-        const emailMessage = addProjectComment(messageData);
-        if (emailMessage) {
-            addToast(emailMessage, 'info');
+            const emailMessage = await addProjectComment(messageData);
+            if (emailMessage) {
+                addToast(emailMessage, 'info');
+            }
+            setInput('');
+        } catch (error) {
+            addToast(`Error al enviar mensaje: ${(error as Error).message}`, 'error');
+        } finally {
+            setIsLoading(false);
         }
-        setInput('');
     };
 
     const handleSummarize = async () => {
-        if (profile.ai_credits < AI_CREDIT_COSTS.summarizeChat) {
+        if (!profile || profile.ai_credits < AI_CREDIT_COSTS.summarizeChat) {
             setIsBuyCreditsModalOpen(true);
             return;
         }
@@ -57,15 +64,13 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId }) => {
         try {
             const chatHistory = messages.map(m => `${m.user_name}: ${m.text}`).join('\n');
             const summary = await summarizeChatHistory(chatHistory);
-            const aiMessage: ProjectMessage = {
-                id: `msg-${Date.now()}`,
+            const aiMessageData = {
                 project_id: projectId,
                 user_id: 'ai',
                 user_name: 'Asistente IA',
                 text: summary,
-                timestamp: new Date().toISOString()
             };
-            addProjectComment(aiMessage);
+            await addProjectComment(aiMessageData);
             consumeCredits(AI_CREDIT_COSTS.summarizeChat);
         } catch(e) {
             addToast((e as Error).message, 'error');
@@ -103,8 +108,9 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId }) => {
                         placeholder="Escribe tu mensaje..."
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
+                        disabled={isLoading}
                     />
-                    <Button type="submit"><SendIcon className="w-5 h-5" /></Button>
+                    <Button type="submit" disabled={isLoading}><SendIcon className="w-5 h-5" /></Button>
                 </form>
             </div>
             <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />

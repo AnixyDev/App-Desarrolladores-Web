@@ -44,6 +44,10 @@ const TeamManagementDashboard: React.FC = () => {
     
     setIsSending(true);
     try {
+      // First, persist the user to the database via the store
+      await inviteUser(newMember.name, newMember.email, newMember.role);
+      
+      // Then, attempt to send the email
       const invitationLink = `${window.location.origin}/#/auth/register`;
       const subject = `Has sido invitado al equipo de ${profile.business_name} en DevFreelancer`;
       const html = `<h1>¡Hola ${newMember.name}!</h1><p>Has sido invitado a unirte al equipo de <strong>${profile.business_name}</strong> en DevFreelancer con el rol de ${newMember.role}.</p><p><a href="${invitationLink}">Haz clic aquí para crear tu cuenta y aceptar la invitación.</a></p>`;
@@ -58,7 +62,6 @@ const TeamManagementDashboard: React.FC = () => {
         throw new Error('El servidor de correo no respondió correctamente.');
       }
 
-      inviteUser(newMember.name, newMember.email, newMember.role);
       addToast(`Invitación enviada a ${newMember.email}`, 'success');
       
       setNewMember({ name: '', email: '', role: roles[0] });
@@ -66,7 +69,7 @@ const TeamManagementDashboard: React.FC = () => {
       setEmailError('');
 
     } catch (error) {
-      addToast('Error al enviar la invitación. Por favor, inténtalo de nuevo.', 'error');
+      addToast(`Error: ${(error as Error).message}`, 'error');
     } finally {
       setIsSending(false);
     }
@@ -77,11 +80,17 @@ const TeamManagementDashboard: React.FC = () => {
     setIsConfirmModalOpen(true);
   };
   
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
       if (memberToDelete) {
-          deleteUser(memberToDelete.id);
-          setIsConfirmModalOpen(false);
-          setMemberToDelete(null);
+          try {
+              await deleteUser(memberToDelete.id);
+              addToast(`Miembro "${memberToDelete.name}" eliminado.`, 'info');
+          } catch (error) {
+              addToast(`Error al eliminar: ${(error as Error).message}`, 'error');
+          } finally {
+              setIsConfirmModalOpen(false);
+              setMemberToDelete(null);
+          }
       }
   };
   
@@ -140,7 +149,7 @@ const TeamManagementDashboard: React.FC = () => {
               ) : (
                 <Mail className="w-5 h-5 mr-2" />
               )}
-              {isSending ? 'Enviando...' : 'Enviar Invitación'}
+              {isSending ? 'Enviando...' : 'Invitar y Enviar Email'}
             </Button>
           </div>
         </form>

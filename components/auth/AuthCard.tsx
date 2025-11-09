@@ -1,17 +1,12 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 
 const AuthCard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg shadow-lg w-full flex flex-col">
-            <div className="p-8">
-                {children}
-            </div>
-            <div className="p-4 border-t border-gray-800 bg-gray-800/20 rounded-b-lg text-center mt-auto">
-                <Link to="/privacy-policy" className="text-xs text-gray-500 hover:text-gray-300 hover:underline">
-                    Política de Privacidad
-                </Link>
-            </div>
+        <div 
+          className="w-full p-8 rounded-3xl shadow-2xl shadow-fuchsia-heavy border-t-8 border-primary-500"
+          style={{ backgroundColor: '#111111' }}
+        >
+          {children}
         </div>
     );
 };

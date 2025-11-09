@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import { BookIcon, PlusIcon, SearchIcon, EditIcon, TrashIcon, SparklesIcon, FileSignatureIcon, BrainCircuitIcon } from '../components/icons/Icon';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
@@ -28,7 +27,6 @@ const useDebounce = (value: string, delay: number) => {
 
 
 const KnowledgeBase: React.FC = () => {
-    // FIX: Use the global store for articles and their management functions instead of local state.
     const { profile, consumeCredits, articles, addArticle, updateArticle, deleteArticle } = useAppStore();
     const { addToast } = useToast();
 
@@ -75,7 +73,9 @@ const KnowledgeBase: React.FC = () => {
 
     const displayedArticles = useMemo(() => {
         if (debouncedSearchTerm.trim() && rankedArticleIds.length > 0) {
-            return [...articles].sort((a, b) => rankedArticleIds.indexOf(a.id) - rankedArticleIds.indexOf(b.id));
+            const ranked = rankedArticleIds.map(id => articles.find(a => a.id === id)).filter(Boolean) as KnowledgeArticle[];
+            const unranked = articles.filter(a => !rankedArticleIds.includes(a.id));
+            return [...ranked, ...unranked];
         }
         return articles;
     }, [articles, rankedArticleIds, debouncedSearchTerm]);
@@ -85,17 +85,24 @@ const KnowledgeBase: React.FC = () => {
         setIsModalOpen(true);
     };
     
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!currentArticle?.title || !currentArticle?.content) return;
         
-        if (currentArticle.id) {
-            // FIX: Use updateArticle from the store.
-            updateArticle(currentArticle);
-        } else {
-            // FIX: Use addArticle from the store.
-            addArticle(currentArticle);
+        setIsLoading(true);
+        try {
+            if (currentArticle.id) {
+                await updateArticle(currentArticle);
+                addToast('Artículo actualizado.', 'success');
+            } else {
+                await addArticle(currentArticle);
+                addToast('Artículo creado.', 'success');
+            }
+            setIsModalOpen(false);
+        } catch(error) {
+            addToast(`Error al guardar: ${(error as Error).message}`, 'error');
+        } finally {
+            setIsLoading(false);
         }
-        setIsModalOpen(false);
     };
     
     const handleDelete = (article: KnowledgeArticle) => {
@@ -103,12 +110,17 @@ const KnowledgeBase: React.FC = () => {
         setIsConfirmModalOpen(true);
     };
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         if (articleToDelete) {
-            // FIX: Use deleteArticle from the store.
-            deleteArticle(articleToDelete.id);
-            setIsConfirmModalOpen(false);
-            setArticleToDelete(null);
+            try {
+                await deleteArticle(articleToDelete.id);
+                addToast('Artículo eliminado.', 'info');
+            } catch (error) {
+                addToast(`Error al eliminar: ${(error as Error).message}`, 'error');
+            } finally {
+                setIsConfirmModalOpen(false);
+                setArticleToDelete(null);
+            }
         }
     };
     
@@ -181,7 +193,7 @@ const KnowledgeBase: React.FC = () => {
                             </div>
                         </CardContent>
                         <div className="p-4 border-t border-gray-800 flex justify-between items-center text-xs text-gray-500">
-                            <span>Actualizado: {article.updated_at}</span>
+                            <span>Actualizado: {new Date(article.updated_at).toLocaleDateString()}</span>
                             <div className="flex gap-2">
                                 <Button size="sm" variant="secondary" onClick={() => openModal(article)}><EditIcon className="w-4 h-4"/></Button>
                                 <Button size="sm" variant="danger" onClick={() => handleDelete(article)}><TrashIcon className="w-4 h-4"/></Button>
@@ -200,7 +212,7 @@ const KnowledgeBase: React.FC = () => {
                         <Input label="Tags (separados por comas)" value={Array.isArray(currentArticle.tags) ? currentArticle.tags.join(', ') : ''} onChange={(e) => setCurrentArticle(prev => prev ? ({...prev, tags: e.target.value.split(',').map(t => t.trim())}) : null)} />
                         <div className="flex justify-between pt-4">
                              <Button variant="secondary" onClick={handleGenerateQuiz} disabled={!currentArticle.content || isLoading}><BrainCircuitIcon className="w-4 h-4 mr-2"/>Crear Cuestionario</Button>
-                             <Button onClick={handleSave}>Guardar Artículo</Button>
+                             <Button onClick={handleSave} disabled={isLoading}>{isLoading ? 'Guardando...' : 'Guardar Artículo'}</Button>
                         </div>
                     </div>
                 </Modal>

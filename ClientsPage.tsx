@@ -34,6 +34,7 @@ const ClientsPage: React.FC = () => {
     const [editingClient, setEditingClient] = useState<Client | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [emailError, setEmailError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const filteredClients = useMemo(() => {
         if (!searchTerm) return clients;
@@ -75,22 +76,27 @@ const ClientsPage: React.FC = () => {
         setEmailError('');
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateEmail(formData.email)) {
             setEmailError('Por favor, introduce un correo electrónico válido.');
             return;
         }
 
-        if (formData.name && formData.email) {
+        setIsSubmitting(true);
+        try {
             if (editingClient) {
-                updateClient(formData as Client);
+                await updateClient(formData as Client);
                 addToast('Cliente actualizado con éxito', 'success');
             } else {
-                addClient(formData as NewClient);
+                await addClient(formData as NewClient);
                 addToast('Cliente añadido con éxito', 'success');
             }
             closeModal();
+        } catch (error) {
+            addToast(`Error: ${(error as Error).message}`, 'error');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -99,12 +105,17 @@ const ClientsPage: React.FC = () => {
         setIsConfirmModalOpen(true);
     };
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         if (clientToDelete) {
-            deleteClient(clientToDelete.id);
-            addToast(`Cliente "${clientToDelete.name}" eliminado`, 'info');
-            setIsConfirmModalOpen(false);
-            setClientToDelete(null);
+            try {
+                await deleteClient(clientToDelete.id);
+                addToast(`Cliente "${clientToDelete.name}" eliminado`, 'info');
+            } catch(error) {
+                addToast(`Error al eliminar: ${(error as Error).message}`, 'error');
+            } finally {
+                setIsConfirmModalOpen(false);
+                setClientToDelete(null);
+            }
         }
     };
 
@@ -225,7 +236,9 @@ const ClientsPage: React.FC = () => {
                     <Input name="email" label="Email" type="email" value={formData.email} onChange={handleInputChange} required error={emailError} />
                     <Input name="phone" label="Teléfono (Opcional)" value={formData.phone} onChange={handleInputChange} />
                     <div className="flex justify-end pt-4">
-                        <Button type="submit">Guardar Cliente</Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? 'Guardando...' : 'Guardar Cliente'}
+                        </Button>
                     </div>
                 </form>
             </Modal>

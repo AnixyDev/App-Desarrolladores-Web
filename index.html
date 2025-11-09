@@ -1,118 +1,61 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3csvg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cdefs%3e%3clinearGradient id='logoGradient' x1='0' y1='0' x2='32' y2='32' gradientUnits='userSpaceOnUse'%3e%3cstop stop-color='%23F000B8'/%3e%3cstop offset='1' stop-color='%239D00FF'/%3e%3c/linearGradient%3e%3c/defs%3e%3ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='20' font-family='Inter, sans-serif' font-weight='800' fill='url(%23logoGradient)'%3eDF%3c/text%3e%3c/svg%3e" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DevFreelancer</title>
-    <base href="/">
-    
-    <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml,%3csvg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cdefs%3e%3clinearGradient id='logoGradient' x1='0' y1='0' x2='32' y2='32' gradientUnits='userSpaceOnUse'%3e%3cstop stop-color='%23F000B8'/%3e%3cstop offset='1' stop-color='%239D00FF'/%3e%3c/linearGradient%3e%3c/defs%3e%3ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='20' font-family='Inter, sans-serif' font-weight='800' fill='url(%23logoGradient)'%3eDF%3c/text%3e%3c/svg%3e">
 
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <!-- Stripe.js -->
-    <script src="https://js.stripe.com/v3/"></script>
-    <script async src="https://js.stripe.com/v3/pricing-table.js"></script>
-
-    <!-- Tailwind JIT placeholer styles & custom variables -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                '400': '#ff33ff',
+                '500': '#ff00ff',
+                '600': '#e600e6',
+                '700': '#cc00cc',
+              }
+            },
+            boxShadow: {
+              'fuchsia-heavy': '0 10px 15px -3px rgba(179, 0, 179, 0.5), 0 4px 6px -2px rgba(179, 0, 179, 0.5)',
+            }
+          }
+        }
+      }
+    </script>
     <style>
-      /* Base styles */
       body {
+        background-color: #11111F;
+        color: #f8fafc;
         font-family: 'Inter', sans-serif;
-        background-color: #020617; /* bg-slate-950 */
-        color: #f8fafc; /* text-slate-50 */
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
       }
-      *, *::before, *::after {
-        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, box-shadow;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        transition-duration: 150ms;
+      .auth-background { background-color: #0a0a0a; }
+      .main-app-background {
+          background-color: #0f172a;
+          background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Cg fill-rule="evenodd"%3E%3Cg fill="%23020617" fill-opacity="0.4"%3E%3Cpath opacity=".5" d="M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z"/%3E%3Cpath d="M6 5V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h4V0h1v5h5v1h-5v4h5v1h-5v4h5v1h-5v4h5v1h-5v4h5v1h-5v4h5v1h-5v4h5v1h-5v4h5v1h-5v4h5v1h-5v4h5v1h-4v5h-1v-5h-4v5h-1v-5h-4v5h-1v-5h-4v5h-1v-5h-4v5h-1v-5h-4v5h-1v-5h-4v5H6v-5H5v-1h1v-4H5v-1h1v-4H5v-1h1v-4H5v-1h1v-4H5v-1h1v-4H5v-1h1v-4H5v-1h1v-4H5v-1h1V6H5V5h1z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
       }
-
-      /* Custom Scrollbar */
-      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      ::-webkit-scrollbar { width: 12px; height: 12px; }
       ::-webkit-scrollbar-track { background: #0f172a; }
-      ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-      ::-webkit-scrollbar-thumb:hover { background: #475569; }
-
-      /* Table Row Hover */
-      tbody tr:hover {
-        background-color: rgba(30, 41, 59, 0.5); /* bg-slate-800/50 */
-      }
-
-      /* Custom primary color palette */
-      :root {
-        --primary-400: #f000b8;
-        --primary-500: #d9009f;
-        --primary-600: #c026d3;
-        --primary-700: #a21caf;
-      }
-      .text-primary-400 { color: var(--primary-400); }
-      .bg-primary-500 { background-color: var(--primary-500); }
-      .bg-primary-600 { background-color: var(--primary-600); }
-      .hover\\:bg-primary-700:hover { background-color: var(--primary-700); }
-      .focus\\:ring-primary-500:focus { --tw-ring-color: var(--primary-500); }
-      .focus\\:border-primary-500:focus { border-color: var(--primary-500); }
-      .bg-primary-600\\/20 { background-color: rgba(192, 38, 211, 0.2); }
-      .border-primary-500 { border-color: var(--primary-500); }
-      
-      /* Custom fuchsia colors for static pages */
-      .text-fuchsia-500 { color: #f000b8; }
-      .bg-fuchsia-600 { background-color: #f000b8; }
-      .hover\\:bg-fuchsia-700:hover { background-color: #d9009f; }
-      .border-fuchsia-600 { border-color: #f000b8; }
-      .focus\\:border-fuchsia-500:focus { border-color: #f000b8; }
-      .focus\\:ring-fuchsia-500:focus { --tw-ring-color: #f000b8; }
-      .shadow-fuchsia-900\\/50 { box-shadow: 0 10px 15px -3px rgba(112, 26, 117, 0.5), 0 4px 6px -2px rgba(112, 26, 117, 0.5); }
-      .shadow-fuchsia-500\\/50 { box-shadow: 0 10px 15px -3px rgba(240, 0, 184, 0.5), 0 4px 6px -2px rgba(240, 0, 184, 0.5); }
-      .bg-fuchsia-200 { background-color: #fae8ff; }
-      .text-fuchsia-800 { color: #86198f; }
-      .bg-fuchsia-900\\/30 { background-color: rgba(112, 26, 117, 0.3); }
-      .bg-fuchsia-800\\/50 { background-color: rgba(134, 25, 143, 0.5); }
-      
-       /* Styles for prose (Markdown rendering in KnowledgeBase) */
-      .prose { color: #d1d5db; }
-      .prose h1, .prose h2, .prose h3 { font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; color: #fff; }
-      .prose p { margin-bottom: 1rem; }
-      .prose ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
-      .prose pre { padding: 1rem; border-radius: 0.5rem; background-color: #1e293b; white-space: pre-wrap; }
-      .prose code { color: #d1d5db; }
-      .prose-invert { /* already dark */ }
-
-      /* Animation for Toast */
-      @keyframes fade-in-right {
-        from {
-          opacity: 0;
-          transform: translateX(100%);
-        }
-        to {
-          opacity: 1;
-          transform: translateX(0);
-        }
-      }
-      .animate-fade-in-right {
-        animation: fade-in-right 0.3s ease-out forwards;
-      }
-      
-      /* Animation for Modal */
-      @keyframes modal-fade-in {
-        from {
-          opacity: 0;
-          transform: scale(0.95);
-        }
-        to {
-          opacity: 1;
-          transform: scale(1);
-        }
-      }
-      .animate-modal-fade-in {
-        animation: modal-fade-in 0.2s ease-out forwards;
-      }
+      ::-webkit-scrollbar-thumb { background: #334155; border-radius: 6px; border: 3px solid #0f172a; }
+      ::-webkit-scrollbar-thumb:hover { background: #e600e6; }
+      button, a, input, select, textarea, div { transition: all 0.2s ease-in-out; }
+      thead { background-color: #1e293b; }
+      tbody tr:hover { background-color: #1e293b; }
+      @keyframes modal-fade-in { from { opacity: 0; transform: scale(0.95) translateY(-10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+      .animate-modal-fade-in { animation: modal-fade-in 0.3s ease-out forwards; }
+      @keyframes fade-in-right { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+      .animate-fade-in-right { animation: fade-in-right 0.3s ease-out forwards; }
+      @keyframes fade-in-down { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+      .animate-fade-in-down { animation: fade-in-down 0.2s ease-out forwards; }
     </style>
 <script type="importmap">
 {
@@ -123,24 +66,24 @@
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
     "zustand/": "https://aistudiocdn.com/zustand@^5.0.8/",
+    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.80.0",
     "lucide-react": "https://aistudiocdn.com/lucide-react@^0.553.0",
     "recharts": "https://aistudiocdn.com/recharts@^3.3.0",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0",
     "jspdf": "https://aistudiocdn.com/jspdf@^3.0.3",
     "jspdf-autotable": "https://aistudiocdn.com/jspdf-autotable@^5.0.2",
-    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
-    "@stripe/stripe-js": "https://aistudiocdn.com/@stripe/stripe-js@^8.3.0",
-    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.80.0",
     "marked": "https://aistudiocdn.com/marked@^17.0.0",
     "vite": "https://aistudiocdn.com/vite@^7.2.2",
     "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.0",
-    "resend": "https://aistudiocdn.com/resend@^6.4.2"
+    "resend": "https://aistudiocdn.com/resend@^6.4.2",
+    "react-hook-form": "https://aistudiocdn.com/react-hook-form@^7.52.0"
   }
 }
 </script>
 </head>
-<body>
+  <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
-</body>
+  </body>
 </html>

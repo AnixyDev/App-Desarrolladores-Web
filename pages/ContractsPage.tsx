@@ -9,6 +9,8 @@ import { SendIcon, FileSignatureIcon } from '../components/icons/Icon';
 import StatusChip from '../components/ui/StatusChip';
 import { ContractCard } from '../contracts/ContractCard';
 import EmptyState from '../components/ui/EmptyState';
+import Input from '../components/ui/Input';
+import { useToast } from '../hooks/useToast';
 
 const CONTRACT_TEMPLATE = `CONTRATO DE PRESTACIÓN DE SERVICIOS FREELANCE
 
@@ -36,47 +38,75 @@ Firmado a [CURRENT_DATE].
 `;
 
 const ContractsPage: React.FC = () => {
-    const { profile, contracts, clients, projects, addContract, sendContract, getClientById, getProjectById, setContractExpiration } = useAppStore();
+    const { profile, contracts, clients, projects, addContract, sendContract, getClientById, getProjectById, setContractExpiration, contractTemplates, addContractTemplate } = useAppStore();
+    const { addToast } = useToast();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const [selectedClientId, setSelectedClientId] = useState<string>(clients[0]?.id || '');
     const [selectedProjectId, setSelectedProjectId] = useState<string>('');
     const [contractContent, setContractContent] = useState('');
+    const [loadedTemplateId, setLoadedTemplateId] = useState<string | null>(null);
+    const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+    const [templateName, setTemplateName] = useState('');
 
     const clientProjects = useMemo(() => projects.filter(p => p.client_id === selectedClientId), [projects, selectedClientId]);
 
     useEffect(() => {
-        if (clientProjects.length > 0) {
+        if (clientProjects.length > 0 && !clientProjects.find(p => p.id === selectedProjectId)) {
             setSelectedProjectId(clientProjects[0].id);
-        } else {
+        } else if (clientProjects.length === 0) {
             setSelectedProjectId('');
         }
-    }, [clientProjects]);
+    }, [clientProjects, selectedProjectId]);
     
     useEffect(() => {
-        if (selectedProjectId) {
-            const project = getProjectById(selectedProjectId);
-            const client = getClientById(selectedClientId);
-            if (project && client && profile) {
-                const newContent = CONTRACT_TEMPLATE
-                    .replace('[YOUR_NAME]', profile.full_name)
-                    .replace('[YOUR_TAX_ID]', profile.tax_id)
-                    .replace('[CLIENT_NAME]', client.name)
-                    .replace('[CLIENT_COMPANY]', client.company || client.name)
-                    .replace('[PROJECT_NAME]', project.name)
-                    .replace('[PROJECT_DESCRIPTION]', project.description || 'No especificada.')
-                    .replace('[PROJECT_DUE_DATE]', project.due_date)
-                    .replace('[PROJECT_BUDGET]', project.budget_cents ? formatCurrency(project.budget_cents) : 'a convenir')
-                    .replace('[CURRENT_DATE]', new Date().toLocaleDateString('es-ES'));
-                setContractContent(newContent);
+        const project = getProjectById(selectedProjectId);
+        const client = getClientById(selectedClientId);
+        if (project && client && profile) {
+            let templateContent = CONTRACT_TEMPLATE; // Default
+            if (loadedTemplateId) {
+                const loadedTemplate = contractTemplates.find(t => t.id === loadedTemplateId);
+                if (loadedTemplate) {
+                    templateContent = loadedTemplate.content_template;
+                }
             }
+            
+            const newContent = templateContent
+                .replace(/\[YOUR_NAME\]/g, profile.full_name)
+                .replace(/\[YOUR_TAX_ID\]/g, profile.tax_id)
+                .replace(/\[CLIENT_NAME\]/g, client.name)
+                .replace(/\[CLIENT_COMPANY\]/g, client.company || client.name)
+                .replace(/\[PROJECT_NAME\]/g, project.name)
+                .replace(/\[PROJECT_DESCRIPTION\]/g, project.description || 'No especificada.')
+                .replace(/\[PROJECT_DUE_DATE\]/g, project.due_date)
+                .replace(/\[PROJECT_BUDGET\]/g, project.budget_cents ? formatCurrency(project.budget_cents) : 'a convenir')
+                .replace(/\[CURRENT_DATE\]/g, new Date().toLocaleDateString('es-ES'));
+            setContractContent(newContent);
         } else {
             setContractContent('');
         }
-    }, [selectedClientId, selectedProjectId, getProjectById, getClientById, profile]);
+    }, [selectedClientId, selectedProjectId, getProjectById, getClientById, profile, loadedTemplateId, contractTemplates]);
+
+    const handleLoadTemplate = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const templateId = e.target.value;
+        const template = contractTemplates.find(t => t.id === templateId);
+        if (template) {
+            addToast(`Plantilla "${template.name}" cargada.`, 'info');
+        }
+        setLoadedTemplateId(templateId || null);
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (saveAsTemplate && templateName) {
+            addContractTemplate({
+                name: templateName,
+                content_template: contractContent
+            });
+            addToast(`Plantilla "${templateName}" guardada.`, 'success');
+        }
+
         if (selectedClientId && selectedProjectId && contractContent) {
             addContract({
                 client_id: selectedClientId,
@@ -105,11 +135,18 @@ const ContractsPage: React.FC = () => {
         window.open(mailtoLink, '_blank');
     };
 
+    const openModal = () => {
+        setIsModalOpen(true);
+        setLoadedTemplateId(null);
+        setSaveAsTemplate(false);
+        setTemplateName('');
+    };
+
     return (
         <div>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <h1 className="text-2xl font-semibold text-white">Contratos</h1>
-                <Button onClick={() => setIsModalOpen(true)}>Crear Contrato</Button>
+                <Button onClick={openModal}>Crear Contrato</Button>
             </div>
 
             {contracts.length === 0 ? (
@@ -117,7 +154,7 @@ const ContractsPage: React.FC = () => {
                     icon={FileSignatureIcon}
                     title="No tienes contratos"
                     message="Formaliza tus acuerdos creando y enviando contratos digitales para que tus clientes los firmen."
-                    action={{ text: "Crear Contrato", onClick: () => setIsModalOpen(true) }}
+                    action={{ text: "Crear Contrato", onClick: openModal }}
                 />
             ) : (
                 <Card>
@@ -196,6 +233,13 @@ const ContractsPage: React.FC = () => {
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Crear Nuevo Contrato">
                 <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] flex flex-col">
+                     <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-1">Cargar desde Plantilla</label>
+                        <select onChange={handleLoadTemplate} className="block w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-slate-800 text-white">
+                            <option value="">Usar plantilla estándar</option>
+                            {contractTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-1">Cliente</label>
@@ -223,6 +267,22 @@ const ContractsPage: React.FC = () => {
                             className="block w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm placeholder-slate-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-slate-800 text-white font-mono text-xs"
                             disabled={!selectedProjectId}
                         />
+                    </div>
+                    <div className="pt-4 border-t border-slate-700 space-y-3">
+                        <div className="flex items-center gap-3">
+                            <input type="checkbox" id="saveAsTemplate" name="saveAsTemplate" checked={saveAsTemplate} onChange={(e) => setSaveAsTemplate(e.target.checked)} className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-primary-600 focus:ring-primary-500"/>
+                            <label htmlFor="saveAsTemplate" className="font-medium text-gray-200">Guardar como Plantilla</label>
+                        </div>
+                        {saveAsTemplate && (
+                            <Input
+                                label="Nombre de la Plantilla"
+                                name="templateName"
+                                value={templateName}
+                                onChange={(e) => setTemplateName(e.target.value)}
+                                placeholder="Ej: Contrato de Desarrollo Estándar"
+                                required={saveAsTemplate}
+                            />
+                        )}
                     </div>
                     <div className="flex justify-end pt-4">
                         <Button type="submit" disabled={!selectedProjectId}>Guardar Contrato</Button>

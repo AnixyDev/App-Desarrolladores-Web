@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
@@ -36,7 +34,6 @@ const BillingPage: React.FC = () => {
         return <div>Cargando información de facturación...</div>;
     }
 
-    // FIX: Changed signature to accept all plan types to fix type error.
     const handleUpgrade = async (newPlan: 'Free' | 'Pro' | 'Teams') => {
         if (newPlan === 'Teams') {
             setIsUpgradeModalOpen(true);
@@ -50,16 +47,10 @@ const BillingPage: React.FC = () => {
         }
     };
 
-    const handleBuyCredits = async (amount: number, priceId: string) => {
+    const handleBuyCredits = async (amount: number, itemKey: 'credits50' | 'credits200' | 'credits1000') => {
         try {
-            // In a real implementation, you'd fetch a priceId from your backend
-            // For this simulation, we pass a dummy priceId
-            console.log(`Simulating purchase for priceId: ${priceId}`);
-            await purchaseCredits(amount);
-            addToast(`${amount} créditos añadidos con éxito.`, 'success');
-
-            // The code below would be used with a real Stripe setup:
-            // await redirectToCheckout([{ price: priceId, quantity: 1 }]);
+            addToast(`Redirigiendo a la pasarela de pago para comprar ${amount} créditos...`, 'info');
+            await redirectToCheckout(itemKey);
 
         } catch (error) {
             addToast((error as Error).message, 'error');
@@ -146,9 +137,9 @@ const BillingPage: React.FC = () => {
                         <p className="text-3xl font-bold text-purple-400">{profile.ai_credits}</p>
                     </div>
                     <div className="flex gap-2 flex-wrap">
-                        <Button variant="secondary" onClick={() => handleBuyCredits(50, 'price_123_50')}>Comprar 50 créditos (5€)</Button>
-                        <Button variant="secondary" onClick={() => handleBuyCredits(200, 'price_123_200')}>Comprar 200 créditos (15€)</Button>
-                        <Button variant="secondary" onClick={() => handleBuyCredits(1000, 'price_123_1000')}>Comprar 1000 créditos (50€)</Button>
+                        <Button variant="secondary" onClick={() => handleBuyCredits(50, 'credits50')}>Comprar 50 créditos (5€)</Button>
+                        <Button variant="secondary" onClick={() => handleBuyCredits(200, 'credits200')}>Comprar 200 créditos (15€)</Button>
+                        <Button variant="secondary" onClick={() => handleBuyCredits(1000, 'credits1000')}>Comprar 1000 créditos (50€)</Button>
                     </div>
                 </CardContent>
             </Card>

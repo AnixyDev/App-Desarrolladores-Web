@@ -36,8 +36,8 @@ const JobApplicantsPage: React.FC = () => {
     const applications = jobId ? getApplicationsByJobId(jobId) : [];
 
     useEffect(() => {
-        if (selectedApplication) {
-            viewApplication(selectedApplication.id);
+        if (selectedApplication && selectedApplication.status === 'sent') {
+            viewApplication(selectedApplication.id).catch(err => console.error("Failed to mark application as viewed", err));
         }
     }, [selectedApplication, viewApplication]);
 

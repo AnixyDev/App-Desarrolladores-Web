@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAppStore } from './hooks/useAppStore';
@@ -62,11 +64,11 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-100">
+    <div className="flex h-screen text-slate-100 main-app-background">
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header setSidebarOpen={setSidebarOpen} />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-950/90 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-transparent p-4 sm:p-6 lg:p-8">
           <Suspense fallback={<PageLoader />}>
             {children}
           </Suspense>
@@ -104,9 +106,11 @@ function App() {
     <>
       <Routes>
         <Route path="/auth/*" element={
-          <Suspense fallback={<div className="h-screen w-screen bg-slate-950" />}>
-            <AuthLayout />
-          </Suspense>
+          <div className="auth-background">
+            <Suspense fallback={<div className="h-screen w-screen" />}>
+              <AuthLayout />
+            </Suspense>
+          </div>
         }>
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />

@@ -1,5 +1,3 @@
-
-
 import React, { lazy, Suspense } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAppStore } from '../../hooks/useAppStore';
@@ -41,7 +39,6 @@ const PortalInvoiceViewPage: React.FC = () => {
     const handlePayment = async () => {
         if (client) {
             try {
-                // FIX: Call redirectToCheckout with the correct arguments for an invoice payment.
                 await redirectToCheckout('invoice_payment', {
                     invoiceId: invoice.id,
                     amount_cents: invoice.total_cents,

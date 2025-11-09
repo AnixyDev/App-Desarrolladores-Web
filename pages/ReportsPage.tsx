@@ -152,10 +152,10 @@ const ReportsPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard icon={DollarSignIcon} title="Ingresos Totales" value={formatCurrency(reportKpis.totalIncome)} />
-          <StatCard icon={TrendingUpIcon} title="Gastos Totales" value={formatCurrency(reportKpis.totalExpenses)} color="text-red-400" />
-          <StatCard icon={DollarSignIcon} title="Beneficio Neto" value={formatCurrency(reportKpis.netProfit)} color="text-green-400" />
-          <StatCard icon={ClockIcon} title="Horas Registradas" value={`${reportKpis.totalHoursTracked.toFixed(2)}h`} />
+          <StatCard icon={DollarSignIcon} title="Ingresos Totales" value={formatCurrency(reportKpis.totalIncome)} iconColor="text-green-400" />
+          <StatCard icon={TrendingUpIcon} title="Gastos Totales" value={formatCurrency(reportKpis.totalExpenses)} iconColor="text-red-400" />
+          <StatCard icon={DollarSignIcon} title="Beneficio Neto" value={formatCurrency(reportKpis.netProfit)} iconColor="text-primary-400" />
+          <StatCard icon={ClockIcon} title="Horas Registradas" value={`${reportKpis.totalHoursTracked.toFixed(2)}h`} iconColor="text-blue-400" />
       </div>
 
       {analysis && (
@@ -202,17 +202,13 @@ const ReportsPage: React.FC = () => {
   );
 };
 
-const StatCard = ({ icon: Icon, title, value, color = 'text-white' }: { icon: React.ElementType, title: string, value: string | number, color?: string }) => (
+const StatCard: React.FC<{ icon: React.ElementType; title: string; value: string | number; iconColor?: string }> = ({ icon: Icon, title, value, iconColor = 'text-primary-400' }) => (
     <Card>
-        <CardContent className="p-4">
-             <div className="flex items-center">
-                 <div className="p-3 rounded-full bg-primary-600/20 text-primary-400 mr-4">
-                     <Icon className="w-6 h-6" />
-                 </div>
-                <div>
-                    <p className="text-sm text-gray-400">{title}</p>
-                    <p className={`text-2xl font-bold ${color}`}>{value}</p>
-                </div>
+        <CardContent className="flex items-center p-4">
+            <Icon className={`w-7 h-7 mr-4 ${iconColor}`} />
+            <div>
+                <p className="text-sm text-gray-400">{title}</p>
+                <p className="text-2xl font-bold text-white">{value}</p>
             </div>
         </CardContent>
     </Card>

@@ -3,17 +3,17 @@ import { createClient } from '@supabase/supabase-js';
 const Stripe = require('stripe');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY; 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 const priceMap = {
-    proPlan: 'price_1SOgUF8oC5awQy15dOEM5jGS',
-    teamsPlan: 'price_1SOggV8oC5awQy15YW1wAgcg',
-    credits100: 'price_1SOgpy8oC5awQy15TW22fBot',
-    credits500: 'price_1SOgr18oC5awQy15o1gTM2VM',
-    credits1000: 'price_1SOguC8oC5awQy15LGchpkVG',
-    featuredJob: 'price_1SOlOv8oC5awQy15Q2aXoEg7',
+    proPlan: 'price_1SOgUF8oC5awQy15dOEM5jGS', // Example price ID
+    teamsPlan: 'price_1SOggV8oC5awQy15YW1wAgcg', // Example price ID
+    credits50: 'price_1SOgpD8oC5awQy15iZf9L6oM', // Example price ID for 50 credits
+    credits200: 'price_1SOgqP8oC5awQy15aQf1vN3v', // Example price ID for 200 credits
+    credits1000: 'price_1SOguC8oC5awQy15LGchpkVG', // Example price ID for 1000 credits
+    featuredJob: 'price_1SOlOv8oC5awQy15Q2aXoEg7', // Example price ID
 };
 
 export default async function handler(req, res) {
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     
     let line_items;
     
-    if (invoiceId) {
+    if (itemKey === 'invoice_payment' && invoiceId && amount_cents) {
         line_items = [{
             price_data: {
                 currency: 'eur',
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
       }
     });
 
-    res.status(200).json({ sessionId: session.id });
+    res.status(200).json({ sessionId: session.id, url: session.url });
 
   } catch (err) {
     console.error('Error al crear la sesión de Stripe:', err);

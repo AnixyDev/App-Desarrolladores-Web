@@ -57,4 +57,8 @@ export {
   Paperclip,
   Upload,
   CalendarPlus,
+  Lock,
+  Eye,
+  EyeOff,
+  Github,
 } from 'lucide-react';
