@@ -45,6 +45,7 @@ export interface Client {
   phone: string;
   created_at: string;
   payment_method_on_file?: boolean;
+  stripe_customer_id?: string | null;
 }
 export type NewClient = Omit<Client, 'id' | 'user_id' | 'created_at'>;
 
@@ -198,7 +199,9 @@ export interface UserData {
 
 export interface Referral {
     id: string;
-    name: string;
+    referrer_id: string; // ID del usuario que refiere
+    referred_user_id: string; // ID del nuevo usuario
+    referred_user_name: string; // Nombre del nuevo usuario
     join_date: string;
     status: 'Registered' | 'Subscribed';
     commission_cents: number;

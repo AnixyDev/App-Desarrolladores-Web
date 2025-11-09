@@ -5,16 +5,19 @@ import { SendIcon, SparklesIcon, UserIcon } from './icons/Icon';
 import { ProjectMessage } from '../types';
 import Input from './ui/Input';
 import Button from './ui/Button';
+import { summarizeChatHistory, AI_CREDIT_COSTS } from '../services/geminiService';
+import BuyCreditsModal from './modals/BuyCreditsModal';
 
 interface ProjectChatProps {
     projectId: string;
 }
 
 const ProjectChat: React.FC<ProjectChatProps> = ({ projectId }) => {
-    const { profile, projectComments, addProjectComment } = useAppStore();
+    const { profile, projectComments, addProjectComment, consumeCredits } = useAppStore();
     const { addToast } = useToast();
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const messages = useMemo(() => {
@@ -45,11 +48,16 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId }) => {
         setInput('');
     };
 
-    const handleSummarize = () => {
+    const handleSummarize = async () => {
+        if (profile.ai_credits < AI_CREDIT_COSTS.summarizeChat) {
+            setIsBuyCreditsModalOpen(true);
+            return;
+        }
         setIsLoading(true);
-        setTimeout(() => { // Simulate AI call
-            const summary = "Resumen de la IA: Se discutieron los requisitos de la API y se acordó una próxima reunión para revisar el esquema de la base de datos.";
-             const aiMessage: ProjectMessage = {
+        try {
+            const chatHistory = messages.map(m => `${m.user_name}: ${m.text}`).join('\n');
+            const summary = await summarizeChatHistory(chatHistory);
+            const aiMessage: ProjectMessage = {
                 id: `msg-${Date.now()}`,
                 project_id: projectId,
                 user_id: 'ai',
@@ -57,9 +65,13 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId }) => {
                 text: summary,
                 timestamp: new Date().toISOString()
             };
-            addProjectComment(aiMessage); // Add summary via store
+            addProjectComment(aiMessage);
+            consumeCredits(AI_CREDIT_COSTS.summarizeChat);
+        } catch(e) {
+            addToast((e as Error).message, 'error');
+        } finally {
             setIsLoading(false);
-        }, 1500);
+        }
     };
 
     return (
@@ -95,6 +107,7 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId }) => {
                     <Button type="submit"><SendIcon className="w-5 h-5" /></Button>
                 </form>
             </div>
+            <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />
         </div>
     );
 };

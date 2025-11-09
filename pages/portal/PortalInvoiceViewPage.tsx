@@ -22,9 +22,12 @@ const PortalInvoiceViewPage: React.FC = () => {
     const handlePay = async () => {
         if (invoice) {
             try {
-                // In a real app, this would be a specific Stripe item for this invoice.
-                // For this mock, we'll use a generic item and pass the invoice_id.
-                await redirectToCheckout('invoicePayment', { invoice_id: invoice.id });
+                // Ahora pasamos los detalles reales de la factura al backend
+                await redirectToCheckout('invoicePayment', { 
+                    invoice_id: invoice.id,
+                    amount_cents: invoice.total_cents,
+                    description: `Pago de Factura #${invoice.invoice_number}`
+                });
             } catch (error) {
                 console.error("Payment redirection failed", error);
                 alert((error as Error).message);

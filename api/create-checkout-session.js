@@ -48,11 +48,11 @@ export default async function handler(req, res) {
     // --- Lógica de Creación de la Sesión ---
     if (itemKey === 'invoicePayment') {
         // Lógica para pagos dinámicos (facturas)
-        // EN UNA APP REAL: Aquí buscarías la factura en tu base de datos usando `extraParams.invoice_id`
-        // para obtener el importe y la descripción real.
-        // Para esta simulación, usaremos datos de ejemplo.
-        const amount_cents = 145200; // Ejemplo: 145.20 EUR
-        const description = `Pago de Factura #${extraParams.invoice_id || '0000'}`;
+        const { amount_cents, description, invoice_id } = extraParams;
+        
+        if (!amount_cents || !description || !invoice_id) {
+            return res.status(400).json({ error: 'Faltan detalles para el pago de la factura.' });
+        }
         
         line_items.push({
             price_data: {

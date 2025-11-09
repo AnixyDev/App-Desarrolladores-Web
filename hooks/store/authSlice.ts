@@ -1,7 +1,7 @@
 import { StateCreator } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { AppState } from '../useAppStore';
-import { Profile, GoogleJwtPayload, UserData } from '../../types';
+import { Profile, GoogleJwtPayload, UserData, Referral } from '../../types';
 
 // Perfil de ejemplo para el usuario inicial de demostración
 const initialProfile: Profile = {
@@ -82,6 +82,28 @@ export interface AuthSlice {
   updateStripeConnection: (accountId: string, onboardingComplete: boolean) => void;
 }
 
+const handleReferralRegistration = (get: () => AppState, set: (partial: Partial<AppState>) => void, newProfile: Profile) => {
+    const refCode = sessionStorage.getItem('affiliate_ref_code');
+    if (refCode) {
+        // En una app real, buscaríamos en la base de datos. Aquí, buscamos en el estado.
+        // Como solo hay un usuario, simulamos que el referidor es el usuario inicial de la demo.
+        const referrer = get().users.find(u => u.id === 'u-1' && get().profile.affiliate_code === refCode);
+        if (referrer && referrer.id !== newProfile.id) {
+            const newReferral: Referral = {
+                id: `ref-${uuidv4()}`,
+                referrer_id: referrer.id,
+                referred_user_id: newProfile.id,
+                referred_user_name: newProfile.full_name,
+                join_date: new Date().toISOString().slice(0, 10),
+                status: 'Registered',
+                commission_cents: 0,
+            };
+            set({ referrals: [...get().referrals, newReferral] });
+            sessionStorage.removeItem('affiliate_ref_code');
+        }
+    }
+};
+
 export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, get) => ({
     isAuthenticated: false,
     profile: initialProfile,
@@ -110,6 +132,7 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
         };
         // Set the new profile as the current one and log in
         set({ profile: newProfile, isAuthenticated: true, users: [mainUser] });
+        handleReferralRegistration(get, set, newProfile);
         return true;
     },
     loginWithGoogle: (decoded) => {
@@ -125,12 +148,30 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
             hourly_rate_cents: newProfile.hourly_rate_cents,
         };
         set({ profile: newProfile, isAuthenticated: true, users: [mainUser] });
+        handleReferralRegistration(get, set, newProfile);
     },
     updateProfile: (profileData) => {
         set(state => ({ profile: { ...state.profile, ...profileData } as Profile }));
     },
     upgradePlan: (plan) => {
+        const currentProfile = get().profile;
         set(state => ({ profile: { ...state.profile, plan } as Profile }));
+
+        // Affiliate logic
+        const referralRecord = get().referrals.find(r => r.referred_user_id === currentProfile.id && r.status === 'Registered');
+        if (referralRecord) {
+            const planPrices = { Pro: 395, Teams: 3595 }; // Prices in cents
+            const price = plan === 'Pro' ? planPrices.Pro : planPrices.Teams;
+            const commission = Math.round(price * 0.20); // 20% commission
+
+            set(state => ({
+                referrals: state.referrals.map(r => 
+                    r.id === referralRecord.id 
+                    ? { ...r, status: 'Subscribed', commission_cents: r.commission_cents + commission } 
+                    : r
+                )
+            }));
+        }
     },
     purchaseCredits: (amount) => {
         set(state => ({ profile: { ...state.profile, ai_credits: state.profile.ai_credits + amount } as Profile }));

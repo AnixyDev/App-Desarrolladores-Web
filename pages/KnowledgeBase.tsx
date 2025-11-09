@@ -6,7 +6,7 @@ import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import { KnowledgeArticle } from '../types';
 import { useAppStore } from '../hooks/useAppStore';
-import { AI_CREDIT_COSTS, rankArticlesByRelevance } from '../services/geminiService';
+import { AI_CREDIT_COSTS, rankArticlesByRelevance, generateDocumentContent, generateQuizFromContent } from '../services/geminiService';
 import { useToast } from '../hooks/useToast';
 
 const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal'));
@@ -111,39 +111,44 @@ const KnowledgeBase: React.FC = () => {
         }
     };
     
-    const handleGenerateDocument = () => {
+    const handleGenerateDocument = async () => {
         if (profile?.ai_credits === undefined || profile.ai_credits < AI_CREDIT_COSTS.generateDocument) {
             setIsBuyCreditsModalOpen(true);
             return;
         }
         setIsLoading(true);
-        // Simulate AI call
-        setTimeout(() => {
-            const generatedContent = `Este es un documento generado por IA sobre "${generatorTopic}".\n\nSección 1: ...\nSección 2: ...`;
+        try {
+            const generatedContent = await generateDocumentContent(generatorTopic);
             setCurrentArticle({ title: generatorTopic, content: generatedContent, tags: [generatorTopic.toLowerCase()] });
             setIsGeneratorModalOpen(false);
             setIsModalOpen(true);
-            setIsLoading(false);
             consumeCredits(AI_CREDIT_COSTS.generateDocument);
             addToast('Documento generado con IA', 'success');
-        }, 2000);
+        } catch(e) {
+            addToast((e as Error).message, 'error');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const handleGenerateQuiz = () => {
+    const handleGenerateQuiz = async () => {
         if (!currentArticle?.content) return;
         if (profile?.ai_credits === undefined || profile.ai_credits < AI_CREDIT_COSTS.generateQuiz) {
             setIsBuyCreditsModalOpen(true);
             return;
         }
         setIsLoading(true);
-        setTimeout(() => {
-            const quiz = `Cuestionario sobre "${currentArticle.title}":\n\n1. ¿Cuál es el primer paso del despliegue?\n2. ...`;
+        try {
+            const quiz = await generateQuizFromContent(currentArticle.content);
             setQuizResult(quiz);
             setIsQuizModalOpen(true);
-            setIsLoading(false);
             consumeCredits(AI_CREDIT_COSTS.generateQuiz);
             addToast('Cuestionario generado', 'success');
-        }, 2000);
+        } catch(e) {
+            addToast((e as Error).message, 'error');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (

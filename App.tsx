@@ -1,5 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { HashRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAppStore } from './hooks/useAppStore';
 import { useToast } from './hooks/useToast';
@@ -61,7 +61,7 @@ const PortalProposalViewPage = lazy(() => import('./pages/portal/PortalProposalV
 const PortalContractViewPage = lazy(() => import('./pages/portal/PortalContractViewPage'));
 
 
-const GOOGLE_CLIENT_ID = "457438236235-n2s8q6nvcjm32u0o3ut2lksd8po8gfqf.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "457438235-n2s8q6nvcjm32u0o3ut2lksd8po8gfqf.apps.googleusercontent.com";
 
 const AppLayout = () => {
     const isAuthenticated = useAppStore(state => state.isAuthenticated);
@@ -144,11 +144,22 @@ const PaymentHandler = () => {
 function App() {
     const { isAuthenticated, checkInvoiceStatuses, profile } = useAppStore();
     const { addToast } = useToast();
+    const [searchParams] = useSearchParams();
+
+    useEffect(() => {
+        // Captura el código de referido de la URL al cargar la app
+        const refCode = searchParams.get('ref');
+        if (refCode) {
+            sessionStorage.setItem('affiliate_ref_code', refCode);
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         if (isAuthenticated) {
             const emailMessages = checkInvoiceStatuses();
             emailMessages.forEach(msg => {
+                // Las llamadas a la API de email se hacen dentro de `checkInvoiceStatuses`
+                // Aquí solo mostramos un toast para la simulación de notificación al usuario
                 addToast(msg, 'info');
             });
         }
@@ -156,68 +167,66 @@ function App() {
 
     return (
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-            <HashRouter>
-                <ToastContainer />
-                <PaymentHandler />
-                <Routes>
-                    <Route path="/auth" element={<AuthLayout />}>
-                        <Route path="login" element={<LoginPage />} />
-                        <Route path="register" element={<RegisterPage />} />
-                    </Route>
-                    
-                    <Route path="/portal" element={<PortalLayout />}>
-                        <Route path="login" element={<PortalLoginPage />} />
-                        <Route path="dashboard/:clientId" element={<PortalDashboardPage />} />
-                        <Route path="invoice/:invoiceId" element={<PortalInvoiceViewPage />} />
-                        <Route path="budget/:budgetId" element={<PortalBudgetViewPage />} />
-                        <Route path="proposal/:proposalId" element={<PortalProposalViewPage />} />
-                        <Route path="contract/:contractId" element={<PortalContractViewPage />} />
-                    </Route>
-                    
-                    <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-                    
-                    <Route path="/" element={<AppLayout />}>
-                        <Route index element={<DashboardPage />} />
-                        <Route path="clients" element={<ClientsPage />} />
-                        <Route path="clients/:clientId" element={<ClientDetailPage />} />
-                        <Route path="projects" element={<ProjectsPage />} />
-                        <Route path="projects/:projectId" element={<ProjectDetailPage />} />
-                        <Route path="invoices" element={<InvoicesPage />} />
-                        <Route path="invoices/create" element={<CreateInvoicePage />} />
-                        <Route path="expenses" element={<ExpensesPage />} />
-                        <Route path="budgets" element={<BudgetsPage />} />
-                        <Route path="proposals" element={<ProposalsPage />} />
-                        <Route path="contracts" element={<ContractsPage />} />
-                        <Route path="time-tracking" element={<TimeTrackingPage />} />
-                        <Route path="reports" element={<ReportsPage />} />
-                        <Route path="reports/profitability" element={<ProfitabilityReportPage />} />
-                        <Route path="tax-ledger" element={<TaxLedgerPage />} />
-                        <Route path="ai-assistant" element={<AIAssistantPage />} />
+            <ToastContainer />
+            <PaymentHandler />
+            <Routes>
+                <Route path="/auth" element={<AuthLayout />}>
+                    <Route path="login" element={<LoginPage />} />
+                    <Route path="register" element={<RegisterPage />} />
+                </Route>
+                
+                <Route path="/portal" element={<PortalLayout />}>
+                    <Route path="login" element={<PortalLoginPage />} />
+                    <Route path="dashboard/:clientId" element={<PortalDashboardPage />} />
+                    <Route path="invoice/:invoiceId" element={<PortalInvoiceViewPage />} />
+                    <Route path="budget/:budgetId" element={<PortalBudgetViewPage />} />
+                    <Route path="proposal/:proposalId" element={<PortalProposalViewPage />} />
+                    <Route path="contract/:contractId" element={<PortalContractViewPage />} />
+                </Route>
+                
+                <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                
+                <Route path="/" element={<AppLayout />}>
+                    <Route index element={<DashboardPage />} />
+                    <Route path="clients" element={<ClientsPage />} />
+                    <Route path="clients/:clientId" element={<ClientDetailPage />} />
+                    <Route path="projects" element={<ProjectsPage />} />
+                    <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+                    <Route path="invoices" element={<InvoicesPage />} />
+                    <Route path="invoices/create" element={<CreateInvoicePage />} />
+                    <Route path="expenses" element={<ExpensesPage />} />
+                    <Route path="budgets" element={<BudgetsPage />} />
+                    <Route path="proposals" element={<ProposalsPage />} />
+                    <Route path="contracts" element={<ContractsPage />} />
+                    <Route path="time-tracking" element={<TimeTrackingPage />} />
+                    <Route path="reports" element={<ReportsPage />} />
+                    <Route path="reports/profitability" element={<ProfitabilityReportPage />} />
+                    <Route path="tax-ledger" element={<TaxLedgerPage />} />
+                    <Route path="ai-assistant" element={<AIAssistantPage />} />
 
-                        <Route path="job-market" element={<JobMarketDashboard />} />
-                        <Route path="job-market/:jobId" element={<JobDetailPage />} />
-                        <Route path="post-job" element={<JobPostForm />} />
-                        <Route path="my-job-posts" element={<MyJobPostsPage />} />
-                        <Route path="my-job-posts/:jobId/applicants" element={<JobApplicantsPage />} />
-                        <Route path="public-profile" element={<PublicProfilePage />} />
-                        <Route path="my-applications" element={<MyApplicationsPage />} />
-                        <Route path="saved-jobs" element={<SavedJobsPage />} />
+                    <Route path="job-market" element={<JobMarketDashboard />} />
+                    <Route path="job-market/:jobId" element={<JobDetailPage />} />
+                    <Route path="post-job" element={<JobPostForm />} />
+                    <Route path="my-job-posts" element={<MyJobPostsPage />} />
+                    <Route path="my-job-posts/:jobId/applicants" element={<JobApplicantsPage />} />
+                    <Route path="public-profile" element={<PublicProfilePage />} />
+                    <Route path="my-applications" element={<MyApplicationsPage />} />
+                    <Route path="saved-jobs" element={<SavedJobsPage />} />
 
-                        <Route path="team" element={<TeamManagementDashboard />} />
-                        <Route path="my-timesheet" element={<MyTeamTimesheet />} />
-                        <Route path="knowledge-base" element={<KnowledgeBase />} />
-                        <Route path="roles" element={<RoleManagement />} />
-                        
-                        <Route path="integrations" element={<IntegrationsManager />} />
-                        <Route path="forecasting" element={<ForecastingPage />} />
-                        <Route path="affiliate" element={<AffiliateProgramPage />} />
-                        <Route path="billing" element={<BillingPage />} />
-                        <Route path="settings" element={<SettingsPage />} />
+                    <Route path="team" element={<TeamManagementDashboard />} />
+                    <Route path="my-timesheet" element={<MyTeamTimesheet />} />
+                    <Route path="knowledge-base" element={<KnowledgeBase />} />
+                    <Route path="roles" element={<RoleManagement />} />
+                    
+                    <Route path="integrations" element={<IntegrationsManager />} />
+                    <Route path="forecasting" element={<ForecastingPage />} />
+                    <Route path="affiliate" element={<AffiliateProgramPage />} />
+                    <Route path="billing" element={<BillingPage />} />
+                    <Route path="settings" element={<SettingsPage />} />
 
-                        <Route path="*" element={<Navigate to="/" />} />
-                    </Route>
-                </Routes>
-            </HashRouter>
+                    <Route path="*" element={<Navigate to="/" />} />
+                </Route>
+            </Routes>
         </GoogleOAuthProvider>
     );
 }

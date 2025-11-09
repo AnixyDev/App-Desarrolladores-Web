@@ -387,3 +387,32 @@ export const getDashboardInsights = async (summaryData: any): Promise<string[]> 
         return ["Hubo un problema al generar las sugerencias."];
     }
 }
+
+export const generateDocumentContent = async (topic: string): Promise<string> => {
+    const prompt = `Eres un asistente de redacción técnica. Genera el contenido de un documento de base de conocimientos sobre el tema: "${topic}". El contenido debe estar bien estructurado, ser informativo y estar en formato Markdown. Incluye encabezados, listas y ejemplos de código si es relevante.`;
+    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { maxOutputTokens: 1024 }
+    }), "Error generating document content with Gemini");
+    return response.text;
+};
+
+export const generateQuizFromContent = async (content: string): Promise<string> => {
+    const prompt = `Basado en el siguiente contenido de un artículo, crea un breve cuestionario de 3-4 preguntas de opción múltiple para evaluar la comprensión del lector. Formatea la salida como texto plano.\n\nContenido:\n---\n${content.substring(0, 2000)}\n---`;
+    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt
+    }), "Error generating quiz with Gemini");
+    return response.text;
+};
+
+export const summarizeChatHistory = async (history: string): Promise<string> => {
+    const prompt = `Resume la siguiente conversación de un chat de proyecto en 2-3 puntos clave o decisiones tomadas. Sé conciso.\n\nHistorial del Chat:\n---\n${history.substring(0, 3000)}\n---`;
+    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { maxOutputTokens: 256 }
+    }), "Error summarizing chat with Gemini");
+    return `Resumen de la IA:\n${response.text}`;
+};

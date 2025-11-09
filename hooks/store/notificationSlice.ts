@@ -2,13 +2,26 @@ import { StateCreator } from 'zustand';
 import { Notification } from '../../types';
 import { AppState } from '../useAppStore';
 
+// Helper function to send emails via the backend
+const sendSystemEmail = async (to: string, subject: string, html: string) => {
+    try {
+        await fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to, subject, html }),
+        });
+    } catch (error) {
+        console.error("Failed to send system email:", error);
+    }
+};
+
 export interface NotificationSlice {
   notifications: Notification[];
   notifiedInvoiceIds: string[];
   addNotification: (message: string, link: string) => void;
   markAllAsRead: () => void;
   markInvoiceAsNotified: (invoiceId: string) => void;
-  checkInvoiceStatuses: () => string[];
+  checkInvoiceStatuses: () => string[]; // Returns user-facing toast messages
 }
 
 export const createNotificationSlice: StateCreator<AppState, [], [], NotificationSlice> = (set, get) => ({
@@ -35,7 +48,7 @@ export const createNotificationSlice: StateCreator<AppState, [], [], Notificatio
         }));
     },
     checkInvoiceStatuses: () => {
-        const emailMessages: string[] = [];
+        const toastMessages: string[] = [];
         const { invoices, notifiedInvoiceIds, addNotification, markInvoiceAsNotified, getClientById, profile } = get();
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -50,6 +63,13 @@ export const createNotificationSlice: StateCreator<AppState, [], [], Notificatio
             const clientName = client?.name || 'un cliente';
             const diffTime = dueDate.getTime() - today.getTime();
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            const replacePlaceholders = (template: string) => template
+                .replace(/\[ClientName\]/g, client?.name || '')
+                .replace(/\[InvoiceNumber\]/g, invoice.invoice_number)
+                .replace(/\[Amount\]/g, new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(invoice.total_cents / 100))
+                .replace(/\[DueDate\]/g, invoice.due_date)
+                .replace(/\[YourName\]/g, profile.full_name);
 
             let shouldNotify = false;
             let inAppMessage = '';
@@ -60,22 +80,24 @@ export const createNotificationSlice: StateCreator<AppState, [], [], Notificatio
                 shouldNotify = true;
                 inAppMessage = `¡Alerta! La factura #${invoice.invoice_number} para ${clientName} ha vencido.`;
 
-                // Freelancer email notification
                 if (profile.email_notifications.on_invoice_overdue) {
-                    emailMessages.push(`Simulación: Email para ti sobre la factura vencida #${invoice.invoice_number}.`);
+                    sendSystemEmail(profile.email, `Factura Vencida: #${invoice.invoice_number}`, `<p>Hola ${profile.full_name},</p><p>La factura #${invoice.invoice_number} para ${clientName} ha vencido.</p>`);
+                    toastMessages.push(`Notificación de factura vencida enviada a tu email.`);
                 }
 
-                // Client reminder
                 if (profile.payment_reminders_enabled && client?.email) {
-                    emailMessages.push(`Simulación: Recordatorio de pago VENCIDO enviado a ${client.name} (${client.email}).`);
+                    const emailBody = replacePlaceholders(profile.reminder_template_overdue);
+                    sendSystemEmail(client.email, `Recordatorio de Pago: Factura #${invoice.invoice_number}`, `<p>${emailBody.replace(/\n/g, '<br>')}</p>`);
+                    toastMessages.push(`Recordatorio de pago VENCIDO enviado a ${client.name}.`);
                 }
             } else if (isUpcoming) {
                 shouldNotify = true;
                 inAppMessage = `La factura #${invoice.invoice_number} para ${clientName} vence en ${diffDays === 0 ? 'hoy' : `${diffDays} día(s)`}.`;
 
-                // Client reminder
                 if (profile.payment_reminders_enabled && client?.email) {
-                    emailMessages.push(`Simulación: Recordatorio de pago PRÓXIMO a vencer enviado a ${client.name} (${client.email}).`);
+                    const emailBody = replacePlaceholders(profile.reminder_template_upcoming);
+                    sendSystemEmail(client.email, `Recordatorio: Vencimiento de Factura #${invoice.invoice_number}`, `<p>${emailBody.replace(/\n/g, '<br>')}</p>`);
+                    toastMessages.push(`Recordatorio de PRÓXIMO vencimiento enviado a ${client.name}.`);
                 }
             }
 
@@ -84,6 +106,6 @@ export const createNotificationSlice: StateCreator<AppState, [], [], Notificatio
                 markInvoiceAsNotified(invoice.id);
             }
         });
-        return emailMessages;
+        return toastMessages;
     },
 });

@@ -2,6 +2,19 @@ import { StateCreator } from 'zustand';
 import { Invoice, Expense, RecurringExpense, Budget, Proposal, Contract, RecurringInvoice, ShadowIncomeEntry } from '../../types';
 import { AppState } from '../useAppStore';
 
+// Helper function to send emails via the backend
+const sendSystemEmail = async (to: string, subject: string, html: string) => {
+    try {
+        await fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to, subject, html }),
+        });
+    } catch (error) {
+        console.error("Failed to send system email:", error);
+    }
+};
+
 export interface FinanceSlice {
   invoices: Invoice[];
   recurringInvoices: RecurringInvoice[];
@@ -182,7 +195,13 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
         
         const { profile } = get();
         if (profile?.email_notifications?.on_proposal_status_change) {
-            return `Simulación: Email enviado a ${profile.email} sobre la propuesta "${proposal?.title}" que ha sido ${status === 'accepted' ? 'aceptada' : 'rechazada'}.`;
+            const statusText = status === 'accepted' ? 'aceptada' : 'rechazada';
+            sendSystemEmail(
+                profile.email,
+                `Actualización de Propuesta: ${proposal?.title}`,
+                `<p>Hola ${profile.full_name},</p><p>Tu propuesta "${proposal?.title}" ha sido marcada como <strong>${statusText}</strong> por el cliente.</p>`
+            );
+            return `Notificación de propuesta ${statusText} enviada a tu email.`;
         }
         return null;
     },
@@ -207,7 +226,13 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
 
         const { profile } = get();
         if (profile?.email_notifications?.on_contract_signed) {
-            return `Simulación: Email enviado a ${profile.email} sobre el contrato para "${get().getProjectById(contract?.project_id || '')?.name}" que ha sido firmado.`;
+             const projectName = get().getProjectById(contract?.project_id || '')?.name;
+             sendSystemEmail(
+                profile.email,
+                `¡Contrato Firmado! - ${projectName}`,
+                `<p>Hola ${profile.full_name},</p><p>El contrato para el proyecto "${projectName}" ha sido firmado por el cliente. ¡Enhorabuena!</p>`
+            );
+            return `Notificación de contrato firmado enviada a tu email.`;
         }
         return null;
     },

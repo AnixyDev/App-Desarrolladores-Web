@@ -1,10 +1,10 @@
 // pages/ClientDetailPage.tsx
-import React, { useState, lazy, Suspense, useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React, { useState, lazy, Suspense, useMemo, useEffect } from 'react';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import { useAppStore } from '../hooks/useAppStore';
 import { formatCurrency } from '../lib/utils';
-import { BriefcaseIcon, FileTextIcon, EditIcon, TrashIcon, PhoneIcon, MailIcon, DollarSignIcon, UserIcon, Building, CreditCard, CheckCircleIcon } from '../components/icons/Icon';
+import { BriefcaseIcon, FileTextIcon, EditIcon, TrashIcon, PhoneIcon, MailIcon, DollarSignIcon, UserIcon, Building, CreditCard, CheckCircleIcon, RefreshCwIcon } from '../components/icons/Icon';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { Client, NewClient, Invoice } from '../types';
@@ -20,15 +20,27 @@ const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationMo
 const ClientDetailPage: React.FC = () => {
     const { clientId } = useParams<{ clientId: string }>();
     const navigate = useNavigate();
-    const { getClientById, projects, invoices, updateClient, deleteClient, setClientPaymentMethodStatus } = useAppStore();
     const { addToast } = useToast();
+    const { getClientById, projects, invoices, updateClient, deleteClient, setClientPaymentMethodStatus } = useAppStore();
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [invoiceTab, setInvoiceTab] = useState<'pending' | 'paid'>('pending');
+    const [isPortalLoading, setIsPortalLoading] = useState(false);
+    const [searchParams, setSearchParams] = useSearchParams();
     
     const client = clientId ? getClientById(clientId) : undefined;
     const [formData, setFormData] = useState<Client | NewClient | null>(client || null);
+    
+    useEffect(() => {
+        if (searchParams.get('stripe_portal_return') === 'true' && client) {
+            setClientPaymentMethodStatus(client.id, true);
+            addToast('Método de pago guardado con éxito a través de Stripe.', 'success');
+            searchParams.delete('stripe_portal_return');
+            setSearchParams(searchParams, { replace: true });
+        }
+    }, [searchParams, client, setClientPaymentMethodStatus, addToast, setSearchParams]);
+
 
     const clientProjects = projects.filter(p => p.client_id === clientId);
     const clientInvoices = invoices.filter(i => i.client_id === clientId);
@@ -72,10 +84,29 @@ const ClientDetailPage: React.FC = () => {
         navigate('/clients');
     };
 
-    const togglePaymentMethod = () => {
-        setClientPaymentMethodStatus(client.id, !client.payment_method_on_file);
-        addToast(`Método de pago ${client.payment_method_on_file ? 'eliminado' : 'añadido'} (simulación).`, 'success');
-    }
+    const handleManagePaymentMethods = async () => {
+        setIsPortalLoading(true);
+        try {
+            const response = await fetch('/api/create-portal-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    clientEmail: client.email, 
+                    clientName: client.name,
+                    clientId: client.id
+                }),
+            });
+            if (!response.ok) {
+                const { error } = await response.json();
+                throw new Error(error || 'No se pudo crear el portal de cliente.');
+            }
+            const { url } = await response.json();
+            window.location.href = url;
+        } catch (error) {
+            addToast((error as Error).message, 'error');
+            setIsPortalLoading(false);
+        }
+    };
 
     const InvoiceList: React.FC<{invoices: Invoice[]}> = ({ invoices }) => (
         <ul className="divide-y divide-gray-800">
@@ -208,19 +239,15 @@ const ClientDetailPage: React.FC = () => {
                                 <p className="text-2xl font-bold text-yellow-400">{formatCurrency(financialSummary.totalPending)}</p>
                             </div>
                              <div className="pt-4 border-t border-gray-800">
-                                <p className="text-sm text-gray-400 flex items-center gap-2"><CreditCard/> Método de pago</p>
-                                {client.payment_method_on_file ? (
-                                    <div className="flex items-center justify-between mt-2">
-                                        <p className="text-sm text-green-400 flex items-center gap-2"><CheckCircleIcon/> Guardado</p>
-                                        <Button size="sm" variant="danger" onClick={togglePaymentMethod}>Eliminar</Button>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center justify-between mt-2">
-                                        <p className="text-sm text-gray-500">No guardado</p>
-                                        <Button size="sm" variant="secondary" onClick={togglePaymentMethod}>Añadir</Button>
-                                    </div>
+                                <p className="text-sm text-gray-400 flex items-center gap-2 mb-2"><CreditCard/> Método de pago</p>
+                                {client.payment_method_on_file && (
+                                    <p className="text-sm text-green-400 flex items-center gap-2 mb-2"><CheckCircleIcon/> Método de pago guardado en Stripe</p>
                                 )}
-                                <p className="text-xs text-gray-500 mt-2">Activa esta opción para simular el cobro automático de facturas recurrentes.</p>
+                                <Button onClick={handleManagePaymentMethods} disabled={isPortalLoading} className="w-full">
+                                    {isPortalLoading ? <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin" /> : null}
+                                    Gestionar Métodos de Pago
+                                </Button>
+                                <p className="text-xs text-gray-500 mt-2">El cliente será redirigido a un portal seguro de Stripe para gestionar sus tarjetas.</p>
                             </div>
                             <Suspense fallback={<div className="h-[200px] flex items-center justify-center text-gray-400">Cargando gráfico...</div>}>
                                 <ClientIncomeChart invoices={clientInvoices} />

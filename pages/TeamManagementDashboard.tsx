@@ -21,7 +21,7 @@ interface NewMember {
 }
 
 const TeamManagementDashboard: React.FC = () => {
-  const { users, inviteUser, deleteUser } = useAppStore();
+  const { users, inviteUser, deleteUser, profile } = useAppStore();
   const { addToast } = useToast();
   
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -42,14 +42,20 @@ const TeamManagementDashboard: React.FC = () => {
     
     setIsSending(true);
     try {
-      // En una aplicación real, aquí haríamos una llamada a nuestro backend:
-      // const response = await fetch('/api/send-invitation', { /* ... */ });
-      // if (!response.ok) throw new Error('El servidor de correo no respondió.');
-      
-      // Para esta simulación, simulamos la llamada a la API y el retraso de red.
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const invitationLink = `${window.location.origin}/#/auth/register`;
+      const subject = `Has sido invitado al equipo de ${profile.business_name} en DevFreelancer`;
+      const html = `<h1>¡Hola ${newMember.name}!</h1><p>Has sido invitado a unirte al equipo de <strong>${profile.business_name}</strong> en DevFreelancer con el rol de ${newMember.role}.</p><p><a href="${invitationLink}">Haz clic aquí para crear tu cuenta y aceptar la invitación.</a></p>`;
 
-      // Si la llamada (simulada) tiene éxito, actualizamos el estado de la app.
+      const response = await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: newMember.email, subject, html }),
+      });
+
+      if (!response.ok) {
+        throw new Error('El servidor de correo no respondió correctamente.');
+      }
+
       inviteUser(newMember.name, newMember.email, newMember.role);
       addToast(`Invitación enviada a ${newMember.email}`, 'success');
       

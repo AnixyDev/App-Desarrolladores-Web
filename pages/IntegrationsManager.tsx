@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ZapIcon, LinkIcon, TrashIcon, SettingsIcon, PlusIcon, RefreshCwIcon, CheckCircleIcon, XCircleIcon } from '../components/icons/Icon';
+import { useToast } from '../hooks/useToast';
 
 // --- TYPES ---
 interface Integration {
@@ -21,7 +22,7 @@ const buttonStyle = 'px-3 py-2 text-sm font-semibold rounded-lg transition durat
 
 // --- CHILD COMPONENTS ---
 
-const IntegrationCard: React.FC<{ integration: Integration; onDelete: (id: string) => void; onTest: (id: string) => void; }> = ({ integration, onDelete, onTest }) => {
+const IntegrationCard: React.FC<{ integration: Integration; onDelete: (id: string) => void; onTest: (id: string) => void; isTesting: boolean; }> = ({ integration, onDelete, onTest, isTesting }) => {
   const isLastTestSuccessful = integration.lastTest?.success;
 
   return (
@@ -46,18 +47,21 @@ const IntegrationCard: React.FC<{ integration: Integration; onDelete: (id: strin
       </div>
 
       <div className="flex justify-between items-center text-xs text-gray-500 mb-4 border-t border-gray-700 pt-3">
-        <div className="flex items-center">
-            {isLastTestSuccessful ? <CheckCircleIcon className="w-4 h-4 mr-1 text-green-400" /> : <XCircleIcon className="w-4 h-4 mr-1 text-red-400" />}
-            <span className={isLastTestSuccessful ? 'text-green-400' : 'text-red-400'}>
-                Último Test: {isLastTestSuccessful ? 'Exitoso' : 'Fallido'}
-            </span>
-        </div>
+        {integration.lastTest && (
+            <div className="flex items-center">
+                {isLastTestSuccessful ? <CheckCircleIcon className="w-4 h-4 mr-1 text-green-400" /> : <XCircleIcon className="w-4 h-4 mr-1 text-red-400" />}
+                <span className={isLastTestSuccessful ? 'text-green-400' : 'text-red-400'}>
+                    Último Test: {isLastTestSuccessful ? 'Exitoso' : 'Fallido'}
+                </span>
+            </div>
+        )}
         <span className="ml-4">{integration.lastTest?.timestamp}</span>
       </div>
 
       <div className="flex justify-end space-x-2">
-        <button onClick={() => onTest(integration.id)} className={`${buttonStyle} bg-blue-600 text-white hover:bg-blue-700`}>
-          <RefreshCwIcon className="w-4 h-4 mr-2" />Probar
+        <button onClick={() => onTest(integration.id)} disabled={isTesting} className={`${buttonStyle} bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50`}>
+          {isTesting ? <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCwIcon className="w-4 h-4 mr-2" />}
+          {isTesting ? 'Probando...' : 'Probar'}
         </button>
         <button onClick={() => onDelete(integration.id)} className={`${buttonStyle} bg-red-600 text-white hover:bg-red-700`}>
           <TrashIcon className="w-4 h-4" />
@@ -110,6 +114,8 @@ const AddIntegrationForm: React.FC<{ onClose: () => void; onSave: (integration: 
 const IntegrationsManager: React.FC = () => {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [testingId, setTestingId] = useState<string | null>(null);
+  const { addToast } = useToast();
 
   const handleSaveIntegration = (newIntegration: Integration) => {
     setIntegrations([...integrations, newIntegration]);
@@ -119,17 +125,31 @@ const IntegrationsManager: React.FC = () => {
     setIntegrations(integrations.filter(i => i.id !== id));
   };
   
-  const handleTestIntegration = (id: string) => {
+  const handleTestIntegration = async (id: string) => {
     const integrationToTest = integrations.find(i => i.id === id);
     if (!integrationToTest) return;
 
-    setTimeout(() => {
-        const success = Math.random() > 0.3;
+    setTestingId(id);
+    try {
+        const response = await fetch('/api/test-webhook', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: integrationToTest.url, event: integrationToTest.event }),
+        });
+        const result = await response.json();
+        
+        const success = response.ok && result.success;
+        addToast(success ? 'Webhook de prueba enviado con éxito.' : `Falló la prueba: ${result.error}`, success ? 'success' : 'error');
+        
         const updatedIntegrations = integrations.map(i => 
             i.id === id ? { ...i, lastTest: { success, timestamp: new Date().toLocaleString() } } : i
         );
         setIntegrations(updatedIntegrations);
-    }, 1000); 
+    } catch(err) {
+        addToast('Error de red al probar el webhook.', 'error');
+    } finally {
+        setTestingId(null);
+    }
   };
 
   return (
@@ -151,7 +171,7 @@ const IntegrationsManager: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {integrations.map(integration => (
-                <IntegrationCard key={integration.id} integration={integration} onDelete={handleDeleteIntegration} onTest={handleTestIntegration} />
+                <IntegrationCard key={integration.id} integration={integration} onDelete={handleDeleteIntegration} onTest={handleTestIntegration} isTesting={testingId === integration.id} />
             ))}
         </div>
       )}
