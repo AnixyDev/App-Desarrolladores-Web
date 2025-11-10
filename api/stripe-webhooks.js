@@ -48,27 +48,40 @@ export default async function handler(req, res) {
     case 'checkout.session.completed':
       const session = event.data.object;
       const userId = session.client_reference_id;
+      const stripeCustomerId = session.customer;
       const { itemKey, invoice_id } = session.metadata;
 
       console.log(`Processing successful checkout for user ${userId}, item: ${itemKey}, mode: ${session.mode}`);
 
       try {
-        if (session.mode === 'subscription') {
+        if (session.mode === 'subscription' && stripeCustomerId) {
             const plan = itemKey === 'proPlan' ? 'Pro' : itemKey === 'teamsPlan' ? 'Teams' : null;
             if (plan) {
-                await supabaseAdmin.from('profiles').update({ plan }).eq('id', userId);
+                const { error } = await supabaseAdmin
+                    .from('profiles')
+                    .update({ 
+                        plan: plan,
+                        stripe_customer_id: stripeCustomerId // CRITICAL: Save the customer ID
+                    })
+                    .eq('id', userId);
+                if (error) throw error;
             }
         } else if (session.mode === 'payment') {
             if (itemKey.startsWith('credits')) {
                 const amount = parseInt(itemKey.replace('credits', ''), 10);
-                const { data: profile } = await supabaseAdmin.from('profiles').select('ai_credits').eq('id', userId).single();
+                const { data: profile, error: profileError } = await supabaseAdmin.from('profiles').select('ai_credits').eq('id', userId).single();
+                if (profileError) throw profileError;
+
                 if (profile) {
-                    await supabaseAdmin.from('profiles').update({ ai_credits: (profile.ai_credits || 0) + amount }).eq('id', userId);
+                    const { error: updateError } = await supabaseAdmin.from('profiles').update({ ai_credits: (profile.ai_credits || 0) + amount }).eq('id', userId);
+                    if (updateError) throw updateError;
                 }
             } else if (itemKey === 'invoice_payment' && invoice_id !== 'N/A') {
-                await supabaseAdmin.from('invoices').update({ paid: true, payment_date: new Date().toISOString() }).eq('id', invoice_id).eq('user_id', userId);
+                const { error } = await supabaseAdmin.from('invoices').update({ paid: true, payment_date: new Date().toISOString() }).eq('id', invoice_id).eq('user_id', userId);
+                if (error) throw error;
             } else if (itemKey === 'featuredJob') {
                 console.log(`User ${userId} paid for a featured job post.`);
+                // Here you would add logic to update the specific job post to be featured
             }
         }
       } catch (dbError) {
@@ -76,7 +89,11 @@ export default async function handler(req, res) {
           return res.status(500).json({ error: 'Database update failed.' });
       }
       break;
-
+      
+    // You can handle other events like subscription updates or cancellations here
+    // case 'customer.subscription.deleted':
+    // case 'customer.subscription.updated':
+    
     default:
       console.log(`Unhandled event type ${event.type}`);
   }

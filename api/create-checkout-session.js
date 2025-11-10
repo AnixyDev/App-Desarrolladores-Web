@@ -36,10 +36,41 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: `Authentication error: ${userError?.message || 'User not found'}` });
     }
     
+    // --- Get or Create Stripe Customer for ALL payment types ---
+    const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('stripe_customer_id')
+        .eq('id', user.id)
+        .single();
+
+    if (profileError && profileError.code !== 'PGRST116') { // Ignore 'not found' error
+        throw profileError;
+    }
+
+    let stripeCustomerId = profile?.stripe_customer_id;
+    
+    if (!stripeCustomerId) {
+        const customer = await stripe.customers.create({
+            email: user.email,
+            name: user.user_metadata.full_name,
+            metadata: { supabase_user_id: user.id },
+        });
+        stripeCustomerId = customer.id;
+
+        const { error: updateError } = await supabaseAdmin
+            .from('profiles')
+            .update({ stripe_customer_id: stripeCustomerId })
+            .eq('id', user.id);
+        
+        if (updateError) {
+            console.error('Error updating profile with Stripe customer ID:', updateError);
+            throw new Error('Could not link Stripe customer to user profile.');
+        }
+    }
+    
     const isSubscription = ['proPlan', 'teamsPlan'].includes(itemKey);
     let line_items;
     
-    // --- Define line items based on purchase type ---
     if (itemKey === 'invoice_payment' && invoiceId && amount_cents) {
         line_items = [{
             price_data: {
@@ -63,6 +94,7 @@ export default async function handler(req, res) {
         mode: isSubscription ? 'subscription' : 'payment',
         success_url: `${req.headers.origin}/#/billing?payment_status=success&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${req.headers.origin}/#/billing?payment_status=cancelled`,
+        customer: stripeCustomerId, // Use the customer ID for all sessions
         client_reference_id: user.id,
         allow_promotion_codes: true,
         metadata: {
@@ -70,35 +102,6 @@ export default async function handler(req, res) {
             invoice_id: invoiceId || 'N/A',
         }
     };
-
-    if (isSubscription) {
-        const { data: profile, error: profileError } = await supabaseAdmin
-            .from('profiles')
-            .select('stripe_customer_id')
-            .eq('id', user.id)
-            .single();
-
-        if (profileError && profileError.code !== 'PGRST116') { // Ignore 'not found' error
-            throw profileError;
-        }
-
-        let stripeCustomerId = profile?.stripe_customer_id;
-        
-        if (!stripeCustomerId) {
-            const customer = await stripe.customers.create({
-                email: user.email,
-                name: user.user_metadata.full_name,
-                metadata: { supabase_user_id: user.id },
-            });
-            stripeCustomerId = customer.id;
-
-            await supabaseAdmin
-                .from('profiles')
-                .update({ stripe_customer_id: stripeCustomerId })
-                .eq('id', user.id);
-        }
-        sessionOptions.customer = stripeCustomerId;
-    }
     
     const session = await stripe.checkout.sessions.create(sessionOptions);
 
