@@ -18,7 +18,7 @@ const initialState = {
     session: null,
     profile: null,
     isAuthenticated: false,
-    isLoading: false, // Set to false initially, listener will manage loading state
+    isLoading: true, // Set to true initially to prevent auth flicker
     clients: [],
     projects: [],
     tasks: [],

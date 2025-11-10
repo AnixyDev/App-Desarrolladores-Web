@@ -1,9 +1,5 @@
 import { GoogleGenAI, GenerateContentResponse, Type, FunctionDeclaration } from "@google/genai";
 
-// La clave de API es inyectada por el entorno.
-// Se inicializa el cliente una vez, asumiendo que process.env.API_KEY está disponible.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-
 const API_KEY_ERROR_MESSAGE = "Error: La clave de API para los servicios de IA no está configurada o no es válida. La plataforma debería proporcionarla automáticamente. Si el error persiste, contacta al administrador del sitio.";
 
 export const AI_CREDIT_COSTS = {
@@ -26,14 +22,21 @@ export const AI_CREDIT_COSTS = {
     getDashboardInsights: 2,
 };
 
-// Función auxiliar para gestionar las llamadas a la API de forma segura
-async function safeApiCall<T>(apiCall: () => Promise<T>, errorContext: string): Promise<T> {
+// Función auxiliar centralizada para gestionar las llamadas a la API de forma segura
+async function makeApiCall(options: {
+    model: string;
+    contents: any;
+    config?: any;
+}, errorContext: string): Promise<GenerateContentResponse> {
     if (!process.env.API_KEY) {
         console.error("La clave de API de Gemini no está configurada en el entorno.");
         throw new Error(API_KEY_ERROR_MESSAGE);
     }
+    
     try {
-        return await apiCall();
+        // Se crea una nueva instancia en cada llamada para asegurar la clave más reciente.
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+        return await ai.models.generateContent(options);
     } catch (error) {
         console.error(`${errorContext}:`, error);
         if (error instanceof Error && (error.message.includes('API key not valid') || error.message.includes('API_KEY_INVALID'))) {
@@ -69,7 +72,7 @@ export const generateProposalText = async (jobTitle: string, jobDescription: str
         Genera solo el texto de la propuesta.
     `;
 
-    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await makeApiCall({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -78,7 +81,7 @@ export const generateProposalText = async (jobTitle: string, jobDescription: str
             topK: 1,
             maxOutputTokens: 512,
         }
-    }), "Error generating proposal with Gemini");
+    }, "Error generating proposal with Gemini");
     return response.text;
 };
 
@@ -96,14 +99,14 @@ export const refineProposalText = async (originalProposal: string, refinementTyp
         Ahora, por favor, proporciona la versión refinada.
     `;
 
-    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await makeApiCall({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
             temperature: 0.8,
             maxOutputTokens: 512,
         }
-    }), "Error refining proposal with Gemini");
+    }, "Error refining proposal with Gemini");
     return response.text;
 };
 
@@ -127,7 +130,7 @@ export const summarizeApplicant = async (jobDescription: string, applicantProfil
         3.  "cons": Un array de 1-2 posibles debilidades o puntos a aclarar (strings).
     `;
 
-    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await makeApiCall({
         model: "gemini-2.5-flash",
         contents: prompt,
         config: {
@@ -142,7 +145,7 @@ export const summarizeApplicant = async (jobDescription: string, applicantProfil
                 required: ["summary", "pros", "cons"],
             },
         },
-    }), "Error summarizing applicant with Gemini");
+    }, "Error summarizing applicant with Gemini");
 
     const resultText = response.text.trim();
     try {
@@ -162,7 +165,7 @@ export const getAIResponse = async (
     
     const contents = [...history, { role: 'user', parts: [{ text: prompt }] }];
 
-    return safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+    return makeApiCall({
         model: 'gemini-2.5-pro',
         contents: contents as any,
         config: {
@@ -172,7 +175,7 @@ export const getAIResponse = async (
             topK: 1,
             maxOutputTokens: 2048,
         }
-    }), "Error getting AI response from Gemini");
+    }, "Error getting AI response from Gemini");
 };
 
 export const generateFinancialForecast = async (data: any): Promise<any> => {
@@ -189,11 +192,11 @@ export const generateFinancialForecast = async (data: any): Promise<any> => {
         4.  El resultado debe ser un objeto JSON con las claves: "summary", "potentialRisks", "suggestions".
     `;
     
-    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await makeApiCall({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: { responseMimeType: "application/json" }
-    }), "Error generating financial forecast");
+    }, "Error generating financial forecast");
 
     try {
         const resultText = response.text;
@@ -230,14 +233,14 @@ export const generateTimeEntryDescription = async (projectName: string, projectD
         4.  Genera solo el texto de la descripción, sin introducciones ni saludos.
     `;
 
-    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await makeApiCall({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
             temperature: 0.6,
             maxOutputTokens: 64,
         }
-    }), "Error generating time entry description");
+    }, "Error generating time entry description");
     
     return response.text.trim();
 };
@@ -246,7 +249,7 @@ export const generateTimeEntryDescription = async (projectName: string, projectD
 // --- NUEVAS FUNCIONES ---
 
 export const generateItemsForDocument = async (prompt: string, hourlyRate: number) => {
-    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await makeApiCall({
         model: "gemini-2.5-flash",
         contents: `Basado en la siguiente descripción, genera una lista de conceptos para una factura o presupuesto. Estima las horas si es necesario y calcula el precio usando una tarifa de ${hourlyRate / 100} EUR/hora. La descripción es: "${prompt}"`,
         config: {
@@ -264,7 +267,7 @@ export const generateItemsForDocument = async (prompt: string, hourlyRate: numbe
                 },
             },
         },
-    }), "Error generating invoice items with Gemini");
+    }, "Error generating invoice items with Gemini");
     
     const resultText = response.text.trim();
     try {
@@ -278,14 +281,14 @@ export const generateItemsForDocument = async (prompt: string, hourlyRate: numbe
 export const rankArticlesByRelevance = async (query: string, articles: { id: string, title: string, content: string }[]) => {
     const simplifiedArticles = articles.map(a => ({ id: a.id, title: a.title, excerpt: a.content.substring(0, 150) }));
     
-    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await makeApiCall({
         model: "gemini-2.5-flash",
         contents: `Dada la siguiente consulta de búsqueda y una lista de artículos, devuelve un array JSON con los IDs de los artículos ordenados por relevancia semántica (el más relevante primero). Consulta: "${query}". Artículos: ${JSON.stringify(simplifiedArticles)}`,
         config: {
             responseMimeType: "application/json",
             responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } },
         },
-    }), "Error ranking articles with Gemini");
+    }, "Error ranking articles with Gemini");
 
     const resultText = response.text.trim();
     try {
@@ -297,7 +300,7 @@ export const rankArticlesByRelevance = async (query: string, articles: { id: str
 };
 
 export const analyzeProfitability = async (data: any) => {
-    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await makeApiCall({
         model: "gemini-2.5-flash",
         contents: `Analiza los siguientes datos de rentabilidad de un freelancer y proporciona un análisis JSON conciso. Datos: ${JSON.stringify(data)}`,
         config: {
@@ -320,7 +323,7 @@ export const analyzeProfitability = async (data: any) => {
                  required: ["summary", "topPerformers", "areasForImprovement"],
             }
         }
-    }), "Error analyzing profitability with Gemini");
+    }, "Error analyzing profitability with Gemini");
 
     const resultText = response.text.trim();
     try {
@@ -341,11 +344,11 @@ export const analyzeReceipt = async (imageDataBase64: string): Promise<{ descrip
         },
     };
 
-    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await makeApiCall({
         model: 'gemini-2.5-flash',
         contents: { parts: [imagePart, { text: prompt }] },
         config: { responseMimeType: "application/json" }
-    }), "Error analyzing receipt with Gemini");
+    }, "Error analyzing receipt with Gemini");
 
     const resultText = response.text.trim();
     try {
@@ -370,14 +373,14 @@ export const getDashboardInsights = async (summaryData: any): Promise<string[]> 
         Sé conciso y directo. Devuelve solo un array de strings.
     `;
     
-     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+     const response = await makeApiCall({
         model: "gemini-2.5-flash",
         contents: prompt,
         config: {
             responseMimeType: "application/json",
             responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } },
         },
-    }), "Error getting dashboard insights from Gemini");
+    }, "Error getting dashboard insights from Gemini");
 
     const resultText = response.text.trim();
     try {
@@ -390,29 +393,29 @@ export const getDashboardInsights = async (summaryData: any): Promise<string[]> 
 
 export const generateDocumentContent = async (topic: string): Promise<string> => {
     const prompt = `Eres un asistente de redacción técnica. Genera el contenido de un documento de base de conocimientos sobre el tema: "${topic}". El contenido debe estar bien estructurado, ser informativo y estar en formato Markdown. Incluye encabezados, listas y ejemplos de código si es relevante.`;
-    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await makeApiCall({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: { maxOutputTokens: 1024 }
-    }), "Error generating document content with Gemini");
+    }, "Error generating document content with Gemini");
     return response.text;
 };
 
 export const generateQuizFromContent = async (content: string): Promise<string> => {
     const prompt = `Basado en el siguiente contenido de un artículo, crea un breve cuestionario de 3-4 preguntas de opción múltiple para evaluar la comprensión del lector. Formatea la salida como texto plano.\n\nContenido:\n---\n${content.substring(0, 2000)}\n---`;
-    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await makeApiCall({
         model: 'gemini-2.5-flash',
         contents: prompt
-    }), "Error generating quiz with Gemini");
+    }, "Error generating quiz with Gemini");
     return response.text;
 };
 
 export const summarizeChatHistory = async (history: string): Promise<string> => {
     const prompt = `Resume la siguiente conversación de un chat de proyecto en 2-3 puntos clave o decisiones tomadas. Sé conciso.\n\nHistorial del Chat:\n---\n${history.substring(0, 3000)}\n---`;
-    const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await makeApiCall({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: { maxOutputTokens: 256 }
-    }), "Error summarizing chat with Gemini");
+    }, "Error summarizing chat with Gemini");
     return `Resumen de la IA:\n${response.text}`;
 };
