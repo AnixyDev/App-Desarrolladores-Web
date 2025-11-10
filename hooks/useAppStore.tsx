@@ -10,13 +10,15 @@ import { createCollaborationSlice, CollaborationSlice } from './store/collaborat
 import { createJobSlice, JobSlice } from './store/jobSlice';
 
 // Combine all slice types into a single AppStore type
-export type AppStore = AuthSlice & ClientSlice & ProjectSlice & FinanceSlice & TeamSlice & CollaborationSlice & JobSlice;
+export type AppStore = AuthSlice & ClientSlice & ProjectSlice & FinanceSlice & TeamSlice & CollaborationSlice & JobSlice & {
+    clearUserData: () => void;
+};
 
 const initialState = {
     session: null,
     profile: null,
     isAuthenticated: false,
-    isLoading: true,
+    isLoading: false, // Set to false initially, listener will manage loading state
     clients: [],
     projects: [],
     tasks: [],
@@ -62,6 +64,8 @@ export const useAppStore = create<AppStore>()(
             ...createCollaborationSlice(set, get),
             ...createJobSlice(set, get),
 
+            clearUserData: () => set({ ...initialState, isLoading: false }),
+
             // Overridden fetchInitialData to fetch from all slices
             fetchInitialData: async (user) => {
                 const { 
@@ -72,24 +76,33 @@ export const useAppStore = create<AppStore>()(
                     fetchProjectComments, fetchProjectFiles
                 } = get();
                 
-                await Promise.all([
-                    fetchProfile(user.id),
-                    fetchClients(),
-                    fetchProjects(),
-                    fetchTasks(),
-                    fetchInvoices(),
-                    fetchExpenses(),
-                    fetchTimeEntries(),
-                    fetchProposals(),
-                    fetchContracts(),
-                    fetchBudgets(),
-                    fetchUsers(),
-                    fetchArticles(),
-                    fetchJobs(),
-                    fetchApplications(),
-                    fetchProjectComments(),
-                    fetchProjectFiles(),
-                ]);
+                // Set loading to true only when fetching starts
+                set({ isLoading: true });
+                try {
+                    await Promise.all([
+                        fetchProfile(user.id),
+                        fetchClients(),
+                        fetchProjects(),
+                        fetchTasks(),
+                        fetchInvoices(),
+                        fetchExpenses(),
+                        fetchTimeEntries(),
+                        fetchProposals(),
+                        fetchContracts(),
+                        fetchBudgets(),
+                        fetchUsers(),
+                        fetchArticles(),
+                        fetchJobs(),
+                        fetchApplications(),
+                        fetchProjectComments(),
+                        fetchProjectFiles(),
+                    ]);
+                } catch (error) {
+                    console.error("Failed to fetch initial data:", error);
+                    // Handle error state if necessary
+                } finally {
+                    set({ isLoading: false });
+                }
             },
 
             // --- GETTERS (Remain synchronous, operating on local state) ---
@@ -108,7 +121,6 @@ export const useAppStore = create<AppStore>()(
             storage: createJSONStorage(() => localStorage),
             partialize: (state) => ({ 
                 // Only persist session and user preferences, not all the data
-                session: state.session,
                 savedJobIds: state.savedJobIds,
                 notifiedJobIds: state.notifiedJobIds,
             }),

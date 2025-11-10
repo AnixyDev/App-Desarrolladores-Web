@@ -1,10 +1,7 @@
-
-
-
-
 import React, { useState, Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAppStore } from './hooks/useAppStore';
+import { supabase } from './lib/supabaseClient';
 
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
@@ -90,14 +87,36 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 };
 
 function App() {
-  const { reauthenticate, isLoading } = useAppStore();
+  const { setSession, fetchInitialData, clearUserData, isLoading } = useAppStore();
 
   useEffect(() => {
-    // This effect runs once on app startup to check for an existing session
-    reauthenticate();
-  }, [reauthenticate]);
+    // This is the core authentication listener.
+    // It handles SIGNED_IN, SIGNED_OUT, and TOKEN_REFRESHED events.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        // Set the session for all auth events.
+        setSession(session);
 
-  // Show a global loader while re-authenticating or loading initial data
+        if (event === 'SIGNED_IN' && session?.user) {
+          // When a user signs in, fetch all their data.
+          useAppStore.setState({ isLoading: true });
+          await fetchInitialData(session.user);
+          useAppStore.setState({ isLoading: false });
+        } else if (event === 'SIGNED_OUT') {
+          // When a user signs out, clear all their data from the store.
+          clearUserData();
+        }
+      }
+    );
+
+    // This cleanup function will run when the App component unmounts.
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [setSession, fetchInitialData, clearUserData]);
+  
+
+  // Show a global loader only during the very initial page load.
   if (isLoading) {
     return <div className="h-screen w-screen bg-slate-950 flex items-center justify-center"><PageLoader /></div>;
   }

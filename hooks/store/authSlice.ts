@@ -15,7 +15,6 @@ export interface AuthSlice {
     loginWithGithub: () => Promise<void>;
     register: (name: string, email: string, pass: string) => Promise<void>;
     logout: () => Promise<void>;
-    reauthenticate: () => Promise<void>;
     fetchProfile: (userId: string) => Promise<void>;
     fetchInitialData: (user: User) => Promise<void>; // This will be composed in the main store
     updateProfile: (updatedProfile: Partial<Profile>) => Promise<void>;
@@ -27,9 +26,11 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     session: null,
     profile: null,
     isAuthenticated: false,
-    isLoading: true,
+    isLoading: true, // Will be set to false after initial check in App.tsx
 
-    setSession: (session) => set({ session, isAuthenticated: !!session }),
+    setSession: (session) => {
+        set({ session, isAuthenticated: !!session, isLoading: false });
+    },
 
     login: async (email, password) => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -37,9 +38,6 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     },
 
     loginWithGoogle: async () => {
-        // Use the standard, recommended PKCE flow.
-        // The Client ID should be configured in the Supabase Dashboard, not sent from the client.
-        // This is more secure and avoids configuration issues.
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: { 
@@ -50,7 +48,6 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     },
 
     loginWithGithub: async () => {
-        // Use the standard, recommended PKCE flow.
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'github',
             options: { redirectTo: window.location.origin },
@@ -68,20 +65,9 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     },
 
     logout: async () => {
-        await supabase.auth.signOut();
-        // Resetting the entire store state might be too aggressive if you want to keep some settings.
-        // For now, just resetting auth state. The main store initial state will handle the rest.
-        set({ session: null, profile: null, isAuthenticated: false, isLoading: false, clients: [], projects: [] /* etc */ });
-    },
-    
-    reauthenticate: async () => {
-        set({ isLoading: true });
-        const { data: { session } } = await supabase.auth.getSession();
-        set({ session, isAuthenticated: !!session });
-        if (session?.user) {
-            await get().fetchInitialData(session.user);
-        }
-        set({ isLoading: false });
+        // The onAuthStateChange listener in App.tsx will handle clearing the state.
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
     },
     
     // To be composed/overridden in the main store
@@ -92,12 +78,20 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
 
     fetchProfile: async (userId) => {
         const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
-        if (error) throw error;
+        if (error) {
+            // It's possible for the profile to not exist yet for a new user
+            if (error.code === 'PGRST116') {
+                console.warn("Profile not found for new user, this is expected.");
+                set({ profile: null });
+                return;
+            }
+            throw error;
+        }
         set({ profile: data });
     },
 
     updateProfile: async (updatedProfile) => {
-        const userId = get().profile?.id;
+        const userId = get().session?.user?.id;
         if (!userId) throw new Error("User not found");
 
         const { data, error } = await supabase
