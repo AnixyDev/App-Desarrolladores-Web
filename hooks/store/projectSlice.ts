@@ -9,6 +9,7 @@ export interface ProjectSlice {
     fetchProjects: () => Promise<void>;
     fetchTasks: () => Promise<void>;
     addProject: (newProject: NewProject) => Promise<void>;
+    updateProject: (updatedProject: Partial<Project> & { id: string }) => Promise<void>;
     updateProjectStatus: (id: string, status: Project['status']) => Promise<void>;
     updateProjectBudget: (id: string, budgetCents: number) => Promise<void>;
     addTask: (newTask: { project_id: string; description: string }) => Promise<void>;
@@ -44,6 +45,20 @@ export const createProjectSlice: StateCreator<AppStore, [], [], ProjectSlice> = 
         
         if (error) throw error;
         set(state => ({ projects: [...state.projects, data] }));
+    },
+
+    updateProject: async (updatedProject) => {
+        const { data, error } = await supabase
+            .from('projects')
+            .update(updatedProject)
+            .eq('id', updatedProject.id)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        set(state => ({
+            projects: state.projects.map(p => p.id === data.id ? data : p)
+        }));
     },
 
     updateProjectStatus: async (id, status) => {

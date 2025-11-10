@@ -10,6 +10,7 @@ import { Project, Task, InvoiceItem, ProjectFile } from '../types';
 import { PlusIcon, TrashIcon, ClockIcon, FileTextIcon, MessageSquareIcon, DollarSignIcon, Paperclip, Upload, Trash2, EditIcon, CalendarPlus } from '../components/icons/Icon';
 import EmptyState from '../components/ui/EmptyState';
 import { useToast } from '../hooks/useToast';
+import Modal from '../components/ui/Modal';
 
 const ProjectChat = lazy(() => import('../components/ProjectChat'));
 const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal'));
@@ -29,6 +30,7 @@ const ProjectDetailPage: React.FC = () => {
         addTask,
         updateTaskStatus,
         deleteTask,
+        updateProject,
         updateProjectStatus,
         updateProjectBudget,
         projectFiles,
@@ -42,6 +44,8 @@ const ProjectDetailPage: React.FC = () => {
     const [isDeleteFileModalOpen, setIsDeleteFileModalOpen] = useState(false);
     const [fileToDelete, setFileToDelete] = useState<ProjectFile | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [currentProjectForEdit, setCurrentProjectForEdit] = useState<Project | null>(null);
 
     const project = projectId ? getProjectById(projectId) : undefined;
     const client = project ? getClientById(project.client_id) : undefined;
@@ -209,6 +213,31 @@ const ProjectDetailPage: React.FC = () => {
         }
     };
 
+    const openEditModal = () => {
+        if (project) {
+            setCurrentProjectForEdit({ ...project });
+            setIsEditModalOpen(true);
+        }
+    };
+    
+    const handleUpdateProject = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (currentProjectForEdit) {
+            try {
+                await updateProject(currentProjectForEdit as Project & { id: string });
+                addToast('Proyecto actualizado con éxito.', 'success');
+                setIsEditModalOpen(false);
+            } catch (error) {
+                addToast(`Error al actualizar: ${(error as Error).message}`, 'error');
+            }
+        }
+    };
+
+    const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setCurrentProjectForEdit(prev => prev ? { ...prev, [name]: value } : null);
+    };
+
 
     return (
         <div className="space-y-6">
@@ -232,8 +261,9 @@ const ProjectDetailPage: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1 space-y-6">
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="flex justify-between items-center">
                             <h2 className="text-lg font-semibold text-white">Detalles del Proyecto</h2>
+                             <Button variant="secondary" size="sm" onClick={openEditModal}><EditIcon className="w-4 h-4" /></Button>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
@@ -438,6 +468,54 @@ const ProjectDetailPage: React.FC = () => {
                     </Suspense>
                 </CardContent>
             </Card>
+
+            <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Editar Detalles del Proyecto">
+                {currentProjectForEdit && (
+                    <form onSubmit={handleUpdateProject} className="space-y-4">
+                        <Input 
+                            label="Nombre del Proyecto"
+                            name="name" 
+                            value={currentProjectForEdit.name} 
+                            onChange={handleEditInputChange}
+                            required 
+                        />
+                        <div>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">Descripción</label>
+                            <textarea 
+                                name="description"
+                                rows={4} 
+                                className="block w-full px-3 py-2 border-2 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-0 sm:text-sm bg-[#2a2a50] text-white border-transparent focus:border-fuchsia-500"
+                                value={currentProjectForEdit.description || ''}
+                                onChange={handleEditInputChange}
+                            />
+                        </div>
+                         <div className="grid grid-cols-2 gap-4">
+                            <Input 
+                                label="Categoría"
+                                name="category"
+                                value={currentProjectForEdit.category || ''} 
+                                onChange={handleEditInputChange}
+                            />
+                            <div>
+                                <label className="block text-sm font-medium text-slate-400 mb-1">Prioridad</label>
+                                <select
+                                    name="priority"
+                                    value={currentProjectForEdit.priority || 'Medium'}
+                                    onChange={(e) => setCurrentProjectForEdit(p => p ? {...p, priority: e.target.value as 'Low' | 'Medium' | 'High' } : null)}
+                                    className="block w-full px-3 py-2 border-2 rounded-md shadow-sm focus:outline-none focus:ring-0 sm:text-sm bg-[#2a2a50] text-white border-transparent focus:border-fuchsia-500"
+                                >
+                                    <option>Low</option>
+                                    <option>Medium</option>
+                                    <option>High</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="flex justify-end pt-4">
+                            <Button type="submit">Guardar Cambios</Button>
+                        </div>
+                    </form>
+                )}
+            </Modal>
 
             <Suspense fallback={null}>
                 {isConfirmModalOpen && (
