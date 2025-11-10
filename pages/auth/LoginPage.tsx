@@ -54,6 +54,7 @@ const LoginPage: React.FC = () => {
             }
             // La redirección ocurrirá aquí, por lo que el código siguiente puede no ejecutarse.
         } catch (err) {
+            console.error('Social Sign-In Error:', err);
             const errorMessage = (err as Error).message || 'No se pudo iniciar la sesión social. Revisa la consola o la configuración.';
             setError(errorMessage);
             setIsLoading(false);

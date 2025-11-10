@@ -37,6 +37,9 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     },
 
     loginWithGoogle: async () => {
+        // Use the standard, recommended PKCE flow.
+        // The Client ID should be configured in the Supabase Dashboard, not sent from the client.
+        // This is more secure and avoids configuration issues.
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: { 
@@ -47,6 +50,7 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     },
 
     loginWithGithub: async () => {
+        // Use the standard, recommended PKCE flow.
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'github',
             options: { redirectTo: window.location.origin },
