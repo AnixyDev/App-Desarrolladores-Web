@@ -2,9 +2,9 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import { CheckCircleIcon, SparklesIcon, DollarSignIcon, CreditCard, RefreshCwIcon } from '../components/icons/Icon';
+import { CheckCircleIcon, SparklesIcon, DollarSignIcon, CreditCard, RefreshCwIcon, SettingsIcon } from '../components/icons/Icon';
 import { useToast } from '../hooks/useToast';
-import { redirectToCheckout, createConnectAccount } from '../services/stripeService';
+import { redirectToCheckout, createConnectAccount, redirectToFreelancerPortal } from '../services/stripeService';
 
 const UpgradeModal = lazy(() => import('../components/modals/UpgradeModal'));
 
@@ -13,6 +13,7 @@ const BillingPage: React.FC = () => {
     const { addToast } = useToast();
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
     const [isConnectingStripe, setIsConnectingStripe] = useState(false);
+    const [isPortalLoading, setIsPortalLoading] = useState(false);
     
     // Handle Stripe Connect return
     useEffect(() => {
@@ -39,11 +40,12 @@ const BillingPage: React.FC = () => {
             setIsUpgradeModalOpen(true);
             return;
         }
+        
         try {
-            await upgradePlan(newPlan);
-            addToast(`¡Has actualizado al plan ${newPlan}!`, 'success');
+            const itemKey = newPlan === 'Pro' ? 'proPlan' : 'teamsPlan';
+            await redirectToCheckout(itemKey);
         } catch (error) {
-            addToast('Hubo un error al actualizar tu plan.', 'error');
+            addToast((error as Error).message, 'error');
         }
     };
 
@@ -64,6 +66,16 @@ const BillingPage: React.FC = () => {
         } catch (error) {
             addToast((error as Error).message, 'error');
             setIsConnectingStripe(false);
+        }
+    };
+
+    const handleManageSubscription = async () => {
+        setIsPortalLoading(true);
+        try {
+            await redirectToFreelancerPortal();
+        } catch (error) {
+            addToast((error as Error).message, 'error');
+            setIsPortalLoading(false);
         }
     };
     
@@ -101,7 +113,15 @@ const BillingPage: React.FC = () => {
 
     return (
         <div className="space-y-8">
-            <h1 className="text-2xl font-semibold text-white">Facturación y Plan</h1>
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-semibold text-white">Facturación y Plan</h1>
+                {profile.plan !== 'Free' && (
+                    <Button onClick={handleManageSubscription} variant="secondary" disabled={isPortalLoading}>
+                        {isPortalLoading ? <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin" /> : <SettingsIcon className="w-4 h-4 mr-2" />}
+                        Gestionar Suscripción
+                    </Button>
+                )}
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                  <PlanCard

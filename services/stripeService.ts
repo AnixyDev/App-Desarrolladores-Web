@@ -31,9 +31,6 @@ export const redirectToCheckout = async (itemKey: CheckoutItemKey, options: Chec
     const data = await response.json();
     if (response.ok && data.url) {
         window.location.href = data.url;
-    } else if (response.ok && data.sessionId) { // Fallback for some API structures
-         const stripe = (window as any).Stripe(process.env.STRIPE_PUBLISHABLE_KEY);
-         await stripe.redirectToCheckout({ sessionId: data.sessionId });
     } else {
         throw new Error(data.error || 'No se pudo iniciar el pago.');
     }
@@ -77,5 +74,20 @@ export const redirectToCustomerPortal = async (options: CustomerPortalOptions) =
         window.location.href = data.url;
     } else {
         throw new Error(data.error || 'No se pudo abrir el portal del cliente.');
+    }
+};
+
+export const redirectToFreelancerPortal = async () => {
+    const authHeaders = await getAuthHeader();
+    const response = await fetch('/api/create-freelancer-portal-session', {
+        method: 'POST',
+        headers: authHeaders,
+    });
+
+    const data = await response.json();
+    if (response.ok && data.url) {
+        window.location.href = data.url;
+    } else {
+        throw new Error(data.error || 'No se pudo abrir tu portal de facturación.');
     }
 };

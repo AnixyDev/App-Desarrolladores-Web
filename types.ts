@@ -35,6 +35,7 @@ export interface Profile {
   // --- Stripe Connect ---
   stripe_account_id: string;
   stripe_onboarding_complete: boolean;
+  stripe_customer_id?: string | null;
 }
 
 export interface Client {

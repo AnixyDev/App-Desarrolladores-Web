@@ -8,12 +8,12 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 const priceMap = {
-    proPlan: 'price_1SOgUF8oC5awQy15dOEM5jGS', // Example price ID
-    teamsPlan: 'price_1SOggV8oC5awQy15YW1wAgcg', // Example price ID
-    credits50: 'price_1SOgpD8oC5awQy15iZf9L6oM', // Example price ID for 50 credits
-    credits200: 'price_1SOgqP8oC5awQy15aQf1vN3v', // Example price ID for 200 credits
-    credits1000: 'price_1SOguC8oC5awQy15LGchpkVG', // Example price ID for 1000 credits
-    featuredJob: 'price_1SOlOv8oC5awQy15Q2aXoEg7', // Example price ID
+    proPlan: process.env.STRIPE_PRO_PLAN_PRICE_ID || 'price_1SOgUF8oC5awQy15dOEM5jGS', 
+    teamsPlan: process.env.STRIPE_TEAMS_PLAN_PRICE_ID || 'price_1SOggV8oC5awQy15YW1wAgcg',
+    credits50: process.env.STRIPE_CREDITS50_PRICE_ID || 'price_1SOgpD8oC5awQy15iZf9L6oM',
+    credits200: process.env.STRIPE_CREDITS200_PRICE_ID || 'price_1SOgqP8oC5awQy15aQf1vN3v',
+    credits1000: process.env.STRIPE_CREDITS1000_PRICE_ID || 'price_1SOguC8oC5awQy15LGchpkVG',
+    featuredJob: process.env.STRIPE_FEATURED_JOB_PRICE_ID || 'price_1SOlOv8oC5awQy15Q2aXoEg7',
 };
 
 export default async function handler(req, res) {
@@ -32,18 +32,20 @@ export default async function handler(req, res) {
     const token = authHeader.split(' ')[1];
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
-    if (userError) {
-        return res.status(401).json({ error: `Authentication error: ${userError.message}` });
+    if (userError || !user) {
+        return res.status(401).json({ error: `Authentication error: ${userError?.message || 'User not found'}` });
     }
     
+    const isSubscription = ['proPlan', 'teamsPlan'].includes(itemKey);
     let line_items;
     
+    // --- Define line items based on purchase type ---
     if (itemKey === 'invoice_payment' && invoiceId && amount_cents) {
         line_items = [{
             price_data: {
                 currency: 'eur',
                 product_data: {
-                    name: `Factura ${description || invoiceId}`,
+                    name: `Pago de Factura ${description || invoiceId}`,
                 },
                 unit_amount: amount_cents,
             },
@@ -54,19 +56,51 @@ export default async function handler(req, res) {
     } else {
         return res.status(400).json({ error: 'Producto o factura no válido.' });
     }
+    
+    const sessionOptions = {
+        payment_method_types: ['card'],
+        line_items,
+        mode: isSubscription ? 'subscription' : 'payment',
+        success_url: `${req.headers.origin}/#/billing?payment_status=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${req.headers.origin}/#/billing?payment_status=cancelled`,
+        client_reference_id: user.id,
+        allow_promotion_codes: true,
+        metadata: {
+            itemKey: itemKey || 'invoice_payment',
+            invoice_id: invoiceId || 'N/A',
+        }
+    };
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items,
-      mode: 'payment',
-      success_url: `${req.headers.origin}/`,
-      cancel_url: `${req.headers.origin}/`,
-      client_reference_id: user.id, // CRUCIAL for webhooks
-      metadata: {
-        itemKey: itemKey || 'invoice_payment',
-        invoice_id: invoiceId || 'N/A',
-      }
-    });
+    if (isSubscription) {
+        const { data: profile, error: profileError } = await supabaseAdmin
+            .from('profiles')
+            .select('stripe_customer_id')
+            .eq('id', user.id)
+            .single();
+
+        if (profileError && profileError.code !== 'PGRST116') { // Ignore 'not found' error
+            throw profileError;
+        }
+
+        let stripeCustomerId = profile?.stripe_customer_id;
+        
+        if (!stripeCustomerId) {
+            const customer = await stripe.customers.create({
+                email: user.email,
+                name: user.user_metadata.full_name,
+                metadata: { supabase_user_id: user.id },
+            });
+            stripeCustomerId = customer.id;
+
+            await supabaseAdmin
+                .from('profiles')
+                .update({ stripe_customer_id: stripeCustomerId })
+                .eq('id', user.id);
+        }
+        sessionOptions.customer = stripeCustomerId;
+    }
+    
+    const session = await stripe.checkout.sessions.create(sessionOptions);
 
     res.status(200).json({ sessionId: session.id, url: session.url });
 
