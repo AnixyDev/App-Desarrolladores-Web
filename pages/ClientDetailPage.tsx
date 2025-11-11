@@ -1,4 +1,5 @@
 
+
 // pages/ClientDetailPage.tsx
 import React, { useState, lazy, Suspense, useMemo, useEffect } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -125,7 +126,15 @@ const ClientDetailPage: React.FC = () => {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">{client.name}</h1>
+                    <div className="flex items-center gap-3 mb-1">
+                        <h1 className="text-3xl font-bold text-white">{client.name}</h1>
+                        {client.payment_method_on_file && (
+                            <div className="flex items-center gap-1.5 bg-green-900/50 text-green-300 border border-green-700 px-2.5 py-1 rounded-full text-xs font-semibold" title="El cliente tiene un método de pago guardado en Stripe.">
+                                <CreditCard className="w-3.5 h-3.5"/>
+                                <span>Pago Guardado</span>
+                            </div>
+                        )}
+                    </div>
                     <p className="text-lg text-gray-400">Panel de Cliente</p>
                 </div>
                 <div className="flex items-center gap-2">

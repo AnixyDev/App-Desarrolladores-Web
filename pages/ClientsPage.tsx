@@ -7,7 +7,7 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import { Client, NewClient } from '../types';
-import { EditIcon, TrashIcon, PhoneIcon, MailIcon, Users as UsersIcon, SearchIcon, DownloadIcon } from '../components/icons/Icon';
+import { EditIcon, TrashIcon, PhoneIcon, MailIcon, Users as UsersIcon, SearchIcon, DownloadIcon, CreditCard } from '../components/icons/Icon';
 import { useToast } from '../hooks/useToast';
 import EmptyState from '../components/ui/EmptyState';
 import { validateEmail } from '../lib/utils';
@@ -187,9 +187,14 @@ const ClientsPage: React.FC = () => {
                     {filteredClients.map(client => (
                         <Card key={client.id} className="flex flex-col">
                             <CardHeader>
-                                <Link to={`/clients/${client.id}`} className="text-primary-400 text-lg font-semibold hover:underline">
-                                    {client.name}
-                                </Link>
+                                <div className="flex items-center gap-2">
+                                    <Link to={`/clients/${client.id}`} className="text-primary-400 text-lg font-semibold hover:underline">
+                                        {client.name}
+                                    </Link>
+                                    {client.payment_method_on_file && (
+                                        <CreditCard className="w-5 h-5 text-green-400" title="Método de pago guardado" />
+                                    )}
+                                </div>
                                 <p className="text-sm text-gray-400">{client.company}</p>
                             </CardHeader>
                             <CardContent className="flex-grow space-y-3 text-sm">

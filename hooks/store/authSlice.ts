@@ -20,6 +20,7 @@ export interface AuthSlice {
     updateProfile: (updatedProfile: Partial<Profile>) => Promise<void>;
     completeOnboarding: () => void;
     consumeCredits: (amount: number) => Promise<void>;
+    updateStripeConnection: (accountId: string, isComplete: boolean) => Promise<void>;
 }
 
 export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, get) => ({
@@ -115,5 +116,12 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
             const newCredits = Math.max(0, profile.ai_credits - amount);
             await get().updateProfile({ ai_credits: newCredits });
         }
+    },
+
+    updateStripeConnection: async (accountId, isComplete) => {
+        await get().updateProfile({ 
+            stripe_account_id: accountId,
+            stripe_onboarding_complete: isComplete 
+        });
     },
 });

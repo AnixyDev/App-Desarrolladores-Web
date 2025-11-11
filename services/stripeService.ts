@@ -91,3 +91,18 @@ export const redirectToFreelancerPortal = async () => {
         throw new Error(data.error || 'No se pudo abrir tu portal de facturación.');
     }
 };
+
+export const redirectToConnectDashboard = async () => {
+    const authHeaders = await getAuthHeader();
+    const response = await fetch('/api/create-connect-dashboard-link', {
+        method: 'POST',
+        headers: authHeaders,
+    });
+
+    const data = await response.json();
+    if (response.ok && data.url) {
+        window.location.href = data.url;
+    } else {
+        throw new Error(data.error || 'No se pudo abrir el panel de Stripe.');
+    }
+};

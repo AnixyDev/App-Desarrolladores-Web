@@ -2,6 +2,7 @@ import { supabase } from '../../lib/supabaseClient';
 import type { StateCreator } from 'zustand';
 import type { AppStore } from '../useAppStore';
 import { Invoice, RecurringInvoice, Expense, TimeEntry, Budget, Proposal, Contract, NewTimeEntry, ShadowIncomeEntry } from '../../types';
+import { formatCurrency } from '../../lib/utils';
 
 export interface FinanceSlice {
     invoices: Invoice[];
@@ -124,9 +125,51 @@ export const createFinanceSlice: StateCreator<AppStore, [], [], FinanceSlice> = 
             .single();
 
         if (error) throw error;
+        
         set(state => ({
             invoices: state.invoices.map(i => i.id === id ? data : i)
         }));
+
+        // --- NEW EMAIL NOTIFICATION LOGIC ---
+        try {
+            const { profile, getClientById } = get();
+            const client = getClientById(data.client_id);
+
+            if (profile && client) {
+                const subject = `Confirmación de pago para la factura #${data.invoice_number}`;
+                const html = `
+                    <div style="font-family: sans-serif; line-height: 1.6;">
+                        <h2>¡Pago Recibido!</h2>
+                        <p>Hola ${client.name},</p>
+                        <p>Te confirmamos que hemos recibido tu pago de <strong>${formatCurrency(data.total_cents)}</strong> para la factura <strong>#${data.invoice_number}</strong>.</p>
+                        <p>Agradecemos tu confianza y esperamos seguir colaborando contigo.</p>
+                        <br>
+                        <p>Saludos cordiales,</p>
+                        <p>
+                            <strong>${profile.full_name}</strong><br>
+                            ${profile.business_name || ''}
+                        </p>
+                    </div>
+                `;
+
+                const response = await fetch('/api/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ to: client.email, subject, html }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'El servidor de correo no respondió correctamente.');
+                }
+                
+                console.log(`Email simulation successful for invoice ${data.invoice_number}.`);
+            }
+        } catch (emailError) {
+            console.error("Failed to send payment confirmation email:", emailError);
+            // Silently fail for email, the main action was successful.
+            // A toast could be added here if needed to notify the user of email failure.
+        }
     },
     
     addExpense: async (newExpense) => {

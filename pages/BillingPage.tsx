@@ -4,7 +4,7 @@ import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { CheckCircleIcon, SparklesIcon, DollarSignIcon, CreditCard, RefreshCwIcon, SettingsIcon } from '../components/icons/Icon';
 import { useToast } from '../hooks/useToast';
-import { redirectToCheckout, createConnectAccount, redirectToFreelancerPortal } from '../services/stripeService';
+import { redirectToCheckout, createConnectAccount, redirectToFreelancerPortal, redirectToConnectDashboard } from '../services/stripeService';
 
 const UpgradeModal = lazy(() => import('../components/modals/UpgradeModal'));
 
@@ -14,6 +14,7 @@ const BillingPage: React.FC = () => {
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
     const [isConnectingStripe, setIsConnectingStripe] = useState(false);
     const [isPortalLoading, setIsPortalLoading] = useState(false);
+    const [isManagingStripe, setIsManagingStripe] = useState(false);
     
     // Handle Stripe Connect return
     useEffect(() => {
@@ -23,7 +24,7 @@ const BillingPage: React.FC = () => {
             // to verify the onboarding is complete. Here we simulate it.
             if (profile && !profile.stripe_onboarding_complete) {
                 // A better approach would be to get the accountId from the backend after creation
-                updateStripeConnection('acct_simulation_id', true);
+                updateStripeConnection(profile.stripe_account_id, true);
                 addToast('¡Tu cuenta de Stripe ha sido conectada con éxito!', 'success');
             }
              // Clean up URL
@@ -76,6 +77,16 @@ const BillingPage: React.FC = () => {
         } catch (error) {
             addToast((error as Error).message, 'error');
             setIsPortalLoading(false);
+        }
+    };
+
+    const handleManageStripeAccount = async () => {
+        setIsManagingStripe(true);
+        try {
+            await redirectToConnectDashboard();
+        } catch (error) {
+            addToast((error as Error).message, 'error');
+            setIsManagingStripe(false);
         }
     };
     
@@ -166,15 +177,23 @@ const BillingPage: React.FC = () => {
             
              <Card>
                 <CardHeader>
-                    <h2 className="text-lg font-semibold text-white flex items-center gap-2"><CreditCard/> Pagos y Transferencias</h2>
+                    <h2 className="text-lg font-semibold text-white flex items-center gap-2"><CreditCard/> Recibe pagos con Stripe</h2>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-gray-300 mb-4">Conecta tu cuenta de Stripe para recibir pagos de clientes y gestionar tus comisiones de afiliado de forma segura.</p>
+                    <p className="text-gray-300 mb-4">Conecta tu cuenta de Stripe para que tus clientes puedan pagarte con tarjeta de crédito directamente desde sus facturas.</p>
                     {profile.stripe_onboarding_complete ? (
-                        <div className="p-4 bg-green-900/50 border border-green-700 rounded-lg text-center">
-                            <CheckCircleIcon className="w-8 h-8 mx-auto text-green-400 mb-2"/>
-                            <p className="font-semibold text-green-300">¡Tu cuenta de Stripe está conectada!</p>
-                            <p className="text-xs text-green-400">Puedes gestionar tu cuenta desde el panel de Stripe.</p>
+                        <div className="p-4 bg-slate-800 border border-slate-700 rounded-lg flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <div className="flex items-center">
+                                <CheckCircleIcon className="w-6 h-6 text-green-400 mr-3"/>
+                                <div>
+                                    <p className="font-semibold text-white">Conectado</p>
+                                    <p className="text-xs text-slate-400">Tus clientes ya pueden pagarte con tarjeta.</p>
+                                </div>
+                            </div>
+                            <Button onClick={handleManageStripeAccount} variant="secondary" disabled={isManagingStripe}>
+                                {isManagingStripe ? <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin"/> : null}
+                                Gestionar cuenta
+                            </Button>
                         </div>
                     ) : (
                         <Button onClick={handleConnectStripe} disabled={isConnectingStripe}>

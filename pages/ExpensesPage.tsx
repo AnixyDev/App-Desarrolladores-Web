@@ -35,6 +35,8 @@ const ExpensesPage: React.FC = () => {
     const [isScanning, setIsScanning] = useState(false);
     const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [amountError, setAmountError] = useState('');
+    const [recurringAmountError, setRecurringAmountError] = useState('');
 
     const initialExpenseState: Omit<Expense, 'id' | 'user_id' | 'created_at'> = {
         description: '',
@@ -57,33 +59,62 @@ const ExpensesPage: React.FC = () => {
     
     const handleExpenseChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
+        if (name === 'amount_cents') {
+            const numValue = Number(value);
+            if (isNaN(numValue) || numValue <= 0) {
+                setAmountError('El importe debe ser un número positivo.');
+            } else {
+                setAmountError('');
+            }
+        }
         setNewExpense(prev => ({ ...prev, [name]: value }));
     };
 
     const handleRecurringChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
+        if (name === 'amount_cents') {
+            const numValue = Number(value);
+            if (isNaN(numValue) || numValue <= 0) {
+                setRecurringAmountError('El importe debe ser un número positivo.');
+            } else {
+                setRecurringAmountError('');
+            }
+        }
         setNewRecurringExpense(prev => ({ ...prev, [name]: value as any }));
     };
 
     const handleExpenseSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        const numAmount = Number(newExpense.amount_cents);
+        if (isNaN(numAmount) || numAmount <= 0) {
+            setAmountError('El importe debe ser un número positivo.');
+            return;
+        }
+
         addExpense({
             ...newExpense,
-            amount_cents: Math.round(Number(newExpense.amount_cents) * 100),
+            amount_cents: Math.round(numAmount * 100),
             tax_percent: Number(newExpense.tax_percent) || 0,
         });
         setIsExpenseModalOpen(false);
         setNewExpense(initialExpenseState);
+        setAmountError('');
     };
 
     const handleRecurringSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        const numAmount = Number(newRecurringExpense.amount_cents);
+        if (isNaN(numAmount) || numAmount <= 0) {
+            setRecurringAmountError('El importe debe ser un número positivo.');
+            return;
+        }
         addRecurringExpense({
             ...newRecurringExpense,
-            amount_cents: Math.round(Number(newRecurringExpense.amount_cents) * 100),
+            amount_cents: Math.round(numAmount * 100),
         });
         setIsRecurringModalOpen(false);
         setNewRecurringExpense(initialRecurringState);
+        setRecurringAmountError('');
     };
 
     const handleDeleteClick = (id: string, type: 'single' | 'recurring') => {
@@ -223,11 +254,20 @@ const ExpensesPage: React.FC = () => {
                 </Card>
             </div>
             
-            <Modal isOpen={isExpenseModalOpen} onClose={() => setIsExpenseModalOpen(false)} title="Añadir Nuevo Gasto">
+            <Modal isOpen={isExpenseModalOpen} onClose={() => { setIsExpenseModalOpen(false); setAmountError(''); }}>
                 <form onSubmit={handleExpenseSubmit} className="space-y-4">
                     <Input name="description" label="Descripción" value={newExpense.description} onChange={handleExpenseChange} required />
                     <div className="grid grid-cols-2 gap-4">
-                        <Input name="amount_cents" label="Importe (€)" type="number" step="0.01" value={newExpense.amount_cents} onChange={handleExpenseChange} required />
+                        <Input 
+                            name="amount_cents" 
+                            label="Importe (€)" 
+                            type="number" 
+                            step="0.01" 
+                            value={newExpense.amount_cents} 
+                            onChange={handleExpenseChange} 
+                            required 
+                            error={amountError}
+                        />
                         <Input name="tax_percent" label="IVA Soportado (%)" type="number" value={newExpense.tax_percent} onChange={handleExpenseChange} />
                     </div>
                     <Input name="date" label="Fecha" type="date" value={newExpense.date} onChange={handleExpenseChange} required />
@@ -245,10 +285,19 @@ const ExpensesPage: React.FC = () => {
                 </form>
             </Modal>
             
-            <Modal isOpen={isRecurringModalOpen} onClose={() => setIsRecurringModalOpen(false)} title="Añadir Gasto Recurrente">
+            <Modal isOpen={isRecurringModalOpen} onClose={() => { setIsRecurringModalOpen(false); setRecurringAmountError(''); }}>
                 <form onSubmit={handleRecurringSubmit} className="space-y-4">
                     <Input name="description" label="Descripción" value={newRecurringExpense.description} onChange={handleRecurringChange} required />
-                    <Input name="amount_cents" label="Importe (€)" type="number" step="0.01" value={newRecurringExpense.amount_cents} onChange={handleRecurringChange} required />
+                    <Input 
+                        name="amount_cents" 
+                        label="Importe (€)" 
+                        type="number" 
+                        step="0.01" 
+                        value={newRecurringExpense.amount_cents} 
+                        onChange={handleRecurringChange} 
+                        required 
+                        error={recurringAmountError}
+                    />
                     <Input name="start_date" label="Fecha de Inicio" type="date" value={newRecurringExpense.start_date} onChange={handleRecurringChange} required />
                     <Input name="category" label="Categoría" value={newRecurringExpense.category} onChange={handleRecurringChange} />
                      <div>

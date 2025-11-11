@@ -39,6 +39,16 @@ export default async function handler(req, res) {
       }
     });
 
+    // Save the new account ID to the user's profile
+    const { error: updateError } = await supabaseAdmin
+        .from('profiles')
+        .update({ stripe_account_id: account.id })
+        .eq('id', user.id);
+
+    if (updateError) {
+        console.error('Error updating profile with Stripe Account ID:', updateError);
+    }
+
     // 3. Create an onboarding link for that account.
     const accountLink = await stripe.accountLinks.create({
       account: account.id,

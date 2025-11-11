@@ -1,3 +1,4 @@
+// pages/ProjectsPage.tsx
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../hooks/useAppStore';
@@ -14,7 +15,7 @@ import { useToast } from '../hooks/useToast';
 import { validateEmail } from '../lib/utils';
 
 const ProjectsPage: React.FC = () => {
-    const { projects, clients, addProject, getClientById, addClient } = useAppStore();
+    const { projects, clients, addProject, getClientById, addClient, timeEntries, expenses, profile } = useAppStore();
     const { addToast } = useToast();
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
@@ -91,6 +92,17 @@ const ProjectsPage: React.FC = () => {
         });
         setIsProjectModalOpen(true);
     };
+    
+    const calculateProjectCosts = (projectId: string) => {
+        const projectTimeEntries = timeEntries.filter(entry => entry.project_id === projectId);
+        const totalSeconds = projectTimeEntries.reduce((sum, entry) => sum + entry.duration_seconds, 0);
+        const timeCosts = (totalSeconds / 3600) * profile.hourly_rate_cents;
+
+        const projectExpenses = expenses.filter(e => e.project_id === projectId);
+        const expenseCosts = projectExpenses.reduce((sum, e) => sum + e.amount_cents, 0);
+        
+        return timeCosts + expenseCosts;
+    };
 
     return (
         <div>
@@ -114,34 +126,54 @@ const ProjectsPage: React.FC = () => {
             
             {filteredProjects.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {filteredProjects.map(project => (
-                        <Card key={project.id} className="flex flex-col hover:border-primary-500/50 transition-colors">
-                            <CardHeader>
-                                <div className="flex justify-between items-start">
-                                    <Link to={`/projects/${project.id}`} className="text-primary-400 text-lg font-semibold hover:underline pr-2">
-                                        {project.name}
-                                    </Link>
-                                    <StatusChip type="project" status={project.status} />
-                                </div>
-                                <Link to={`/clients/${project.client_id}`} className="text-sm text-gray-400 hover:underline">{getClientById(project.client_id)?.name}</Link>
-                            </CardHeader>
-                            <CardContent className="flex-grow space-y-2 text-sm text-gray-300">
-                                <p>{project.description?.substring(0, 100) || 'Sin descripción.'}...</p>
-                            </CardContent>
-                            <div className="p-4 border-t border-gray-800 flex items-center justify-between text-sm">
-                                <div>
-                                    <p className="text-gray-400">Vencimiento</p>
-                                    <p className="text-white font-medium">{project.due_date}</p>
-                                </div>
+                    {filteredProjects.map(project => {
+                        const totalCosts = project.budget_cents > 0 ? calculateProjectCosts(project.id) : 0;
+                        const consumedPercentage = project.budget_cents > 0 ? (totalCosts / project.budget_cents) * 100 : 0;
+                        
+                        let progressBarColor = 'bg-green-600';
+                        if (consumedPercentage > 90) {
+                            progressBarColor = 'bg-red-600';
+                        } else if (consumedPercentage > 75) {
+                            progressBarColor = 'bg-yellow-500';
+                        }
+
+                        return (
+                            <Card key={project.id} className="flex flex-col hover:border-primary-500/50 transition-colors">
+                                <CardHeader>
+                                    <div className="flex justify-between items-start">
+                                        <Link to={`/projects/${project.id}`} className="text-primary-400 text-lg font-semibold hover:underline pr-2">
+                                            {project.name}
+                                        </Link>
+                                        <StatusChip type="project" status={project.status} />
+                                    </div>
+                                    <Link to={`/clients/${project.client_id}`} className="text-sm text-gray-400 hover:underline">{getClientById(project.client_id)?.name}</Link>
+                                </CardHeader>
+                                <CardContent className="flex-grow space-y-2 text-sm text-gray-300">
+                                    <p>{project.description?.substring(0, 100) || 'Sin descripción.'}...</p>
+                                </CardContent>
                                 {project.budget_cents > 0 && (
-                                     <div>
-                                        <p className="text-gray-400">Presupuesto</p>
-                                        <p className="text-white font-semibold">{formatCurrency(project.budget_cents)}</p>
+                                    <div className="px-5 pb-4 text-sm">
+                                        <div className="flex justify-between text-xs text-gray-400 mb-1">
+                                            <span>{formatCurrency(totalCosts)} / {formatCurrency(project.budget_cents)}</span>
+                                            <span>{consumedPercentage.toFixed(0)}%</span>
+                                        </div>
+                                        <div className="w-full bg-gray-700 rounded-full h-2">
+                                            <div 
+                                                className={`${progressBarColor} h-2 rounded-full`}
+                                                style={{ width: `${Math.min(consumedPercentage, 100)}%` }}
+                                            ></div>
+                                        </div>
                                     </div>
                                 )}
-                            </div>
-                        </Card>
-                    ))}
+                                <div className="p-4 border-t border-gray-800 flex items-center justify-between text-sm">
+                                    <div>
+                                        <p className="text-gray-400">Vencimiento</p>
+                                        <p className="text-white font-medium">{project.due_date}</p>
+                                    </div>
+                                </div>
+                            </Card>
+                        )
+                    })}
                 </div>
             ) : (
                  <EmptyState
