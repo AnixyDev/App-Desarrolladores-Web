@@ -1,6 +1,7 @@
 // pages/ProjectsPage.tsx
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useForm, SubmitHandler } from 'react-hook-form';
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -12,7 +13,6 @@ import StatusChip from '../components/ui/StatusChip';
 import EmptyState from '../components/ui/EmptyState';
 import { BriefcaseIcon, PlusIcon } from '../components/icons/Icon';
 import { useToast } from '../hooks/useToast';
-import { validateEmail } from '../lib/utils';
 
 const ProjectsPage: React.FC = () => {
     const { projects, clients, addProject, getClientById, addClient, timeEntries, expenses, profile } = useAppStore();
@@ -20,75 +20,76 @@ const ProjectsPage: React.FC = () => {
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
     const [filterStatus, setFilterStatus] = useState<'all' | Project['status']>('all');
-    const [clientEmailError, setClientEmailError] = useState('');
 
-    const initialProjectState: NewProject = {
-        name: '',
-        client_id: clients[0]?.id || '',
-        description: '',
-        status: 'planning',
-        start_date: new Date().toISOString().split('T')[0],
-        due_date: '',
-        budget_cents: 0,
-    };
-    const [newProject, setNewProject] = useState<NewProject>(initialProjectState);
+    const { 
+        register: registerProject, 
+        handleSubmit: handleProjectSubmit, 
+        formState: { errors: projectErrors, isSubmitting: isProjectSubmitting },
+        reset: resetProjectForm,
+        watch: watchProject,
+        setValue: setProjectValue,
+    } = useForm<NewProject>({
+        defaultValues: {
+            name: '',
+            client_id: clients[0]?.id || '',
+            description: '',
+            status: 'planning',
+            start_date: new Date().toISOString().split('T')[0],
+            due_date: '',
+            budget_cents: 0,
+        }
+    });
+
+    const {
+        register: registerClient,
+        handleSubmit: handleClientSubmit,
+        formState: { errors: clientErrors, isSubmitting: isClientSubmitting },
+        reset: resetClientForm,
+    } = useForm<NewClient>({
+        defaultValues: { name: '', company: '', email: '', phone: '' }
+    });
+
+    const selectedClientId = watchProject('client_id');
     
-    const initialClientState: NewClient = { name: '', company: '', email: '', phone: '' };
-    const [newClient, setNewClient] = useState<NewClient>(initialClientState);
-
     const filteredProjects = useMemo(() => {
         if (filterStatus === 'all') return projects;
         return projects.filter(p => p.status === filterStatus);
     }, [projects, filterStatus]);
 
-    const handleProjectInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setNewProject(prev => ({ ...prev, [name]: value }));
-    };
-    
-    const handleClientInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setNewClient(prev => ({ ...prev, [name]: value }));
-        if (name === 'email') {
-            setClientEmailError('');
-        }
-    };
-
-    const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setNewProject(prev => ({ ...prev, budget_cents: Math.round(Number(e.target.value) * 100) }));
-    };
-
-    const handleProjectSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newProject.client_id) {
+    const onProjectSubmit: SubmitHandler<NewProject> = async (data) => {
+        if (!data.client_id) {
             addToast('Por favor, selecciona o crea un cliente.', 'error');
             return;
         }
-        await addProject(newProject);
+        
+        const projectData = {
+            ...data,
+            budget_cents: Math.round(Number(data.budget_cents) * 100),
+        };
+        
+        await addProject(projectData);
         setIsProjectModalOpen(false);
-        setNewProject(initialProjectState);
+        resetProjectForm();
         addToast('Proyecto añadido con éxito.', 'success');
     };
 
-    const handleClientSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (newClient.name && newClient.email) {
-            if (!validateEmail(newClient.email)) {
-                setClientEmailError('Por favor, introduce un correo electrónico válido.');
-                return;
-            }
-            const createdClient = await addClient(newClient);
-            setNewProject(prev => ({ ...prev, client_id: createdClient.id }));
-            setIsClientModalOpen(false);
-            setNewClient(initialClientState);
-            addToast('Cliente añadido. Ahora puedes seleccionarlo.', 'success');
-        }
+    const onClientSubmit: SubmitHandler<NewClient> = async (data) => {
+        const createdClient = await addClient(data);
+        setProjectValue('client_id', createdClient.id, { shouldValidate: true });
+        setIsClientModalOpen(false);
+        resetClientForm();
+        addToast('Cliente añadido. Ahora puedes seleccionarlo.', 'success');
     };
     
     const openProjectModal = () => {
-        setNewProject({
-            ...initialProjectState,
-            client_id: clients[0]?.id || ''
+        resetProjectForm({
+            name: '',
+            client_id: clients[0]?.id || '',
+            description: '',
+            status: 'planning',
+            start_date: new Date().toISOString().split('T')[0],
+            due_date: '',
+            budget_cents: 0,
         });
         setIsProjectModalOpen(true);
     };
@@ -185,12 +186,12 @@ const ProjectsPage: React.FC = () => {
             )}
 
             <Modal isOpen={isProjectModalOpen} onClose={() => setIsProjectModalOpen(false)} title="Añadir Nuevo Proyecto">
-                <form onSubmit={handleProjectSubmit} className="space-y-4">
-                    <Input name="name" label="Nombre del Proyecto" value={newProject.name} onChange={handleProjectInputChange} required />
+                <form onSubmit={handleProjectSubmit(onProjectSubmit)} className="space-y-4">
+                    <Input label="Nombre del Proyecto" {...registerProject("name", { required: true })} error={projectErrors.name && "El nombre es obligatorio."}/>
                     <div>
                          <label className="block text-sm font-medium text-gray-300 mb-1">Cliente</label>
                          <div className="flex gap-2">
-                            <select name="client_id" value={newProject.client_id} onChange={handleProjectInputChange} className="flex-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
+                            <select {...registerProject("client_id")} className="flex-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
                                 {clients.length === 0 && <option disabled value="">Crea un cliente primero</option>}
                                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
@@ -199,25 +200,25 @@ const ProjectsPage: React.FC = () => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-1">Descripción</label>
-                         <textarea name="description" rows={4} value={newProject.description} onChange={handleProjectInputChange} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white" />
+                         <textarea {...registerProject("description")} rows={4} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white" />
                     </div>
                      <div className="grid grid-cols-2 gap-4">
-                        <Input name="start_date" label="Fecha de Inicio" type="date" value={newProject.start_date} onChange={handleProjectInputChange} required />
-                        <Input name="due_date" label="Fecha de Entrega" type="date" value={newProject.due_date} onChange={handleProjectInputChange} required />
+                        <Input label="Fecha de Inicio" type="date" {...registerProject("start_date", { required: true })} error={projectErrors.start_date && "Campo requerido."} />
+                        <Input label="Fecha de Entrega" type="date" {...registerProject("due_date", { required: true })} error={projectErrors.due_date && "Campo requerido."} />
                     </div>
-                    <Input label="Presupuesto (€, opcional)" type="number" step="0.01" onChange={handleBudgetChange} />
+                    <Input label="Presupuesto (€, opcional)" type="number" step="0.01" {...registerProject("budget_cents")} />
                     <div className="flex justify-end pt-4">
-                        <Button type="submit">Guardar Proyecto</Button>
+                        <Button type="submit" disabled={isProjectSubmitting}>{isProjectSubmitting ? "Guardando..." : "Guardar Proyecto"}</Button>
                     </div>
                 </form>
             </Modal>
             
-            <Modal isOpen={isClientModalOpen} onClose={() => { setIsClientModalOpen(false); setClientEmailError(''); }} title="Añadir Nuevo Cliente">
-                <form onSubmit={handleClientSubmit} className="space-y-4">
-                    <Input name="name" label="Nombre Completo" value={newClient.name} onChange={handleClientInputChange} required />
-                    <Input name="email" label="Email" type="email" value={newClient.email} onChange={handleClientInputChange} required error={clientEmailError} />
+            <Modal isOpen={isClientModalOpen} onClose={() => setIsClientModalOpen(false)} title="Añadir Nuevo Cliente">
+                <form onSubmit={handleClientSubmit(onClientSubmit)} className="space-y-4">
+                    <Input label="Nombre Completo" {...registerClient("name", { required: true })} error={clientErrors.name && "Campo requerido."} />
+                    <Input label="Email" type="email" {...registerClient("email", { required: true, pattern: /^\S+@\S+$/i })} error={clientErrors.email && "Email no válido."} />
                     <div className="flex justify-end pt-4">
-                        <Button type="submit">Guardar Cliente</Button>
+                        <Button type="submit" disabled={isClientSubmitting}>{isClientSubmitting ? "Guardando..." : "Guardar Cliente"}</Button>
                     </div>
                 </form>
             </Modal>

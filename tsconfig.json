@@ -9,6 +9,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "allowJs": true,
 
     /* Linting */
     "strict": true,
@@ -19,6 +20,12 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "include": ["**/*.ts", "**/*.tsx", "**/*.js"],
+  "exclude": [
+    "node_modules",
+    "ClientsPage.tsx",
+    "ProjectsPage.tsx",
+    "ProjectDetailPage.tsx",
+    "AIAssistantPage.tsx"
+  ]
 }

@@ -20,22 +20,24 @@ export const AI_CREDIT_COSTS = {
     analyzeProfitability: 15,
     generateInvoiceItems: 8,
     getDashboardInsights: 2,
+    suggestSkills: 5,
 };
 
 // Función auxiliar centralizada para gestionar las llamadas a la API de forma segura
+// FIX: Use process.env.API_KEY directly as per guidelines, and resolve `import.meta.env` error.
 async function makeApiCall(options: {
     model: string;
     contents: any;
     config?: any;
 }, errorContext: string): Promise<GenerateContentResponse> {
     if (!process.env.API_KEY) {
-        console.error("La clave de API de Gemini no está configurada en el entorno.");
+        console.error("La clave de API de Gemini no está configurada en el entorno (process.env.API_KEY).");
         throw new Error(API_KEY_ERROR_MESSAGE);
     }
     
     try {
         // Se crea una nueva instancia en cada llamada para asegurar la clave más reciente.
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         return await ai.models.generateContent(options);
     } catch (error) {
         console.error(`${errorContext}:`, error);
@@ -418,4 +420,41 @@ export const summarizeChatHistory = async (history: string): Promise<string> => 
         config: { maxOutputTokens: 256 }
     }, "Error summarizing chat with Gemini");
     return `Resumen de la IA:\n${response.text}`;
+};
+
+export const suggestSkills = async (bio: string, specialty: string): Promise<string[]> => {
+    const prompt = `
+        As an expert tech recruiter, analyze the following freelancer profile information.
+        Based on their bio and specialty, suggest a concise list of 5 to 7 relevant technical skills.
+        Return the skills as a JSON array of strings.
+
+        **Specialty:** ${specialty}
+        **Bio:** ${bio}
+
+        Example output: ["React", "TypeScript", "Node.js", "GraphQL", "AWS", "Docker"]
+    `;
+
+    const response = await makeApiCall({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+            },
+        },
+    }, "Error suggesting skills with Gemini");
+
+    const resultText = response.text.trim();
+    try {
+        const skills = JSON.parse(resultText);
+        if (Array.isArray(skills)) {
+            return skills;
+        }
+        return [];
+    } catch (e) {
+        console.error("Error parsing suggested skills from Gemini:", e);
+        return [];
+    }
 };

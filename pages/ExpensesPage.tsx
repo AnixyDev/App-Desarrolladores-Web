@@ -1,4 +1,5 @@
 import React, { useState, lazy, Suspense, useRef } from 'react';
+import { useForm, SubmitHandler } from 'react-hook-form';
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -12,6 +13,9 @@ import { analyzeReceipt, AI_CREDIT_COSTS } from '../services/geminiService';
 
 const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal'));
 const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal'));
+
+type ExpenseFormData = Omit<Expense, 'id' | 'user_id' | 'created_at' | 'amount_cents'> & { amount: number };
+type RecurringExpenseFormData = Omit<RecurringExpense, 'id' | 'user_id' | 'created_at' | 'next_due_date' | 'amount_cents'> & { amount: number };
 
 const ExpensesPage: React.FC = () => {
     const {
@@ -35,86 +39,38 @@ const ExpensesPage: React.FC = () => {
     const [isScanning, setIsScanning] = useState(false);
     const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [amountError, setAmountError] = useState('');
-    const [recurringAmountError, setRecurringAmountError] = useState('');
-
-    const initialExpenseState: Omit<Expense, 'id' | 'user_id' | 'created_at'> = {
-        description: '',
-        amount_cents: 0,
-        tax_percent: 21,
-        date: new Date().toISOString().split('T')[0],
-        category: 'Software',
-        project_id: '',
-    };
-    const [newExpense, setNewExpense] = useState(initialExpenseState);
-
-    const initialRecurringState: Omit<RecurringExpense, 'id' | 'user_id' | 'created_at' | 'next_due_date'> = {
-        description: '',
-        amount_cents: 0,
-        category: 'Software',
-        frequency: 'monthly',
-        start_date: new Date().toISOString().split('T')[0],
-    };
-    const [newRecurringExpense, setNewRecurringExpense] = useState(initialRecurringState);
     
-    const handleExpenseChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        if (name === 'amount_cents') {
-            const numValue = Number(value);
-            if (isNaN(numValue) || numValue <= 0) {
-                setAmountError('El importe debe ser un número positivo.');
-            } else {
-                setAmountError('');
-            }
+    const { register: registerExpense, handleSubmit: handleExpenseSubmit, formState: { errors: expenseErrors, isSubmitting: isExpenseSubmitting }, reset: resetExpenseForm, setValue: setExpenseValue } = useForm<ExpenseFormData>({
+        defaultValues: {
+            description: '', amount: 0, tax_percent: 21, date: new Date().toISOString().split('T')[0], category: 'Software', project_id: ''
         }
-        setNewExpense(prev => ({ ...prev, [name]: value }));
-    };
+    });
 
-    const handleRecurringChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        if (name === 'amount_cents') {
-            const numValue = Number(value);
-            if (isNaN(numValue) || numValue <= 0) {
-                setRecurringAmountError('El importe debe ser un número positivo.');
-            } else {
-                setRecurringAmountError('');
-            }
+    const { register: registerRecurring, handleSubmit: handleRecurringSubmit, formState: { errors: recurringErrors, isSubmitting: isRecurringSubmitting }, reset: resetRecurringForm } = useForm<RecurringExpenseFormData>({
+        defaultValues: {
+            description: '', amount: 0, category: 'Software', frequency: 'monthly', start_date: new Date().toISOString().split('T')[0]
         }
-        setNewRecurringExpense(prev => ({ ...prev, [name]: value as any }));
-    };
+    });
 
-    const handleExpenseSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const numAmount = Number(newExpense.amount_cents);
-        if (isNaN(numAmount) || numAmount <= 0) {
-            setAmountError('El importe debe ser un número positivo.');
-            return;
-        }
-
-        addExpense({
-            ...newExpense,
-            amount_cents: Math.round(numAmount * 100),
-            tax_percent: Number(newExpense.tax_percent) || 0,
+    const onExpenseSubmit: SubmitHandler<ExpenseFormData> = async (data) => {
+        await addExpense({
+            ...data,
+            amount_cents: Math.round(data.amount * 100),
+            tax_percent: Number(data.tax_percent) || 0,
         });
         setIsExpenseModalOpen(false);
-        setNewExpense(initialExpenseState);
-        setAmountError('');
+        resetExpenseForm();
+        addToast('Gasto añadido.', 'success');
     };
 
-    const handleRecurringSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const numAmount = Number(newRecurringExpense.amount_cents);
-        if (isNaN(numAmount) || numAmount <= 0) {
-            setRecurringAmountError('El importe debe ser un número positivo.');
-            return;
-        }
-        addRecurringExpense({
-            ...newRecurringExpense,
-            amount_cents: Math.round(numAmount * 100),
+    const onRecurringSubmit: SubmitHandler<RecurringExpenseFormData> = async (data) => {
+        await addRecurringExpense({
+            ...data,
+            amount_cents: Math.round(data.amount * 100),
         });
         setIsRecurringModalOpen(false);
-        setNewRecurringExpense(initialRecurringState);
-        setRecurringAmountError('');
+        resetRecurringForm();
+        addToast('Gasto recurrente añadido.', 'success');
     };
 
     const handleDeleteClick = (id: string, type: 'single' | 'recurring') => {
@@ -151,13 +107,11 @@ const ExpensesPage: React.FC = () => {
                 const base64String = (loadEvent.target?.result as string).split(',')[1];
                 if (base64String) {
                     const result = await analyzeReceipt(base64String);
-                    setNewExpense({
-                        ...initialExpenseState,
-                        description: result.description || '',
-                        amount_cents: (result.amount || 0) as any, // Will be multiplied by 100 on submit
-                        date: result.date || new Date().toISOString().split('T')[0],
-                        category: result.category || 'Varios',
-                    });
+                    setExpenseValue('description', result.description || '');
+                    setExpenseValue('amount', result.amount || 0);
+                    setExpenseValue('date', result.date || new Date().toISOString().split('T')[0]);
+                    setExpenseValue('category', result.category || 'Varios');
+                    
                     consumeCredits(AI_CREDIT_COSTS.generateDocument);
                     setIsScanModalOpen(false);
                     setIsExpenseModalOpen(true);
@@ -254,61 +208,43 @@ const ExpensesPage: React.FC = () => {
                 </Card>
             </div>
             
-            <Modal isOpen={isExpenseModalOpen} onClose={() => { setIsExpenseModalOpen(false); setAmountError(''); }}>
-                <form onSubmit={handleExpenseSubmit} className="space-y-4">
-                    <Input name="description" label="Descripción" value={newExpense.description} onChange={handleExpenseChange} required />
+            <Modal isOpen={isExpenseModalOpen} onClose={() => { setIsExpenseModalOpen(false); resetExpenseForm(); }}>
+                <form onSubmit={handleExpenseSubmit(onExpenseSubmit)} className="space-y-4">
+                    <Input label="Descripción" {...registerExpense("description", { required: true })} error={expenseErrors.description && "Campo requerido."} />
                     <div className="grid grid-cols-2 gap-4">
-                        <Input 
-                            name="amount_cents" 
-                            label="Importe (€)" 
-                            type="number" 
-                            step="0.01" 
-                            value={newExpense.amount_cents} 
-                            onChange={handleExpenseChange} 
-                            required 
-                            error={amountError}
-                        />
-                        <Input name="tax_percent" label="IVA Soportado (%)" type="number" value={newExpense.tax_percent} onChange={handleExpenseChange} />
+                        <Input label="Importe (€)" type="number" step="0.01" {...registerExpense("amount", { required: true, valueAsNumber: true, min: 0.01 })} error={expenseErrors.amount && "Importe inválido."} />
+                        <Input label="IVA Soportado (%)" type="number" {...registerExpense("tax_percent", { valueAsNumber: true })} />
                     </div>
-                    <Input name="date" label="Fecha" type="date" value={newExpense.date} onChange={handleExpenseChange} required />
-                    <Input name="category" label="Categoría" value={newExpense.category} onChange={handleExpenseChange} />
+                    <Input label="Fecha" type="date" {...registerExpense("date", { required: true })} error={expenseErrors.date && "Campo requerido."} />
+                    <Input label="Categoría" {...registerExpense("category")} />
                     <div>
                          <label className="block text-sm font-medium text-gray-300 mb-1">Proyecto (Opcional)</label>
-                         <select name="project_id" value={newExpense.project_id || ''} onChange={handleExpenseChange} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
+                         <select {...registerExpense("project_id")} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
                             <option value="">Ninguno</option>
                             {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                     </div>
                     <div className="flex justify-end pt-4">
-                        <Button type="submit">Guardar Gasto</Button>
+                        <Button type="submit" disabled={isExpenseSubmitting}>{isExpenseSubmitting ? 'Guardando...' : 'Guardar Gasto'}</Button>
                     </div>
                 </form>
             </Modal>
             
-            <Modal isOpen={isRecurringModalOpen} onClose={() => { setIsRecurringModalOpen(false); setRecurringAmountError(''); }}>
-                <form onSubmit={handleRecurringSubmit} className="space-y-4">
-                    <Input name="description" label="Descripción" value={newRecurringExpense.description} onChange={handleRecurringChange} required />
-                    <Input 
-                        name="amount_cents" 
-                        label="Importe (€)" 
-                        type="number" 
-                        step="0.01" 
-                        value={newRecurringExpense.amount_cents} 
-                        onChange={handleRecurringChange} 
-                        required 
-                        error={recurringAmountError}
-                    />
-                    <Input name="start_date" label="Fecha de Inicio" type="date" value={newRecurringExpense.start_date} onChange={handleRecurringChange} required />
-                    <Input name="category" label="Categoría" value={newRecurringExpense.category} onChange={handleRecurringChange} />
+            <Modal isOpen={isRecurringModalOpen} onClose={() => { setIsRecurringModalOpen(false); resetRecurringForm(); }}>
+                <form onSubmit={handleRecurringSubmit(onRecurringSubmit)} className="space-y-4">
+                    <Input label="Descripción" {...registerRecurring("description", { required: true })} error={recurringErrors.description && "Campo requerido."} />
+                    <Input label="Importe (€)" type="number" step="0.01" {...registerRecurring("amount", { required: true, valueAsNumber: true, min: 0.01 })} error={recurringErrors.amount && "Importe inválido."}/>
+                    <Input label="Fecha de Inicio" type="date" {...registerRecurring("start_date", { required: true })} error={recurringErrors.start_date && "Campo requerido."}/>
+                    <Input label="Categoría" {...registerRecurring("category")} />
                      <div>
                          <label className="block text-sm font-medium text-gray-300 mb-1">Frecuencia</label>
-                         <select name="frequency" value={newRecurringExpense.frequency} onChange={handleRecurringChange} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
+                         <select {...registerRecurring("frequency")} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
                             <option value="monthly">Mensual</option>
                             <option value="yearly">Anual</option>
                         </select>
                     </div>
                     <div className="flex justify-end pt-4">
-                        <Button type="submit">Guardar Gasto Recurrente</Button>
+                        <Button type="submit" disabled={isRecurringSubmitting}>{isRecurringSubmitting ? 'Guardando...' : 'Guardar Gasto Recurrente'}</Button>
                     </div>
                 </form>
             </Modal>

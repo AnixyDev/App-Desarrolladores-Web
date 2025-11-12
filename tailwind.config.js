@@ -11,10 +11,10 @@ export default {
     extend: {
       colors: {
         primary: {
-          '400': '#ff33ff',
-          '500': '#ff00ff',
-          '600': '#e600e6',
-          '700': '#cc00cc',
+          '400': '#f735c7',
+          '500': '#F000B8',
+          '600': '#d9009f',
+          '700': '#c0008b',
         }
       },
       boxShadow: {

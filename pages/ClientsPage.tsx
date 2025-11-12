@@ -1,6 +1,7 @@
 // pages/ClientsPage.tsx
-import React, { useState, lazy, Suspense, useMemo } from 'react';
+import React, { useState, lazy, Suspense, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useForm, SubmitHandler } from 'react-hook-form';
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -10,7 +11,6 @@ import { Client, NewClient } from '../types';
 import { EditIcon, TrashIcon, PhoneIcon, MailIcon, Users as UsersIcon, SearchIcon, DownloadIcon, CreditCard } from '../components/icons/Icon';
 import { useToast } from '../hooks/useToast';
 import EmptyState from '../components/ui/EmptyState';
-import { validateEmail } from '../lib/utils';
 
 const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal'));
 const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal'));
@@ -23,6 +23,8 @@ const initialClientState: NewClient = {
     phone: '',
 };
 
+type ClientFormData = NewClient & { id?: string };
+
 const ClientsPage: React.FC = () => {
     const { clients, addClient, updateClient, deleteClient, profile } = useAppStore();
     const { addToast } = useToast();
@@ -30,10 +32,12 @@ const ClientsPage: React.FC = () => {
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
-    const [formData, setFormData] = useState<NewClient | Client>(initialClientState);
     const [editingClient, setEditingClient] = useState<Client | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [emailError, setEmailError] = useState('');
+    
+    const { register, handleSubmit, formState: { errors, isSubmitting }, reset, setValue } = useForm<ClientFormData>({
+        defaultValues: initialClientState
+    });
 
     const filteredClients = useMemo(() => {
         if (!searchTerm) return clients;
@@ -43,54 +47,44 @@ const ClientsPage: React.FC = () => {
         );
     }, [clients, searchTerm]);
 
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-        if (name === 'email') {
-            setEmailError('');
-        }
-    };
-
     const handleOpenAddModal = () => {
         if (profile.plan === 'Free' && clients.length >= 1) {
             setIsUpgradeModalOpen(true);
         } else {
             setEditingClient(null);
-            setFormData(initialClientState);
+            reset(initialClientState);
             setIsModalOpen(true);
         }
     };
     
     const openEditModal = (client: Client) => {
         setEditingClient(client);
-        setFormData(client);
+        setValue('id', client.id);
+        setValue('name', client.name);
+        setValue('company', client.company);
+        setValue('email', client.email);
+        setValue('phone', client.phone);
         setIsModalOpen(true);
     }
     
     const closeModal = () => {
         setIsModalOpen(false);
         setEditingClient(null);
-        setFormData(initialClientState);
-        setEmailError('');
+        reset(initialClientState);
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!validateEmail(formData.email)) {
-            setEmailError('Por favor, introduce un correo electrónico válido.');
-            return;
-        }
-
-        if (formData.name && formData.email) {
+    const onSubmit: SubmitHandler<ClientFormData> = async (formData) => {
+        try {
             if (editingClient) {
-                updateClient(formData as Client);
+                await updateClient(formData as Client);
                 addToast('Cliente actualizado con éxito', 'success');
             } else {
-                addClient(formData as NewClient);
+                await addClient(formData as NewClient);
                 addToast('Cliente añadido con éxito', 'success');
             }
             closeModal();
+        } catch (error) {
+            addToast(`Error al guardar el cliente: ${(error as Error).message}`, 'error');
         }
     };
 
@@ -224,13 +218,36 @@ const ClientsPage: React.FC = () => {
 
 
             <Modal isOpen={isModalOpen} onClose={closeModal} title={editingClient ? "Editar Cliente" : "Añadir Nuevo Cliente"}>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <Input name="name" label="Nombre Completo" value={formData.name} onChange={handleInputChange} required />
-                    <Input name="company" label="Empresa (Opcional)" value={formData.company} onChange={handleInputChange} />
-                    <Input name="email" label="Email" type="email" value={formData.email} onChange={handleInputChange} required error={emailError} />
-                    <Input name="phone" label="Teléfono (Opcional)" value={formData.phone} onChange={handleInputChange} />
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <Input 
+                        label="Nombre Completo" 
+                        {...register("name", { required: "El nombre es obligatorio." })}
+                        error={errors.name?.message}
+                    />
+                    <Input 
+                        label="Empresa (Opcional)"
+                        {...register("company")}
+                    />
+                    <Input 
+                        label="Email" 
+                        type="email" 
+                        {...register("email", { 
+                            required: "El email es obligatorio.",
+                            pattern: {
+                                value: /^\S+@\S+$/i,
+                                message: "Formato de email no válido."
+                            }
+                        })} 
+                        error={errors.email?.message}
+                    />
+                    <Input 
+                        label="Teléfono (Opcional)" 
+                        {...register("phone")}
+                    />
                     <div className="flex justify-end pt-4">
-                        <Button type="submit">Guardar Cliente</Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? 'Guardando...' : 'Guardar Cliente'}
+                        </Button>
                     </div>
                 </form>
             </Modal>

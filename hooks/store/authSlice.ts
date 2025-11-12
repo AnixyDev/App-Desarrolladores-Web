@@ -42,7 +42,7 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: { 
-                redirectTo: window.location.origin,
+                redirectTo: window.location.href,
             },
         });
         if (error) throw error;
@@ -51,7 +51,7 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     loginWithGithub: async () => {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'github',
-            options: { redirectTo: window.location.origin },
+            options: { redirectTo: window.location.href },
         });
         if (error) throw error;
     },

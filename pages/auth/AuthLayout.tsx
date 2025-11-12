@@ -4,7 +4,7 @@ import { Logo } from '../../components/icons/Logo';
 
 const AuthLayout: React.FC = () => {
     return (
-        <div className="min-h-screen flex flex-col justify-center items-center p-4 relative text-white">
+        <div className="auth-background min-h-screen flex flex-col justify-center items-center p-4 relative text-white">
             <header className="flex justify-center mb-6">
                 <Logo className="w-12 h-12" />
             </header>

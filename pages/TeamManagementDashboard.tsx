@@ -1,10 +1,10 @@
 import React, { useState, lazy, Suspense } from 'react';
+import { useForm, SubmitHandler } from 'react-hook-form';
 import { Users, UserPlus, Trash2, MailIcon as Mail, X, UserIcon as User, RefreshCwIcon } from '../components/icons/Icon';
 import { useAppStore } from '../hooks/useAppStore';
 import { UserData } from '../types';
 import { useToast } from '../hooks/useToast';
 import Input from '../components/ui/Input';
-import { validateEmail } from '../lib/utils';
 import Modal from '../components/ui/Modal';
 import Button from '../components/ui/Button';
 
@@ -29,49 +29,39 @@ const TeamManagementDashboard: React.FC = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<UserData | null>(null);
-  const [newMember, setNewMember] = useState<NewMember>({ name: '', email: '', role: roles[0] });
-  const [isSending, setIsSending] = useState(false);
-  const [emailError, setEmailError] = useState('');
-
-  const handleInvite = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMember.name || !newMember.email) return;
-
-    if (!validateEmail(newMember.email)) {
-        setEmailError('Por favor, introduce un correo electrónico válido.');
-        return;
+  
+  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<NewMember>({
+    defaultValues: {
+      name: '',
+      email: '',
+      role: 'Developer'
     }
-    
-    setIsSending(true);
+  });
+
+  const onInviteSubmit: SubmitHandler<NewMember> = async (data) => {
     try {
-      // First, persist the user to the database via the store
-      await inviteUser(newMember.name, newMember.email, newMember.role);
+      await inviteUser(data.name, data.email, data.role);
       
-      // Then, attempt to send the email
       const invitationLink = `${window.location.origin}/#/auth/register`;
       const subject = `Has sido invitado al equipo de ${profile.business_name} en DevFreelancer`;
-      const html = `<h1>¡Hola ${newMember.name}!</h1><p>Has sido invitado a unirte al equipo de <strong>${profile.business_name}</strong> en DevFreelancer con el rol de ${newMember.role}.</p><p><a href="${invitationLink}">Haz clic aquí para crear tu cuenta y aceptar la invitación.</a></p>`;
+      const html = `<h1>¡Hola ${data.name}!</h1><p>Has sido invitado a unirte al equipo de <strong>${profile.business_name}</strong> en DevFreelancer con el rol de ${data.role}.</p><p><a href="${invitationLink}">Haz clic aquí para crear tu cuenta y aceptar la invitación.</a></p>`;
 
       const response = await fetch('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ to: newMember.email, subject, html }),
+          body: JSON.stringify({ to: data.email, subject, html }),
       });
 
       if (!response.ok) {
         throw new Error('El servidor de correo no respondió correctamente.');
       }
 
-      addToast(`Invitación enviada a ${newMember.email}`, 'success');
-      
-      setNewMember({ name: '', email: '', role: roles[0] });
+      addToast(`Invitación enviada a ${data.email}`, 'success');
+      reset();
       setShowInviteModal(false);
-      setEmailError('');
 
     } catch (error) {
       addToast(`Error: ${(error as Error).message}`, 'error');
-    } finally {
-      setIsSending(false);
     }
   };
 
@@ -105,30 +95,25 @@ const TeamManagementDashboard: React.FC = () => {
 
   const InviteMemberModal = () => (
     <Modal isOpen={showInviteModal} onClose={() => setShowInviteModal(false)} title="Invitar Nuevo Miembro">
-        <form onSubmit={handleInvite} className="space-y-4">
+        <form onSubmit={handleSubmit(onInviteSubmit)} className="space-y-4">
             <Input
               label="Nombre Completo"
-              type="text"
-              value={newMember.name}
-              onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
-              required
+              {...register("name", { required: "El nombre es obligatorio." })}
+              error={errors.name?.message}
             />
             <Input
               label="Correo Electrónico"
               type="email"
-              value={newMember.email}
-              onChange={(e) => {
-                setNewMember({ ...newMember, email: e.target.value });
-                setEmailError('');
-              }}
-              error={emailError}
-              required
+              {...register("email", { 
+                  required: "El email es obligatorio.",
+                  pattern: { value: /^\S+@\S+$/i, message: "Email no válido."}
+              })}
+              error={errors.email?.message}
             />
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">Rol y Permisos</label>
             <select
-              value={newMember.role}
-              onChange={(e) => setNewMember({ ...newMember, role: e.target.value as UserData['role'] })}
+              {...register("role")}
               className="w-full px-3 py-2 bg-slate-800 text-white rounded-md border border-slate-600 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none"
             >
               {roles.map(role => (
@@ -141,15 +126,15 @@ const TeamManagementDashboard: React.FC = () => {
           <div className="pt-4 flex justify-end">
             <Button
               type="submit"
-              disabled={isSending}
+              disabled={isSubmitting}
               className="flex items-center"
             >
-              {isSending ? (
+              {isSubmitting ? (
                 <RefreshCwIcon className="w-5 h-5 mr-2 animate-spin" />
               ) : (
                 <Mail className="w-5 h-5 mr-2" />
               )}
-              {isSending ? 'Enviando...' : 'Invitar y Enviar Email'}
+              {isSubmitting ? 'Enviando...' : 'Invitar y Enviar Email'}
             </Button>
           </div>
         </form>
@@ -167,7 +152,7 @@ const TeamManagementDashboard: React.FC = () => {
             DevFreelancer Teams
           </h1>
           <Button
-            onClick={() => setShowInviteModal(true)}
+            onClick={() => { reset(); setShowInviteModal(true); }}
             className="flex items-center"
           >
             <UserPlus className="w-5 h-5 mr-2" />

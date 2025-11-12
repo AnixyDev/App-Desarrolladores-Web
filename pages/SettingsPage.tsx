@@ -1,14 +1,17 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, lazy, Suspense } from 'react';
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import { Link } from 'react-router-dom';
-import { UserIcon, DownloadIcon, RefreshCwIcon } from '../components/icons/Icon';
+import { UserIcon, DownloadIcon, RefreshCwIcon, SparklesIcon } from '../components/icons/Icon';
 import { useToast } from '../hooks/useToast';
 import { Profile } from '../types';
 import { logoSvgDataUri } from '../components/icons/Logo';
+import { suggestSkills, AI_CREDIT_COSTS } from '../services/geminiService';
+
+const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal'));
 
 const ToggleSwitch: React.FC<{
     id: string;
@@ -31,9 +34,12 @@ const ToggleSwitch: React.FC<{
 
 
 const SettingsPage: React.FC = () => {
-    const { profile, updateProfile } = useAppStore();
+    const { profile, updateProfile, consumeCredits } = useAppStore();
     const { addToast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isSuggestingSkills, setIsSuggestingSkills] = useState(false);
+    const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
+
 
     const {
         register,
@@ -47,6 +53,9 @@ const SettingsPage: React.FC = () => {
     });
     
     const avatarUrl = watch('avatar_url');
+    const bio = watch('bio');
+    const specialty = watch('specialty');
+    const skillsValue = watch('skills');
 
     if (!profile) return <div>Cargando perfil...</div>;
 
@@ -83,6 +92,35 @@ const SettingsPage: React.FC = () => {
         link.click();
         document.body.removeChild(link);
         addToast('Logo descargado como logo.svg', 'success');
+    };
+
+    const handleSuggestSkills = async () => {
+        if (!bio && !specialty) {
+            addToast('Por favor, rellena tu biografía o especialidad para obtener sugerencias.', 'info');
+            return;
+        }
+        if (profile.ai_credits < AI_CREDIT_COSTS.suggestSkills) {
+            setIsBuyCreditsModalOpen(true);
+            return;
+        }
+        setIsSuggestingSkills(true);
+        try {
+            const suggested = await suggestSkills(bio || '', specialty || '');
+            if (suggested && suggested.length > 0) {
+                const existingSkills = Array.isArray(skillsValue) ? skillsValue : [];
+                const combinedSkills = [...new Set([...existingSkills, ...suggested])];
+                
+                setValue('skills', combinedSkills.join(', ') as any, { shouldDirty: true });
+                addToast('¡Habilidades sugeridas añadidas!', 'success');
+                consumeCredits(AI_CREDIT_COSTS.suggestSkills);
+            } else {
+                addToast('No se pudieron generar sugerencias. Inténtalo de nuevo.', 'error');
+            }
+        } catch (error) {
+            addToast((error as Error).message, 'error');
+        } finally {
+            setIsSuggestingSkills(false);
+        }
     };
 
     return (
@@ -170,14 +208,22 @@ const SettingsPage: React.FC = () => {
                             <textarea id="bio" rows={4} {...register("bio")} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white" placeholder="Describe brevemente tu especialidad y experiencia."/>
                          </div>
                         <Input label="Especialidad (ej. Frontend con React)" {...register("specialty")} placeholder="Tu principal área de expertise." />
-                        <Input 
-                            label="Habilidades Principales (separadas por comas)" 
-                            defaultValue={profile.skills?.join(', ')}
-                            {...register("skills", {
-                                setValueAs: (v: string) => v.split(',').map(s => s.trim()).filter(Boolean)
-                            })} 
-                            placeholder="React, Node.js, Python, AWS..."
-                        />
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">Habilidades Principales (separadas por comas)</label>
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    wrapperClassName="flex-1"
+                                    defaultValue={profile.skills?.join(', ')}
+                                    {...register("skills", {
+                                        setValueAs: (v: string) => v.split(',').map(s => s.trim()).filter(Boolean)
+                                    })}
+                                    placeholder="React, Node.js, Python, AWS..."
+                                />
+                                <Button type="button" variant="secondary" onClick={handleSuggestSkills} disabled={isSuggestingSkills} title="Sugerir con IA">
+                                    {isSuggestingSkills ? <RefreshCwIcon className="w-5 h-5 animate-spin" /> : <SparklesIcon className="w-5 h-5" />}
+                                </Button>
+                            </div>
+                        </div>
                         <Input label="URL del Portafolio" type="url" {...register("portfolio_url")} placeholder="https://github.com/tu-usuario" />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Input 
@@ -265,6 +311,10 @@ const SettingsPage: React.FC = () => {
                     </Button>
                 </div>
             </form>
+
+            <Suspense fallback={null}>
+                <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />
+            </Suspense>
         </div>
     );
 };

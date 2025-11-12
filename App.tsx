@@ -125,11 +125,9 @@ function App() {
     <>
       <Routes>
         <Route path="/auth/*" element={
-          <div className="auth-background">
-            <Suspense fallback={<div className="h-screen w-screen" />}>
-              <AuthLayout />
-            </Suspense>
-          </div>
+          <Suspense fallback={<div className="h-screen w-screen bg-[#0a0a0a]" />}>
+            <AuthLayout />
+          </Suspense>
         }>
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
