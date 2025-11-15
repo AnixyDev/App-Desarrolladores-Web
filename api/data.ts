@@ -42,7 +42,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
     if (userError || !user) {
-      return res.status(401).json({ error: `Authentication error: ${userError.message}` });
+      return res.status(401).json({ error: `Authentication error: ${userError?.message || 'User not found'}` });
     }
     
     const userId = user.id;

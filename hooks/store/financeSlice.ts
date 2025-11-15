@@ -1,9 +1,12 @@
+
+
 import { supabase } from '../../lib/supabaseClient';
 import type { StateCreator } from 'zustand';
 import type { AppStore } from '../useAppStore';
 // FIX: Import missing types
 import { Invoice, RecurringInvoice, Expense, RecurringExpense, TimeEntry, Budget, Proposal, Contract, NewTimeEntry, ShadowIncomeEntry, InvoiceTemplate, ProposalTemplate, ContractTemplate } from '../../types';
 import { formatCurrency } from '../../lib/utils';
+import { useToast } from '../useToast';
 
 export interface FinanceSlice {
     invoices: Invoice[];
@@ -193,8 +196,8 @@ export const createFinanceSlice: StateCreator<AppStore, [], [], FinanceSlice> = 
             }
         } catch (emailError) {
             console.error("Failed to send payment confirmation email:", emailError);
-            // Silently fail for email, the main action was successful.
-            // A toast could be added here if needed to notify the user of email failure.
+            // FIX: Use `useToast` store directly to call `addToast` from outside a React component.
+            useToast.getState().addToast('La factura se marcó como pagada, pero falló el envío del email de confirmación.', 'error');
         }
     },
     
@@ -313,43 +316,69 @@ export const createFinanceSlice: StateCreator<AppStore, [], [], FinanceSlice> = 
         set(state => ({ shadowIncome: state.shadowIncome.filter(s => s.id !== id) }));
     },
     
-    // --- FIX: Implement missing functions ---
     addRecurringInvoice: async (newInvoice) => {
-        const newRecInvoice = { ...newInvoice, id: `rec-inv-${Date.now()}` } as RecurringInvoice; // Mock
-        set(state => ({ recurringInvoices: [...state.recurringInvoices, newRecInvoice] }));
+        const userId = get().profile?.id;
+        if (!userId) throw new Error("User not authenticated");
+        const { data, error } = await supabase.from('recurring_invoices').insert({ ...newInvoice, user_id: userId }).select().single();
+        if (error) throw error;
+        set(state => ({ recurringInvoices: [...state.recurringInvoices, data] }));
     },
     deleteRecurringInvoice: async (id) => {
+        const { error } = await supabase.from('recurring_invoices').delete().eq('id', id);
+        if (error) throw error;
         set(state => ({ recurringInvoices: state.recurringInvoices.filter(i => i.id !== id) }));
     },
     addRecurringExpense: async (newExpense) => {
-        const newRecExpense = { ...newExpense, id: `rec-exp-${Date.now()}` } as RecurringExpense; // Mock
-        set(state => ({ recurringExpenses: [...state.recurringExpenses, newRecExpense] }));
+        const userId = get().profile?.id;
+        if (!userId) throw new Error("User not authenticated");
+        const { data, error } = await supabase.from('recurring_expenses').insert({ ...newExpense, user_id: userId }).select().single();
+        if (error) throw error;
+        set(state => ({ recurringExpenses: [...state.recurringExpenses, data] }));
     },
     deleteRecurringExpense: async (id) => {
+        const { error } = await supabase.from('recurring_expenses').delete().eq('id', id);
+        if (error) throw error;
         set(state => ({ recurringExpenses: state.recurringExpenses.filter(e => e.id !== id) }));
     },
     setContractExpiration: async (id, date) => {
-        set(state => ({ contracts: state.contracts.map(c => c.id === id ? { ...c, expires_at: date } : c) }));
+        const { data, error } = await supabase.from('contracts').update({ expires_at: date }).eq('id', id).select().single();
+        if (error) throw error;
+        set(state => ({ contracts: state.contracts.map(c => c.id === id ? data : c) }));
     },
     addInvoiceTemplate: async (template) => {
-        const newTemplate = { ...template, id: `inv-tpl-${Date.now()}` };
-        set(state => ({ invoiceTemplates: [...state.invoiceTemplates, newTemplate] }));
+        const userId = get().profile?.id;
+        if (!userId) throw new Error("User not authenticated");
+        const { data, error } = await supabase.from('invoice_templates').insert({ ...template, user_id: userId }).select().single();
+        if (error) throw error;
+        set(state => ({ invoiceTemplates: [...state.invoiceTemplates, data] }));
     },
     deleteInvoiceTemplate: async (id) => {
+        const { error } = await supabase.from('invoice_templates').delete().eq('id', id);
+        if (error) throw error;
         set(state => ({ invoiceTemplates: state.invoiceTemplates.filter(t => t.id !== id) }));
     },
     addProposalTemplate: async (template) => {
-        const newTemplate = { ...template, id: `prop-tpl-${Date.now()}` };
-        set(state => ({ proposalTemplates: [...state.proposalTemplates, newTemplate] }));
+        const userId = get().profile?.id;
+        if (!userId) throw new Error("User not authenticated");
+        const { data, error } = await supabase.from('proposal_templates').insert({ ...template, user_id: userId }).select().single();
+        if (error) throw error;
+        set(state => ({ proposalTemplates: [...state.proposalTemplates, data] }));
     },
     deleteProposalTemplate: async (id) => {
+        const { error } = await supabase.from('proposal_templates').delete().eq('id', id);
+        if (error) throw error;
         set(state => ({ proposalTemplates: state.proposalTemplates.filter(t => t.id !== id) }));
     },
     addContractTemplate: async (template) => {
-        const newTemplate = { ...template, id: `cont-tpl-${Date.now()}` };
-        set(state => ({ contractTemplates: [...state.contractTemplates, newTemplate] }));
+        const userId = get().profile?.id;
+        if (!userId) throw new Error("User not authenticated");
+        const { data, error } = await supabase.from('contract_templates').insert({ ...template, user_id: userId }).select().single();
+        if (error) throw error;
+        set(state => ({ contractTemplates: [...state.contractTemplates, data] }));
     },
     deleteContractTemplate: async (id) => {
+        const { error } = await supabase.from('contract_templates').delete().eq('id', id);
+        if (error) throw error;
         set(state => ({ contractTemplates: state.contractTemplates.filter(t => t.id !== id) }));
     },
 });

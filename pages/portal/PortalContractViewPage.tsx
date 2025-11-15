@@ -33,8 +33,9 @@ const PortalContractViewPage: React.FC = () => {
             const message = await signContract(contract.id, client.name, 'dummy-signature-data');
             if (message) {
                 addToast(message, 'info');
+            } else {
+                addToast('Contrato firmado con éxito.', 'success');
             }
-            addToast('Contrato firmado con éxito.', 'success');
         }
     }
 

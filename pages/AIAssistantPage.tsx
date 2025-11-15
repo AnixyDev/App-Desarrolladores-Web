@@ -102,7 +102,8 @@ const AIAssistantPage: React.FC = () => {
                     let functionResult: any;
                     switch (call.name) {
                         case 'addExpense':
-                            const { description, amount, category } = call.args;
+                            // FIX: Cast arguments from function call to their expected types
+                            const { description, amount, category } = call.args as { description: string, amount: number, category: string };
                             await store.addExpense({
                                 description,
                                 amount_cents: Math.round(amount * 100),
@@ -116,7 +117,8 @@ const AIAssistantPage: React.FC = () => {
                             break;
                         
                         case 'createInvoice':
-                            const { clientName, projectName, items } = call.args;
+                            // FIX: Cast arguments from function call to their expected types
+                            const { clientName, projectName, items } = call.args as { clientName: string, projectName?: string, items: any[] };
                             const client = store.getClientByName(clientName);
                             const project = projectName ? store.getProjectByName(projectName) : null;
 

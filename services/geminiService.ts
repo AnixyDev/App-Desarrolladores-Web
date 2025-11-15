@@ -29,14 +29,18 @@ async function makeApiCall(options: {
     contents: any;
     config?: any;
 }, errorContext: string): Promise<GenerateContentResponse> {
-    if (!process.env.API_KEY) {
-        console.error("La clave de API de Gemini no está configurada en el entorno (process.env.API_KEY).");
+    // FIX: Per @google/genai coding guidelines, API key must be from process.env.API_KEY.
+    const apiKey = process.env.API_KEY;
+
+    if (!apiKey) {
+        // FIX: Updated error message to be more generic.
+        console.error("La clave de API de Gemini no está configurada en el entorno.");
         throw new Error(API_KEY_ERROR_MESSAGE);
     }
     
     try {
         // Se crea una nueva instancia en cada llamada para asegurar la clave más reciente.
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const ai = new GoogleGenAI({ apiKey });
         return await ai.models.generateContent(options);
     } catch (error) {
         console.error(`${errorContext}:`, error);
@@ -74,7 +78,7 @@ export const generateProposalText = async (jobTitle: string, jobDescription: str
     `;
 
     const response = await makeApiCall({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-flash-latest',
         contents: prompt,
         config: {
             temperature: 0.7,
@@ -101,7 +105,7 @@ export const refineProposalText = async (originalProposal: string, refinementTyp
     `;
 
     const response = await makeApiCall({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-flash-latest',
         contents: prompt,
         config: {
             temperature: 0.8,
@@ -132,7 +136,7 @@ export const summarizeApplicant = async (jobDescription: string, applicantProfil
     `;
 
     const response = await makeApiCall({
-        model: "gemini-2.5-flash",
+        model: "gemini-flash-latest",
         contents: prompt,
         config: {
             responseMimeType: "application/json",
@@ -194,7 +198,7 @@ export const generateFinancialForecast = async (data: any): Promise<any> => {
     `;
     
     const response = await makeApiCall({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-flash-latest',
         contents: prompt,
         config: { responseMimeType: "application/json" }
     }, "Error generating financial forecast");
@@ -235,7 +239,7 @@ export const generateTimeEntryDescription = async (projectName: string, projectD
     `;
 
     const response = await makeApiCall({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-flash-latest',
         contents: prompt,
         config: {
             temperature: 0.6,
@@ -251,7 +255,7 @@ export const generateTimeEntryDescription = async (projectName: string, projectD
 
 export const generateItemsForDocument = async (prompt: string, hourlyRate: number) => {
     const response = await makeApiCall({
-        model: "gemini-2.5-flash",
+        model: "gemini-flash-latest",
         contents: `Basado en la siguiente descripción, genera una lista de conceptos para una factura o presupuesto. Estima las horas si es necesario y calcula el precio usando una tarifa de ${hourlyRate / 100} EUR/hora. La descripción es: "${prompt}"`,
         config: {
             responseMimeType: "application/json",
@@ -283,7 +287,7 @@ export const rankArticlesByRelevance = async (query: string, articles: { id: str
     const simplifiedArticles = articles.map(a => ({ id: a.id, title: a.title, excerpt: a.content.substring(0, 150) }));
     
     const response = await makeApiCall({
-        model: "gemini-2.5-flash",
+        model: "gemini-flash-latest",
         contents: `Dada la siguiente consulta de búsqueda y una lista de artículos, devuelve un array JSON con los IDs de los artículos ordenados por relevancia semántica (el más relevante primero). Consulta: "${query}". Artículos: ${JSON.stringify(simplifiedArticles)}`,
         config: {
             responseMimeType: "application/json",
@@ -302,7 +306,7 @@ export const rankArticlesByRelevance = async (query: string, articles: { id: str
 
 export const analyzeProfitability = async (data: any) => {
     const response = await makeApiCall({
-        model: "gemini-2.5-flash",
+        model: "gemini-flash-latest",
         contents: `Analiza los siguientes datos de rentabilidad de un freelancer y proporciona un análisis JSON conciso. Datos: ${JSON.stringify(data)}`,
         config: {
             responseMimeType: "application/json",
@@ -346,7 +350,7 @@ export const analyzeReceipt = async (imageDataBase64: string): Promise<{ descrip
     };
 
     const response = await makeApiCall({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-flash-latest',
         contents: { parts: [imagePart, { text: prompt }] },
         config: { responseMimeType: "application/json" }
     }, "Error analyzing receipt with Gemini");
@@ -375,7 +379,7 @@ export const getDashboardInsights = async (summaryData: any): Promise<string[]> 
     `;
     
      const response = await makeApiCall({
-        model: "gemini-2.5-flash",
+        model: "gemini-flash-latest",
         contents: prompt,
         config: {
             responseMimeType: "application/json",
@@ -395,7 +399,7 @@ export const getDashboardInsights = async (summaryData: any): Promise<string[]> 
 export const generateDocumentContent = async (topic: string): Promise<string> => {
     const prompt = `Eres un asistente de redacción técnica. Genera el contenido de un documento de base de conocimientos sobre el tema: "${topic}". El contenido debe estar bien estructurado, ser informativo y estar en formato Markdown. Incluye encabezados, listas y ejemplos de código si es relevante.`;
     const response = await makeApiCall({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-flash-latest',
         contents: prompt,
         config: { maxOutputTokens: 1024 }
     }, "Error generating document content with Gemini");
@@ -405,7 +409,7 @@ export const generateDocumentContent = async (topic: string): Promise<string> =>
 export const generateQuizFromContent = async (content: string): Promise<string> => {
     const prompt = `Basado en el siguiente contenido de un artículo, crea un breve cuestionario de 3-4 preguntas de opción múltiple para evaluar la comprensión del lector. Formatea la salida como texto plano.\n\nContenido:\n---\n${content.substring(0, 2000)}\n---`;
     const response = await makeApiCall({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-flash-latest',
         contents: prompt
     }, "Error generating quiz with Gemini");
     return response.text;
@@ -414,7 +418,7 @@ export const generateQuizFromContent = async (content: string): Promise<string> 
 export const summarizeChatHistory = async (history: string): Promise<string> => {
     const prompt = `Resume la siguiente conversación de un chat de proyecto en 2-3 puntos clave o decisiones tomadas. Sé conciso.\n\nHistorial del Chat:\n---\n${history.substring(0, 3000)}\n---`;
     const response = await makeApiCall({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-flash-latest',
         contents: prompt,
         config: { maxOutputTokens: 256 }
     }, "Error summarizing chat with Gemini");
@@ -434,7 +438,7 @@ export const suggestSkills = async (bio: string, specialty: string): Promise<str
     `;
 
     const response = await makeApiCall({
-        model: "gemini-2.5-flash",
+        model: "gemini-flash-latest",
         contents: prompt,
         config: {
             responseMimeType: "application/json",
