@@ -60,7 +60,11 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     },
 
     register: async (name, email, password) => {
-        const { data: { user }, error } = await supabase.auth.signUp({
+        // The database now has a trigger (handle_new_user) that automatically creates
+        // a profile when a new user signs up in auth.users.
+        // This avoids race conditions and ensures a profile always exists.
+        // We just need to pass the full_name in the options data.
+        const { error } = await supabase.auth.signUp({
             email,
             password,
             options: {
@@ -72,38 +76,6 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
         });
 
         if (error) throw error;
-        if (!user) throw new Error("Registration failed, user not returned.");
-
-        // Create a profile entry for the new user
-        const { error: profileError } = await supabase.from('profiles').insert({
-            id: user.id,
-            email: user.email,
-            full_name: name,
-            // Set default values for a new profile
-            isNewUser: true,
-            plan: 'Free',
-            ai_credits: 10,
-            hourly_rate_cents: 5000,
-            pdf_color: '#F000B8',
-            payment_reminders_enabled: false,
-            reminder_template_upcoming: 'Recordatorio: La factura [InvoiceNumber] de [Amount] vence el [DueDate].',
-            reminder_template_overdue: 'AVISO: La factura [InvoiceNumber] de [Amount] ha vencido. Por favor, realiza el pago lo antes posible.',
-            email_notifications: {
-                on_invoice_overdue: true,
-                on_proposal_status_change: true,
-                on_contract_signed: true,
-                on_new_project_message: true,
-            },
-            affiliate_code: `ref_${user.id.substring(0, 8)}`,
-            stripe_onboarding_complete: false,
-        });
-
-        if (profileError) {
-            console.error("Failed to create profile for new user:", profileError);
-            // Optional: You might want to delete the user if profile creation fails
-            // to avoid orphaned auth users.
-            throw profileError;
-        }
     },
 
     logout: async () => {
