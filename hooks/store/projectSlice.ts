@@ -17,8 +17,7 @@ export interface ProjectSlice {
     deleteTask: (id: string) => Promise<void>;
 }
 
-// FIX: Add 'api' to the function signature
-export const createProjectSlice: StateCreator<AppStore, [], [], ProjectSlice> = (set, get, api) => ({
+export const createProjectSlice: StateCreator<AppStore, [], [], ProjectSlice> = (set, get) => ({
     projects: [],
     tasks: [],
 

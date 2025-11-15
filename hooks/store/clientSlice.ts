@@ -12,8 +12,7 @@ export interface ClientSlice {
     setClientPaymentMethodStatus: (clientId: string, status: boolean) => Promise<void>;
 }
 
-// FIX: Add 'api' to the function signature
-export const createClientSlice: StateCreator<AppStore, [], [], ClientSlice> = (set, get, api) => ({
+export const createClientSlice: StateCreator<AppStore, [], [], ClientSlice> = (set, get) => ({
     clients: [],
 
     fetchClients: async () => {
@@ -60,10 +59,16 @@ export const createClientSlice: StateCreator<AppStore, [], [], ClientSlice> = (s
     },
     
     setClientPaymentMethodStatus: async (clientId, status) => {
-        // This is a UI-driven status, might not need a DB update unless you store it.
-        // Assuming it's just for the local state for now. If it needs persistence, add a Supabase call.
+        const { data, error } = await supabase
+            .from('clients')
+            .update({ payment_method_on_file: status })
+            .eq('id', clientId)
+            .select()
+            .single();
+
+        if (error) throw error;
         set(state => ({
-            clients: state.clients.map(c => c.id === clientId ? { ...c, payment_method_on_file: status } : c)
+            clients: state.clients.map(c => c.id === clientId ? data : c)
         }));
     },
 });

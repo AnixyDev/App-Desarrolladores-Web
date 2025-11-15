@@ -1,6 +1,3 @@
-
-
-
 import { supabase } from '../../lib/supabaseClient';
 import type { Session, User } from '@supabase/supabase-js';
 import type { StateCreator } from 'zustand';
@@ -46,7 +43,7 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: window.location.href,
+                redirectTo: window.location.origin,
             }
         });
         if (error) throw error;
@@ -56,21 +53,57 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'github',
             options: {
-                redirectTo: window.location.href,
+                redirectTo: window.location.origin,
             }
         });
         if (error) throw error;
     },
 
     register: async (name, email, password) => {
-        const { error } = await supabase.auth.signUp({
+        const { data: { user }, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
-                data: { full_name: name }
+                data: { 
+                    full_name: name,
+                    avatar_url: `https://api.dicebear.com/6.x/initials/svg?seed=${name}`
+                }
             }
         });
+
         if (error) throw error;
+        if (!user) throw new Error("Registration failed, user not returned.");
+
+        // Create a profile entry for the new user
+        const { error: profileError } = await supabase.from('profiles').insert({
+            id: user.id,
+            email: user.email,
+            full_name: name,
+            // Set default values for a new profile
+            isNewUser: true,
+            plan: 'Free',
+            ai_credits: 10,
+            hourly_rate_cents: 5000,
+            pdf_color: '#F000B8',
+            payment_reminders_enabled: false,
+            reminder_template_upcoming: 'Recordatorio: La factura [InvoiceNumber] de [Amount] vence el [DueDate].',
+            reminder_template_overdue: 'AVISO: La factura [InvoiceNumber] de [Amount] ha vencido. Por favor, realiza el pago lo antes posible.',
+            email_notifications: {
+                on_invoice_overdue: true,
+                on_proposal_status_change: true,
+                on_contract_signed: true,
+                on_new_project_message: true,
+            },
+            affiliate_code: `ref_${user.id.substring(0, 8)}`,
+            stripe_onboarding_complete: false,
+        });
+
+        if (profileError) {
+            console.error("Failed to create profile for new user:", profileError);
+            // Optional: You might want to delete the user if profile creation fails
+            // to avoid orphaned auth users.
+            throw profileError;
+        }
     },
 
     logout: async () => {
@@ -88,10 +121,8 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     fetchProfile: async (userId) => {
         const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
         if (error) {
-            // It's possible for the profile to not exist yet for a new user
             if (error.code === 'PGRST116') {
-                console.warn("Profile not found for new user, will be created on first update.");
-                // You might want to set a default/empty profile object here
+                console.warn("Profile not found for user. This can happen with social logins for the first time or if profile creation failed.");
                 return;
             }
             throw error;

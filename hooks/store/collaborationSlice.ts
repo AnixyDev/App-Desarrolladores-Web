@@ -32,8 +32,7 @@ export interface CollaborationSlice {
     deletePortalFile: (id: string) => Promise<void>;
 }
 
-// FIX: Add 'api' to the function signature
-export const createCollaborationSlice: StateCreator<AppStore, [], [], CollaborationSlice> = (set, get, api) => ({
+export const createCollaborationSlice: StateCreator<AppStore, [], [], CollaborationSlice> = (set, get) => ({
     notifications: [],
     projectComments: [],
     projectFiles: [],
@@ -72,9 +71,6 @@ export const createCollaborationSlice: StateCreator<AppStore, [], [], Collaborat
         }
     },
     addProjectFile: async (file) => {
-        // In a real app, you would first upload the file to Supabase Storage,
-        // get the URL, and then insert that URL into the database.
-        // Here we'll just insert the metadata.
         const { data, error } = await supabase.from('project_files').insert(file).select().single();
         if (error) throw error;
         set(state => ({ projectFiles: [...state.projectFiles, data] }));

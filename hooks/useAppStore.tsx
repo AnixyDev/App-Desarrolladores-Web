@@ -1,6 +1,3 @@
-
-
-
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Session, User } from '@supabase/supabase-js';
@@ -11,10 +8,8 @@ import { createFinanceSlice, FinanceSlice } from './store/financeSlice';
 import { createTeamSlice, TeamSlice } from './store/teamSlice';
 import { createCollaborationSlice, CollaborationSlice } from './store/collaborationSlice';
 import { createJobSlice, JobSlice } from './store/jobSlice';
-// FIX: Import types for GetterSlice
 import type { Client, Project, Task, Job, JobApplication } from '../types';
 
-// FIX: Define GetterSlice interface for getter functions
 export interface GetterSlice {
     getClientById: (id: string) => Client | undefined;
     getProjectById: (id: string) => Project | undefined;
@@ -26,8 +21,6 @@ export interface GetterSlice {
     getApplicationsByJobId: (jobId: string) => JobApplication[];
 }
 
-// Combine all slice types into a single AppStore type
-// FIX: Add GetterSlice to the AppStore type
 export type AppStore = AuthSlice & ClientSlice & ProjectSlice & FinanceSlice & TeamSlice & CollaborationSlice & JobSlice & GetterSlice & {
     clearUserData: () => void;
 };
@@ -36,7 +29,7 @@ const initialState = {
     session: null,
     profile: null,
     isAuthenticated: false,
-    isLoading: true, // Set to true initially to prevent auth flicker
+    isLoading: true,
     clients: [],
     projects: [],
     tasks: [],
@@ -70,32 +63,28 @@ const initialState = {
 
 export const useAppStore = create<AppStore>()(
     persist(
-        (set, get, api) => ({
+        (set, get) => ({
             ...initialState,
 
-            // Compose slices
-            ...createAuthSlice(set, get, api),
-            // FIX: Pass 'api' argument to slice creators
-            ...createClientSlice(set, get, api),
-            ...createProjectSlice(set, get, api),
-            ...createFinanceSlice(set, get, api),
-            ...createTeamSlice(set, get, api),
-            ...createCollaborationSlice(set, get, api),
-            ...createJobSlice(set, get, api),
+            ...createAuthSlice(set, get, {} as any),
+            ...createClientSlice(set, get, {} as any),
+            ...createProjectSlice(set, get, {} as any),
+            ...createFinanceSlice(set, get, {} as any),
+            ...createTeamSlice(set, get, {} as any),
+            ...createCollaborationSlice(set, get, {} as any),
+            ...createJobSlice(set, get, {} as any),
 
-            clearUserData: () => set({ ...initialState, isLoading: false }),
+            clearUserData: () => set({ ...initialState, isLoading: false, isAuthenticated: false }),
 
-            // Overridden fetchInitialData to fetch from all slices
             fetchInitialData: async (user) => {
                 const { 
                     fetchProfile, fetchClients, fetchProjects, fetchTasks, 
-                    fetchInvoices, fetchExpenses, fetchTimeEntries, 
-                    fetchProposals, fetchContracts, fetchBudgets,
+                    fetchInvoices, fetchRecurringInvoices, fetchExpenses, fetchRecurringExpenses, 
+                    fetchTimeEntries, fetchProposals, fetchContracts, fetchBudgets,
                     fetchUsers, fetchArticles, fetchJobs, fetchApplications,
-                    fetchProjectComments, fetchProjectFiles
+                    fetchProjectComments, fetchProjectFiles, fetchTemplates
                 } = get();
                 
-                // Set loading to true only when fetching starts
                 set({ isLoading: true });
                 try {
                     await Promise.all([
@@ -104,7 +93,9 @@ export const useAppStore = create<AppStore>()(
                         fetchProjects(),
                         fetchTasks(),
                         fetchInvoices(),
+                        fetchRecurringInvoices(),
                         fetchExpenses(),
+                        fetchRecurringExpenses(),
                         fetchTimeEntries(),
                         fetchProposals(),
                         fetchContracts(),
@@ -115,16 +106,16 @@ export const useAppStore = create<AppStore>()(
                         fetchApplications(),
                         fetchProjectComments(),
                         fetchProjectFiles(),
+                        fetchTemplates(),
                     ]);
                 } catch (error) {
                     console.error("Failed to fetch initial data:", error);
-                    // Handle error state if necessary
                 } finally {
                     set({ isLoading: false });
                 }
             },
 
-            // --- GETTERS (Remain synchronous, operating on local state) ---
+            // --- GETTERS ---
             getClientById: (id) => get().clients.find(c => c.id === id),
             getProjectById: (id) => get().projects.find(p => p.id === id),
             getTasksByProjectId: (id) => get().tasks.filter(t => t.project_id === id),
@@ -139,7 +130,6 @@ export const useAppStore = create<AppStore>()(
             name: 'devfreelancer-storage',
             storage: createJSONStorage(() => localStorage),
             partialize: (state) => ({ 
-                // Only persist session and user preferences, not all the data
                 savedJobIds: state.savedJobIds,
                 notifiedJobIds: state.notifiedJobIds,
             }),

@@ -23,30 +23,24 @@ export interface TeamSlice {
     deleteArticle: (id: string) => Promise<void>;
 }
 
-// FIX: Add 'api' to the function signature
-export const createTeamSlice: StateCreator<AppStore, [], [], TeamSlice> = (set, get, api) => ({
+export const createTeamSlice: StateCreator<AppStore, [], [], TeamSlice> = (set, get) => ({
     users: [],
     referrals: [],
     articles: [],
     
     fetchUsers: async () => {
-        // This assumes you have a `team_users` table that team members are inserted into
-        // For simplicity, we'll assume it's public or has RLS policies.
-        // In a real app, this would be scoped to the current user's team.
         const { data, error } = await supabase.from('team_users').select('*');
         if (error) throw error;
         set({ users: data || [] });
     },
 
     inviteUser: async (name, email, role) => {
-        // In a real app, this would likely add to a team_invites table.
-        // Here, we'll simulate by adding directly to a team_users table.
         const userId = get().profile?.id;
         if (!userId) throw new Error("User not authenticated");
         
         const newUser: Omit<UserData, 'id' | 'invitedOn'> = { name, email, role, status: 'Pendiente', hourly_rate_cents: 0 };
         
-        const { data, error } = await supabase.from('team_users').insert({ ...newUser, invited_by: userId }).select().single();
+        const { data, error } = await supabase.from('team_users').insert({ ...newUser, invited_by: userId, invitedOn: new Date().toISOString() }).select().single();
         if (error) throw error;
 
         set(state => ({ users: [...state.users, data] }));
@@ -87,7 +81,7 @@ export const createTeamSlice: StateCreator<AppStore, [], [], TeamSlice> = (set, 
         set(state => ({ articles: [...state.articles, data] }));
     },
     updateArticle: async (updatedArticle) => {
-        const { data, error } = await supabase.from('knowledge_articles').update(updatedArticle).eq('id', updatedArticle.id).select().single();
+        const { data, error } = await supabase.from('knowledge_articles').update({ ...updatedArticle, updated_at: new Date().toISOString() }).eq('id', updatedArticle.id).select().single();
         if (error) throw error;
         set(state => ({ articles: state.articles.map(a => a.id === updatedArticle.id ? data : a) }));
     },

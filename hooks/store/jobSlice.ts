@@ -17,9 +17,7 @@ export interface JobSlice {
     viewApplication: (appId: string) => Promise<void>;
 }
 
-
-// FIX: Add 'api' to the function signature
-export const createJobSlice: StateCreator<AppStore, [], [], JobSlice> = (set, get, api) => ({
+export const createJobSlice: StateCreator<AppStore, [], [], JobSlice> = (set, get) => ({
     jobs: [],
     applications: [],
     savedJobIds: [],
@@ -48,6 +46,7 @@ export const createJobSlice: StateCreator<AppStore, [], [], JobSlice> = (set, ge
     },
 
     saveJob: (jobId) => {
+        // This remains a client-side preference, persisted via zustand/persist middleware
         set(state => ({
             savedJobIds: state.savedJobIds.includes(jobId)
                 ? state.savedJobIds.filter(id => id !== jobId)
