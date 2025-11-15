@@ -12,7 +12,8 @@ export interface ClientSlice {
     setClientPaymentMethodStatus: (clientId: string, status: boolean) => Promise<void>;
 }
 
-export const createClientSlice: StateCreator<AppStore, [], [], ClientSlice> = (set, get) => ({
+// FIX: Add 'api' to the function signature
+export const createClientSlice: StateCreator<AppStore, [], [], ClientSlice> = (set, get, api) => ({
     clients: [],
 
     fetchClients: async () => {

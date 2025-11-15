@@ -32,7 +32,8 @@ export interface CollaborationSlice {
     deletePortalFile: (id: string) => Promise<void>;
 }
 
-export const createCollaborationSlice: StateCreator<AppStore, [], [], CollaborationSlice> = (set, get) => ({
+// FIX: Add 'api' to the function signature
+export const createCollaborationSlice: StateCreator<AppStore, [], [], CollaborationSlice> = (set, get, api) => ({
     notifications: [],
     projectComments: [],
     projectFiles: [],

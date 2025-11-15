@@ -24,7 +24,6 @@ export const AI_CREDIT_COSTS = {
 };
 
 // Función auxiliar centralizada para gestionar las llamadas a la API de forma segura
-// FIX: Use process.env.API_KEY directly as per guidelines, and resolve `import.meta.env` error.
 async function makeApiCall(options: {
     model: string;
     contents: any;

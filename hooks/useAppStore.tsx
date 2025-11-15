@@ -1,3 +1,6 @@
+
+
+
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Session, User } from '@supabase/supabase-js';
@@ -8,9 +11,24 @@ import { createFinanceSlice, FinanceSlice } from './store/financeSlice';
 import { createTeamSlice, TeamSlice } from './store/teamSlice';
 import { createCollaborationSlice, CollaborationSlice } from './store/collaborationSlice';
 import { createJobSlice, JobSlice } from './store/jobSlice';
+// FIX: Import types for GetterSlice
+import type { Client, Project, Task, Job, JobApplication } from '../types';
+
+// FIX: Define GetterSlice interface for getter functions
+export interface GetterSlice {
+    getClientById: (id: string) => Client | undefined;
+    getProjectById: (id: string) => Project | undefined;
+    getTasksByProjectId: (id: string) => Task[];
+    getClientByName: (name: string) => Client | undefined;
+    getProjectByName: (name: string) => Project | undefined;
+    getJobById: (id: string) => Job | undefined;
+    getSavedJobs: () => Job[];
+    getApplicationsByJobId: (jobId: string) => JobApplication[];
+}
 
 // Combine all slice types into a single AppStore type
-export type AppStore = AuthSlice & ClientSlice & ProjectSlice & FinanceSlice & TeamSlice & CollaborationSlice & JobSlice & {
+// FIX: Add GetterSlice to the AppStore type
+export type AppStore = AuthSlice & ClientSlice & ProjectSlice & FinanceSlice & TeamSlice & CollaborationSlice & JobSlice & GetterSlice & {
     clearUserData: () => void;
 };
 
@@ -57,12 +75,13 @@ export const useAppStore = create<AppStore>()(
 
             // Compose slices
             ...createAuthSlice(set, get, api),
-            ...createClientSlice(set, get),
-            ...createProjectSlice(set, get),
-            ...createFinanceSlice(set, get),
-            ...createTeamSlice(set, get),
-            ...createCollaborationSlice(set, get),
-            ...createJobSlice(set, get),
+            // FIX: Pass 'api' argument to slice creators
+            ...createClientSlice(set, get, api),
+            ...createProjectSlice(set, get, api),
+            ...createFinanceSlice(set, get, api),
+            ...createTeamSlice(set, get, api),
+            ...createCollaborationSlice(set, get, api),
+            ...createJobSlice(set, get, api),
 
             clearUserData: () => set({ ...initialState, isLoading: false }),
 

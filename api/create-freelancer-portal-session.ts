@@ -25,11 +25,16 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   try {
     const authHeader = req.headers.authorization;
-    // FIX: Handle case where authHeader can be string[]
-    if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Unauthorized: Missing token' });
+
+    let token: string | undefined;
+    if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
     }
-    const token = authHeader.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized: Missing or invalid token' });
+    }
+
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
     if (userError || !user) {

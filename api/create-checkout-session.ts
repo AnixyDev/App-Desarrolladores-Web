@@ -2,7 +2,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { Stripe } from 'stripe';
 
-// Define basic types for the request and response to avoid external dependencies.
 interface ApiRequest {
   method?: string;
   body: {
@@ -25,13 +24,9 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 const supabaseAdmin = createClient(supabaseUrl!, supabaseServiceKey!);
 
-const priceMap: { [key: string]: string } = {
-    proPlan: process.env.STRIPE_PRO_PLAN_PRICE_ID || 'price_1SOgUF8oC5awQy15dOEM5jGS', 
-    teamsPlan: process.env.STRIPE_TEAMS_PLAN_PRICE_ID || 'price_1SOggV8oC5awQy15YW1wAgcg',
-    credits50: process.env.STRIPE_CREDITS50_PRICE_ID || 'price_1SOgpD8oC5awQy15iZf9L6oM',
-    credits200: process.env.STRIPE_CREDITS200_PRICE_ID || 'price_1SOgqP8oC5awQy15aQf1vN3v',
-    credits1000: process.env.STRIPE_CREDITS1000_PRICE_ID || 'price_1SOguC8oC5awQy15LGchpkVG',
-    featuredJob: process.env.STRIPE_FEATURED_JOB_PRICE_ID || 'price_1SOlOv8oC5awQy15Q2aXoEg7',
+const productPrices: { [key: string]: string } = {
+    proPlan: process.env.PRO_PLAN_PRICE_ID || 'price_pro_plan_placeholder', // Reemplazar con ID real de Stripe
+    teamsPlan: process.env.TEAMS_PLAN_PRICE_ID || 'price_teams_plan_placeholder', // Reemplazar con ID real de Stripe
 };
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
@@ -40,93 +35,88 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   }
 
   try {
-    const { itemKey, invoiceId, amount_cents, description } = req.body;
     const authHeader = req.headers.authorization;
-    
-    // FIX: Handle case where authHeader can be string[]
-    if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    let token: string | undefined;
+    if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
     }
 
-    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized: Missing or invalid token' });
+    }
+
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
     if (userError || !user) {
         return res.status(401).json({ error: `Authentication error: ${userError?.message || 'User not found'}` });
     }
-    
-    const { data: profile, error: profileError } = await supabaseAdmin
-        .from('profiles')
-        .select('stripe_customer_id')
-        .eq('id', user.id)
-        .single();
 
-    if (profileError && profileError.code !== 'PGRST116') {
-        throw profileError;
+    const { itemKey, invoiceId, amount_cents, description } = req.body;
+    const origin = req.headers.origin || 'http://localhost:3000';
+
+    let session;
+    const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+    const metadata: { [key: string]: string; } = { itemKey, user_id: user.id };
+    let mode: 'subscription' | 'payment' = 'payment';
+
+    switch(itemKey) {
+        case 'proPlan':
+        case 'teamsPlan':
+            mode = 'subscription';
+            line_items.push({ price: productPrices[itemKey], quantity: 1 });
+            break;
+        case 'credits50':
+            line_items.push({ price_data: { currency: 'eur', product_data: { name: '50 AI Credits' }, unit_amount: 500 }, quantity: 1 });
+            break;
+        case 'credits200':
+            line_items.push({ price_data: { currency: 'eur', product_data: { name: '200 AI Credits' }, unit_amount: 1500 }, quantity: 1 });
+            break;
+        case 'credits1000':
+            line_items.push({ price_data: { currency: 'eur', product_data: { name: '1000 AI Credits' }, unit_amount: 5000 }, quantity: 1 });
+            break;
+        case 'featuredJob':
+             line_items.push({ price_data: { currency: 'eur', product_data: { name: 'Featured Job Post' }, unit_amount: 595 }, quantity: 1 });
+            break;
+        case 'invoice_payment':
+            if (!invoiceId || !amount_cents || !description) {
+                return res.status(400).json({ error: 'Invoice details are required for payment.' });
+            }
+            line_items.push({ price_data: { currency: 'eur', product_data: { name: `Payment for Invoice ${description}` }, unit_amount: amount_cents }, quantity: 1 });
+            metadata.invoice_id = invoiceId;
+            break;
+        default:
+            return res.status(400).json({ error: 'Invalid item key.' });
     }
 
-    let stripeCustomerId = profile?.stripe_customer_id;
+    const { data: profile, error: profileError } = await supabaseAdmin.from('profiles').select('stripe_customer_id').eq('id', user.id).single();
+    if (profileError && profileError.code !== 'PGRST116') throw profileError;
     
-    if (!stripeCustomerId) {
-        const customer = await stripe.customers.create({
-            email: user.email!,
-            name: user.user_metadata.full_name,
-            metadata: { supabase_user_id: user.id },
-        });
-        stripeCustomerId = customer.id;
+    let customerId = profile?.stripe_customer_id;
 
-        const { error: updateError } = await supabaseAdmin
-            .from('profiles')
-            .update({ stripe_customer_id: stripeCustomerId })
-            .eq('id', user.id);
-        
-        if (updateError) {
-            console.error('Error updating profile with Stripe customer ID:', updateError);
-            throw new Error('Could not link Stripe customer to user profile.');
-        }
-    }
-    
-    const isSubscription = ['proPlan', 'teamsPlan'].includes(itemKey);
-    let line_items;
-    
-    if (itemKey === 'invoice_payment' && invoiceId && amount_cents) {
-        line_items = [{
-            price_data: {
-                currency: 'eur',
-                product_data: {
-                    name: `Pago de Factura ${description || invoiceId}`,
-                },
-                unit_amount: amount_cents,
-            },
-            quantity: 1,
-        }];
-    } else if (priceMap[itemKey]) {
-        line_items = [{ price: priceMap[itemKey], quantity: 1 }];
-    } else {
-        return res.status(400).json({ error: 'Producto o factura no válido.' });
-    }
-    
-    const sessionOptions: Stripe.Checkout.SessionCreateParams = {
-        payment_method_types: ['card'],
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
         line_items,
-        mode: isSubscription ? 'subscription' : 'payment',
-        success_url: `${req.headers.origin}/#/billing?payment_status=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${req.headers.origin}/#/billing?payment_status=cancelled`,
-        customer: stripeCustomerId,
+        mode,
+        success_url: `${origin}/#/billing?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${origin}/#/billing`,
         client_reference_id: user.id,
-        allow_promotion_codes: true,
-        metadata: {
-            itemKey: itemKey || 'invoice_payment',
-            invoice_id: invoiceId || 'N/A',
-        }
+        metadata,
     };
-    
-    const session = await stripe.checkout.sessions.create(sessionOptions);
 
-    res.status(200).json({ sessionId: session.id, url: session.url });
+    if (customerId) {
+        sessionParams.customer = customerId;
+    } else {
+        sessionParams.customer_email = user.email;
+        if (mode === 'subscription') {
+            sessionParams.customer_creation = 'always';
+        }
+    }
+
+    session = await stripe.checkout.sessions.create(sessionParams);
+
+    res.status(200).json({ url: session.url });
 
   } catch (err: any) {
-    console.error('Error al crear la sesión de Stripe:', err);
+    console.error('Stripe session creation error:', err);
     res.status(err.statusCode || 500).json({ error: err.message });
   }
 }

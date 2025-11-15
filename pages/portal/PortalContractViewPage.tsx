@@ -27,9 +27,10 @@ const PortalContractViewPage: React.FC = () => {
     const client = getClientById(contract.client_id);
     const project = getProjectById(contract.project_id);
 
-    const handleSign = () => {
+    // FIX: Make function async and await promise
+    const handleSign = async () => {
         if (client) {
-            const message = signContract(contract.id, client.name, 'dummy-signature-data');
+            const message = await signContract(contract.id, client.name, 'dummy-signature-data');
             if (message) {
                 addToast(message, 'info');
             }

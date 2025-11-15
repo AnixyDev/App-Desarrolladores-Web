@@ -15,7 +15,7 @@ interface ApiResponse {
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY; 
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 const supabaseAdmin = createClient(supabaseUrl!, supabaseServiceKey!);
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
@@ -25,11 +25,16 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   try {
     const authHeader = req.headers.authorization;
-    // FIX: Handle case where authHeader can be string[]
-    if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Unauthorized: Missing token' });
+    
+    let token: string | undefined;
+    if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
     }
-    const token = authHeader.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized: Missing or invalid token' });
+    }
+
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
     if (userError || !user) {
@@ -43,7 +48,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       .single();
 
     if (profileError || !profile || !profile.stripe_account_id) {
-      return res.status(404).json({ error: 'No se encontró una cuenta de Stripe conectada para este usuario.' });
+      return res.status(404).json({ error: 'No se encontró una cuenta de Stripe Connect asociada a tu perfil.' });
     }
 
     const loginLink = await stripe.accounts.createLoginLink(profile.stripe_account_id);
@@ -51,7 +56,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     res.status(200).json({ url: loginLink.url });
 
   } catch (err: any) {
-    console.error('Error al crear el enlace al panel de Stripe Connect:', err);
+    console.error('Error al crear el enlace de login para Stripe Connect:', err);
     res.status(err.statusCode || 500).json({ error: err.message });
   }
 }

@@ -22,9 +22,10 @@ const PortalProposalViewPage: React.FC = () => {
 
     const client = getClientById(proposal.client_id);
 
-    const handleStatusChange = (status: 'accepted' | 'rejected') => {
+    // FIX: Make function async and await the promise
+    const handleStatusChange = async (status: 'accepted' | 'rejected') => {
         if (proposal) {
-            const message = updateProposalStatus(proposal.id, status);
+            const message = await updateProposalStatus(proposal.id, status);
             if (message) {
                 addToast(message, 'info');
             }

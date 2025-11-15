@@ -2,7 +2,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { Stripe } from 'stripe';
 import type { Readable } from 'node:stream';
-// FIX: Import Buffer to make it available in this module's scope.
 import { Buffer } from 'node:buffer';
 
 interface ApiRequest extends Readable {
@@ -13,7 +12,7 @@ interface ApiRequest extends Readable {
 interface ApiResponse {
   status: (statusCode: number) => {
     json: (body: any) => void;
-    send: (body: any) => void;
+    send: (body: string) => void;
   };
 }
 
@@ -47,8 +46,12 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   const sig = req.headers['stripe-signature'];
   let event: Stripe.Event;
 
+  if (!sig) {
+    return res.status(400).send('Webhook Error: Missing stripe-signature header');
+  }
+
   try {
-    event = stripe.webhooks.constructEvent(buf, sig!, webhookSecret);
+    event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
   } catch (err: any) {
     console.error(`Webhook signature verification failed: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);

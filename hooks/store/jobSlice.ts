@@ -18,7 +18,8 @@ export interface JobSlice {
 }
 
 
-export const createJobSlice: StateCreator<AppStore, [], [], JobSlice> = (set, get) => ({
+// FIX: Add 'api' to the function signature
+export const createJobSlice: StateCreator<AppStore, [], [], JobSlice> = (set, get, api) => ({
     jobs: [],
     applications: [],
     savedJobIds: [],

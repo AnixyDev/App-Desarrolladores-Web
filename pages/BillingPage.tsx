@@ -9,7 +9,8 @@ import { redirectToCheckout, createConnectAccount, redirectToFreelancerPortal, r
 const UpgradeModal = lazy(() => import('../components/modals/UpgradeModal'));
 
 const BillingPage: React.FC = () => {
-    const { profile, upgradePlan, purchaseCredits, updateStripeConnection } = useAppStore();
+    // FIX: Removed upgradePlan and purchaseCredits as they are not in the store
+    const { profile, updateStripeConnection } = useAppStore();
     const { addToast } = useToast();
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
     const [isConnectingStripe, setIsConnectingStripe] = useState(false);

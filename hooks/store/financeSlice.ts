@@ -1,18 +1,24 @@
 import { supabase } from '../../lib/supabaseClient';
 import type { StateCreator } from 'zustand';
 import type { AppStore } from '../useAppStore';
-import { Invoice, RecurringInvoice, Expense, TimeEntry, Budget, Proposal, Contract, NewTimeEntry, ShadowIncomeEntry } from '../../types';
+// FIX: Import missing types
+import { Invoice, RecurringInvoice, Expense, RecurringExpense, TimeEntry, Budget, Proposal, Contract, NewTimeEntry, ShadowIncomeEntry, InvoiceTemplate, ProposalTemplate, ContractTemplate } from '../../types';
 import { formatCurrency } from '../../lib/utils';
 
 export interface FinanceSlice {
     invoices: Invoice[];
     recurringInvoices: RecurringInvoice[];
     expenses: Expense[];
+    recurringExpenses: RecurringExpense[]; // FIX: Add recurringExpenses
     timeEntries: TimeEntry[];
     budgets: Budget[];
     proposals: Proposal[];
     contracts: Contract[];
     shadowIncome: ShadowIncomeEntry[];
+    monthlyGoalCents: number; // FIX: Add monthlyGoalCents
+    invoiceTemplates: InvoiceTemplate[]; // FIX: Add invoiceTemplates
+    proposalTemplates: ProposalTemplate[]; // FIX: Add proposalTemplates
+    contractTemplates: ContractTemplate[]; // FIX: Add contractTemplates
     
     fetchInvoices: () => Promise<void>;
     fetchExpenses: () => Promise<void>;
@@ -26,7 +32,8 @@ export interface FinanceSlice {
     markInvoiceAsPaid: (id: string) => Promise<void>;
     addExpense: (newExpense: Partial<Expense>) => Promise<void>;
     deleteExpense: (id: string) => Promise<void>;
-    addTimeEntry: (newEntry: NewTimeEntry) => Promise<void>;
+    // FIX: Update signature to not require user_id from component
+    addTimeEntry: (newEntry: Omit<NewTimeEntry, 'user_id'>) => Promise<void>;
     addBudget: (newBudget: Partial<Budget>) => Promise<void>;
     updateBudgetStatus: (id: string, status: Budget['status']) => Promise<void>;
     addProposal: (newProposal: Partial<Proposal>) => Promise<void>;
@@ -34,19 +41,38 @@ export interface FinanceSlice {
     addContract: (newContract: Partial<Contract>) => Promise<void>;
     sendContract: (id: string) => Promise<void>;
     signContract: (id: string, signedBy: string, signature: string) => Promise<string | undefined>;
+    setContractExpiration: (id: string, date: string) => Promise<void>; // FIX: Add setContractExpiration
     addShadowIncome: (newEntry: Omit<ShadowIncomeEntry, 'id'>) => Promise<void>;
     deleteShadowIncome: (id: string) => Promise<void>;
+
+    // FIX: Add missing functions for recurring invoices/expenses and templates
+    addRecurringInvoice: (newInvoice: Partial<RecurringInvoice>) => Promise<void>;
+    deleteRecurringInvoice: (id: string) => Promise<void>;
+    addRecurringExpense: (newExpense: Partial<RecurringExpense>) => Promise<void>;
+    deleteRecurringExpense: (id: string) => Promise<void>;
+    addInvoiceTemplate: (template: Omit<InvoiceTemplate, 'id'>) => Promise<void>;
+    deleteInvoiceTemplate: (id: string) => Promise<void>;
+    addProposalTemplate: (template: Omit<ProposalTemplate, 'id'>) => Promise<void>;
+    deleteProposalTemplate: (id: string) => Promise<void>;
+    addContractTemplate: (template: Omit<ContractTemplate, 'id'>) => Promise<void>;
+    deleteContractTemplate: (id: string) => Promise<void>;
 }
 
-export const createFinanceSlice: StateCreator<AppStore, [], [], FinanceSlice> = (set, get) => ({
+// FIX: Add 'api' to signature
+export const createFinanceSlice: StateCreator<AppStore, [], [], FinanceSlice> = (set, get, api) => ({
     invoices: [],
     recurringInvoices: [],
     expenses: [],
+    recurringExpenses: [],
     timeEntries: [],
     budgets: [],
     proposals: [],
     contracts: [],
     shadowIncome: [],
+    monthlyGoalCents: 500000,
+    invoiceTemplates: [],
+    proposalTemplates: [],
+    contractTemplates: [],
 
     fetchInvoices: async () => {
         const { data, error } = await supabase.from('invoices').select('*');
@@ -191,7 +217,8 @@ export const createFinanceSlice: StateCreator<AppStore, [], [], FinanceSlice> = 
         const userId = get().profile?.id;
         if (!userId) throw new Error("User not authenticated");
         
-        const { data, error } = await supabase.from('time_entries').insert({ ...newEntry, user_id: userId }).select().single();
+        const entryWithUser = { ...newEntry, user_id: userId };
+        const { data, error } = await supabase.from('time_entries').insert(entryWithUser).select().single();
         if (error) throw error;
         set(state => ({ timeEntries: [...state.timeEntries, data] }));
     },
@@ -239,6 +266,7 @@ export const createFinanceSlice: StateCreator<AppStore, [], [], FinanceSlice> = 
         const { data, error } = await supabase.from('proposals').update({ status }).eq('id', id).select().single();
         if(error) throw error;
         set(state => ({ proposals: state.proposals.map(p => p.id === id ? data : p) }));
+        return undefined;
     },
 
     addContract: async (newContract) => {
@@ -273,6 +301,7 @@ export const createFinanceSlice: StateCreator<AppStore, [], [], FinanceSlice> = 
 
         if(error) throw error;
         set(state => ({ contracts: state.contracts.map(c => c.id === id ? data : c) }));
+        return undefined;
     },
 
     // These are local only for now, would need DB tables.
@@ -282,5 +311,45 @@ export const createFinanceSlice: StateCreator<AppStore, [], [], FinanceSlice> = 
     },
     deleteShadowIncome: async (id) => {
         set(state => ({ shadowIncome: state.shadowIncome.filter(s => s.id !== id) }));
+    },
+    
+    // --- FIX: Implement missing functions ---
+    addRecurringInvoice: async (newInvoice) => {
+        const newRecInvoice = { ...newInvoice, id: `rec-inv-${Date.now()}` } as RecurringInvoice; // Mock
+        set(state => ({ recurringInvoices: [...state.recurringInvoices, newRecInvoice] }));
+    },
+    deleteRecurringInvoice: async (id) => {
+        set(state => ({ recurringInvoices: state.recurringInvoices.filter(i => i.id !== id) }));
+    },
+    addRecurringExpense: async (newExpense) => {
+        const newRecExpense = { ...newExpense, id: `rec-exp-${Date.now()}` } as RecurringExpense; // Mock
+        set(state => ({ recurringExpenses: [...state.recurringExpenses, newRecExpense] }));
+    },
+    deleteRecurringExpense: async (id) => {
+        set(state => ({ recurringExpenses: state.recurringExpenses.filter(e => e.id !== id) }));
+    },
+    setContractExpiration: async (id, date) => {
+        set(state => ({ contracts: state.contracts.map(c => c.id === id ? { ...c, expires_at: date } : c) }));
+    },
+    addInvoiceTemplate: async (template) => {
+        const newTemplate = { ...template, id: `inv-tpl-${Date.now()}` };
+        set(state => ({ invoiceTemplates: [...state.invoiceTemplates, newTemplate] }));
+    },
+    deleteInvoiceTemplate: async (id) => {
+        set(state => ({ invoiceTemplates: state.invoiceTemplates.filter(t => t.id !== id) }));
+    },
+    addProposalTemplate: async (template) => {
+        const newTemplate = { ...template, id: `prop-tpl-${Date.now()}` };
+        set(state => ({ proposalTemplates: [...state.proposalTemplates, newTemplate] }));
+    },
+    deleteProposalTemplate: async (id) => {
+        set(state => ({ proposalTemplates: state.proposalTemplates.filter(t => t.id !== id) }));
+    },
+    addContractTemplate: async (template) => {
+        const newTemplate = { ...template, id: `cont-tpl-${Date.now()}` };
+        set(state => ({ contractTemplates: [...state.contractTemplates, newTemplate] }));
+    },
+    deleteContractTemplate: async (id) => {
+        set(state => ({ contractTemplates: state.contractTemplates.filter(t => t.id !== id) }));
     },
 });

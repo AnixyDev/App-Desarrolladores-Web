@@ -208,7 +208,7 @@ const ExpensesPage: React.FC = () => {
                 </Card>
             </div>
             
-            <Modal isOpen={isExpenseModalOpen} onClose={() => { setIsExpenseModalOpen(false); resetExpenseForm(); }}>
+            <Modal isOpen={isExpenseModalOpen} onClose={() => { setIsExpenseModalOpen(false); resetExpenseForm(); }} title="Añadir Gasto">
                 <form onSubmit={handleExpenseSubmit(onExpenseSubmit)} className="space-y-4">
                     <Input label="Descripción" {...registerExpense("description", { required: true })} error={expenseErrors.description && "Campo requerido."} />
                     <div className="grid grid-cols-2 gap-4">
@@ -230,7 +230,7 @@ const ExpensesPage: React.FC = () => {
                 </form>
             </Modal>
             
-            <Modal isOpen={isRecurringModalOpen} onClose={() => { setIsRecurringModalOpen(false); resetRecurringForm(); }}>
+            <Modal isOpen={isRecurringModalOpen} onClose={() => { setIsRecurringModalOpen(false); resetRecurringForm(); }} title="Añadir Gasto Recurrente">
                 <form onSubmit={handleRecurringSubmit(onRecurringSubmit)} className="space-y-4">
                     <Input label="Descripción" {...registerRecurring("description", { required: true })} error={recurringErrors.description && "Campo requerido."} />
                     <Input label="Importe (€)" type="number" step="0.01" {...registerRecurring("amount", { required: true, valueAsNumber: true, min: 0.01 })} error={recurringErrors.amount && "Importe inválido."}/>

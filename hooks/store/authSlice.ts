@@ -1,3 +1,6 @@
+
+
+
 import { supabase } from '../../lib/supabaseClient';
 import type { Session, User } from '@supabase/supabase-js';
 import type { StateCreator } from 'zustand';
@@ -23,6 +26,7 @@ export interface AuthSlice {
     updateStripeConnection: (accountId: string, isComplete: boolean) => Promise<void>;
 }
 
+// FIX: Implement missing functions in createAuthSlice
 export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, get) => ({
     session: null,
     profile: null,
@@ -41,9 +45,9 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     loginWithGoogle: async () => {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: { 
+            options: {
                 redirectTo: window.location.href,
-            },
+            }
         });
         if (error) throw error;
     },
@@ -51,7 +55,9 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     loginWithGithub: async () => {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'github',
-            options: { redirectTo: window.location.href },
+            options: {
+                redirectTo: window.location.href,
+            }
         });
         if (error) throw error;
     },
@@ -60,7 +66,9 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
         const { error } = await supabase.auth.signUp({
             email,
             password,
-            options: { data: { full_name: name } }
+            options: {
+                data: { full_name: name }
+            }
         });
         if (error) throw error;
     },
@@ -82,8 +90,8 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
         if (error) {
             // It's possible for the profile to not exist yet for a new user
             if (error.code === 'PGRST116') {
-                console.warn("Profile not found for new user, this is expected.");
-                set({ profile: null });
+                console.warn("Profile not found for new user, will be created on first update.");
+                // You might want to set a default/empty profile object here
                 return;
             }
             throw error;
@@ -93,35 +101,61 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
 
     updateProfile: async (updatedProfile) => {
         const userId = get().session?.user?.id;
-        if (!userId) throw new Error("User not found");
-
-        const { data, error } = await supabase
-            .from('profiles')
-            .update(updatedProfile)
-            .eq('id', userId)
-            .select()
-            .single();
-
+        if (!userId) throw new Error("User not authenticated");
+        const { data, error } = await supabase.from('profiles').update(updatedProfile).eq('id', userId).select().single();
         if (error) throw error;
         set({ profile: data });
     },
 
     completeOnboarding: () => {
-        get().updateProfile({ isNewUser: false });
+        const userId = get().profile?.id;
+        if (!userId) return;
+        
+        set(state => ({
+            profile: state.profile ? { ...state.profile, isNewUser: false } : null
+        }));
+        
+        supabase.from('profiles').update({ isNewUser: false }).eq('id', userId).then(({ error }) => {
+            if (error) console.error("Failed to update onboarding status in DB:", error);
+        });
     },
 
     consumeCredits: async (amount) => {
-        const { profile } = get();
-        if (profile) {
-            const newCredits = Math.max(0, profile.ai_credits - amount);
-            await get().updateProfile({ ai_credits: newCredits });
+        const currentProfile = get().profile;
+        if (!currentProfile) throw new Error("Profile not loaded");
+        if (currentProfile.ai_credits < amount) throw new Error("Insufficient AI credits.");
+
+        const newCredits = currentProfile.ai_credits - amount;
+        set({ profile: { ...currentProfile, ai_credits: newCredits } });
+
+        const { error } = await supabase.from('profiles').update({ ai_credits: newCredits }).eq('id', currentProfile.id);
+        if (error) {
+            // Revert state on DB error
+            set({ profile: currentProfile });
+            throw error;
         }
     },
 
     updateStripeConnection: async (accountId, isComplete) => {
-        await get().updateProfile({ 
-            stripe_account_id: accountId,
+        const currentProfile = get().profile;
+        if (!currentProfile) throw new Error("Profile not loaded");
+
+        const updatedProfile = { 
+            ...currentProfile, 
+            stripe_account_id: accountId, 
             stripe_onboarding_complete: isComplete 
-        });
+        };
+        set({ profile: updatedProfile });
+
+        const { error } = await supabase
+            .from('profiles')
+            .update({ stripe_account_id: accountId, stripe_onboarding_complete: isComplete })
+            .eq('id', currentProfile.id);
+        
+        if (error) {
+            // Revert state on DB error
+            set({ profile: currentProfile });
+            throw error;
+        }
     },
 });

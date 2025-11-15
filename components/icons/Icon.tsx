@@ -45,7 +45,6 @@ export {
   Book,
   Inbox as InboxIcon,
   Link as LinkIcon,
-  // FIX: Export 'ListTodo' icon which was missing.
   ListTodo,
   UserPlus,
   Trash2,

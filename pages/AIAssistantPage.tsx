@@ -103,7 +103,7 @@ const AIAssistantPage: React.FC = () => {
                     switch (call.name) {
                         case 'addExpense':
                             const { description, amount, category } = call.args;
-                            store.addExpense({
+                            await store.addExpense({
                                 description,
                                 amount_cents: Math.round(amount * 100),
                                 category,
@@ -130,7 +130,7 @@ const AIAssistantPage: React.FC = () => {
                                     quantity: item.quantity,
                                     price_cents: Math.round(item.amount * 100),
                                 }));
-                                store.addInvoice({
+                                await store.addInvoice({
                                     client_id: client.id,
                                     project_id: project ? project.id : null,
                                     items: invoiceItems,

@@ -23,7 +23,8 @@ export interface TeamSlice {
     deleteArticle: (id: string) => Promise<void>;
 }
 
-export const createTeamSlice: StateCreator<AppStore, [], [], TeamSlice> = (set, get) => ({
+// FIX: Add 'api' to the function signature
+export const createTeamSlice: StateCreator<AppStore, [], [], TeamSlice> = (set, get, api) => ({
     users: [],
     referrals: [],
     articles: [],

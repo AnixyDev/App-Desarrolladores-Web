@@ -82,7 +82,8 @@ const AffiliateProgramPage: React.FC = () => {
                             <tbody>
                                 {referrals.map(referral => (
                                     <tr key={referral.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                                        <td className="p-4 text-white font-semibold">{referral.name}</td>
+                                        {/* FIX: Use referred_user_name instead of name */}
+                                        <td className="p-4 text-white font-semibold">{referral.referred_user_name}</td>
                                         <td className="p-4 text-gray-300">{referral.join_date}</td>
                                         <td className="p-4">
                                             <span className={`px-2 py-1 text-xs rounded-full ${referral.status === 'Subscribed' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>

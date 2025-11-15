@@ -60,11 +60,15 @@ const ProjectDetailPage: React.FC = () => {
         }
     }, [project]);
 
-    const handleBudgetSave = () => {
+    const handleBudgetSave = async () => {
         if (project) {
-            updateProjectBudget(project.id, Math.round(budgetInput * 100));
-            addToast('Presupuesto actualizado.', 'success');
-            setIsEditingBudget(false);
+            try {
+                await updateProjectBudget(project.id, Math.round(budgetInput * 100));
+                addToast('Presupuesto actualizado.', 'success');
+                setIsEditingBudget(false);
+            } catch (error) {
+                addToast(`Error al actualizar el presupuesto: ${(error as Error).message}`, 'error');
+            }
         }
     };
 
@@ -118,20 +122,28 @@ const ProjectDetailPage: React.FC = () => {
         return <div className="text-center text-red-500 mt-8">Proyecto o cliente no encontrado.</div>;
     }
 
-    const handleAddTask = (e: React.FormEvent) => {
+    const handleAddTask = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newTaskDescription.trim() && projectId) {
-            addTask({ project_id: projectId, description: newTaskDescription });
-            addToast('Tarea añadida.', 'success');
-            setNewTaskDescription('');
+            try {
+                await addTask({ project_id: projectId, description: newTaskDescription });
+                addToast('Tarea añadida.', 'success');
+                setNewTaskDescription('');
+            } catch (error) {
+                addToast(`Error al añadir la tarea: ${(error as Error).message}`, 'error');
+            }
         }
     };
 
-    const handleToggleTask = (task: Task) => {
+    const handleToggleTask = async (task: Task) => {
         const newStatus = task.status === 'completed' ? 'in-progress' : 'completed';
-        updateTaskStatus(task.id, newStatus);
-        if (newStatus === 'completed') {
-            addToast(`Tarea completada: "${task.description}"`, 'success');
+        try {
+            await updateTaskStatus(task.id, newStatus);
+            if (newStatus === 'completed') {
+                addToast(`Tarea completada: "${task.description}"`, 'success');
+            }
+        } catch (error) {
+            addToast(`Error al actualizar la tarea: ${(error as Error).message}`, 'error');
         }
     };
 
@@ -166,12 +178,17 @@ const ProjectDetailPage: React.FC = () => {
         setIsConfirmModalOpen(true);
     };
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         if (taskToDelete) {
-            deleteTask(taskToDelete.id);
-            addToast('Tarea eliminada.', 'info');
-            setIsConfirmModalOpen(false);
-            setTaskToDelete(null);
+            try {
+                await deleteTask(taskToDelete.id);
+                addToast('Tarea eliminada.', 'info');
+            } catch (error) {
+                addToast(`Error al eliminar la tarea: ${(error as Error).message}`, 'error');
+            } finally {
+                setIsConfirmModalOpen(false);
+                setTaskToDelete(null);
+            }
         }
     };
     
@@ -193,12 +210,17 @@ const ProjectDetailPage: React.FC = () => {
         setIsDeleteFileModalOpen(true);
     };
 
-    const confirmDeleteFile = () => {
+    const confirmDeleteFile = async () => {
         if (fileToDelete) {
-            deleteProjectFile(fileToDelete.id);
-            addToast('Archivo eliminado.', 'info');
-            setIsDeleteFileModalOpen(false);
-            setFileToDelete(null);
+            try {
+                await deleteProjectFile(fileToDelete.id);
+                addToast('Archivo eliminado.', 'info');
+            } catch (error) {
+                addToast(`Error al eliminar el archivo: ${(error as Error).message}`, 'error');
+            } finally {
+                setIsDeleteFileModalOpen(false);
+                setFileToDelete(null);
+            }
         }
     };
     

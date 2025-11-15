@@ -1,7 +1,10 @@
+
+
+
 import React, { useState, Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAppStore } from './hooks/useAppStore';
-import { supabase } from './lib/supabaseClient';
+import { supabase, supabaseError } from './lib/supabaseClient';
 
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
@@ -89,6 +92,18 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 function App() {
   const { setSession, fetchInitialData, clearUserData, isLoading } = useAppStore();
 
+  if (supabaseError) {
+      return (
+          <div className="h-screen w-screen bg-slate-950 flex items-center justify-center p-8">
+              <div className="text-center bg-red-900/50 border border-red-700 rounded-lg p-6 max-w-lg">
+                  <h1 className="text-2xl font-bold text-red-300 mb-4">Error de Configuración</h1>
+                  <p className="text-red-200">{supabaseError}</p>
+                  <p className="text-slate-400 mt-4 text-sm">Asegúrate de haber configurado las variables de entorno `SUPABASE_URL` y `SUPABASE_ANON_KEY` en los ajustes de tu proyecto.</p>
+              </div>
+          </div>
+      );
+  }
+
   useEffect(() => {
     // This is the core authentication listener.
     // It handles SIGNED_IN, SIGNED_OUT, and TOKEN_REFRESHED events.
@@ -111,7 +126,7 @@ function App() {
 
     // This cleanup function will run when the App component unmounts.
     return () => {
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, [setSession, fetchInitialData, clearUserData]);
   

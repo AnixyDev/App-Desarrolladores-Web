@@ -20,12 +20,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["**/*.ts", "**/*.tsx", "**/*.js"],
-  "exclude": [
-    "node_modules",
-    "ClientsPage.tsx",
-    "ProjectsPage.tsx",
-    "ProjectDetailPage.tsx",
-    "AIAssistantPage.tsx"
-  ]
+  "include": ["**/*.ts", "**/*.tsx", "**/*.js"]
 }
