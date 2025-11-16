@@ -4,7 +4,7 @@ import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import { formatCurrency } from '../lib/utils';
 import { Link } from 'react-router-dom';
-import { DollarSignIcon, ClockIcon, BriefcaseIcon, FileTextIcon, SparklesIcon, RefreshCwIcon, AlertTriangleIcon, ListTodo, CheckCircleIcon, PlusIcon } from '../components/icons/Icon';
+import { DollarSignIcon, ClockIcon, BriefcaseIcon, FileTextIcon, SparklesIcon, RefreshCwIcon, AlertTriangleIcon, ListTodo, CheckCircleIcon, PlusIcon, Users as UsersIcon } from '../components/icons/Icon';
 import { getDashboardInsights } from '../services/geminiService';
 import OnboardingGuide from '../components/OnboardingGuide';
 import Skeleton from '../components/ui/Skeleton';
@@ -40,8 +40,7 @@ const StatCard: React.FC<{ icon: React.ElementType; title: string; value: string
     return cardElement;
 };
 
-const AICoachWidget: React.FC = () => {
-    const { invoices, timeEntries, expenses } = useAppStore();
+const AICoachWidget: React.FC<{invoices: any[], timeEntries: any[], expenses: any[]}> = ({ invoices, timeEntries, expenses }) => {
     const [insights, setInsights] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -60,9 +59,13 @@ const AICoachWidget: React.FC = () => {
                     overdueInvoicesCount: overdueInvoices.length,
                     totalPending: invoices.filter(i => !i.paid).reduce((sum, i) => sum + i.total_cents, 0) / 100,
                 };
-
-                const result = await getDashboardInsights(summaryData);
-                setInsights(result);
+                
+                if (summaryData.unbilledHours === "0.00" && summaryData.overdueInvoicesCount === 0 && summaryData.totalPending === 0) {
+                    setInsights(["¡Todo en orden! No hay acciones urgentes pendientes."]);
+                } else {
+                    const result = await getDashboardInsights(summaryData);
+                    setInsights(result);
+                }
             } catch (error) {
                 console.error("Failed to get AI insights:", error);
                 setInsights(["No se pudieron cargar las sugerencias de la IA."]);
@@ -99,8 +102,8 @@ const AICoachWidget: React.FC = () => {
     );
 }
 
-const NextStepsWidget: React.FC = () => {
-    const { tasks, invoices, getProjectById, getClientById, updateTaskStatus, addTask, projects } = useAppStore();
+const NextStepsWidget: React.FC<{tasks: Task[], invoices: any[], projects: any[]}> = ({ tasks, invoices, projects }) => {
+    const { getProjectById, getClientById, updateTaskStatus, addTask } = useAppStore();
     const { addToast } = useToast();
 
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -233,34 +236,68 @@ const NextStepsWidget: React.FC = () => {
 
 
 const DashboardPage: React.FC = () => {
-    const { invoices, expenses, projects, timeEntries, profile, getClientById, monthlyGoalCents } = useAppStore();
+    const { invoices, expenses, projects, timeEntries, profile, monthlyGoalCents, clients, tasks } = useAppStore();
+    const [selectedClientId, setSelectedClientId] = useState<string>('all');
     
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
 
-    const stats = {
-        pendingInvoices: invoices.filter(i => !i.paid).reduce((sum, i) => sum + i.total_cents, 0),
-        activeProjects: projects.filter(p => p.status === 'in-progress').length,
-        hoursThisWeek: timeEntries.filter(t => new Date(t.start_time) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).reduce((sum, t) => sum + t.duration_seconds, 0) / 3600,
-        paidThisMonth: invoices
+    const filteredData = useMemo(() => {
+        if (selectedClientId === 'all') {
+            return { invoices, projects, timeEntries, expenses, tasks };
+        }
+
+        const clientProjects = projects.filter(p => p.client_id === selectedClientId);
+        const clientProjectIds = clientProjects.map(p => p.id);
+
+        return {
+            invoices: invoices.filter(i => i.client_id === selectedClientId),
+            projects: clientProjects,
+            timeEntries: timeEntries.filter(t => clientProjectIds.includes(t.project_id)),
+            expenses: expenses.filter(e => e.project_id && clientProjectIds.includes(e.project_id)),
+            tasks: tasks.filter(t => clientProjectIds.includes(t.project_id)),
+        };
+    }, [selectedClientId, invoices, projects, timeEntries, expenses, tasks]);
+
+    const stats = useMemo(() => ({
+        pendingInvoices: filteredData.invoices.filter(i => !i.paid).reduce((sum, i) => sum + i.total_cents, 0),
+        activeProjects: filteredData.projects.filter(p => p.status === 'in-progress').length,
+        hoursThisWeek: filteredData.timeEntries.filter(t => new Date(t.start_time) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).reduce((sum, t) => sum + t.duration_seconds, 0) / 3600,
+        paidThisMonth: filteredData.invoices
             .filter(i => i.paid && i.payment_date && new Date(i.payment_date).getMonth() === currentMonth && new Date(i.payment_date).getFullYear() === currentYear)
             .reduce((sum, i) => sum + i.total_cents, 0),
-        issuedThisMonth: invoices
+        issuedThisMonth: filteredData.invoices
             .filter(i => {
                 const issueDate = new Date(i.issue_date);
                 return issueDate.getMonth() === currentMonth && issueDate.getFullYear() === currentYear;
             })
             .reduce((sum, i) => sum + i.total_cents, 0),
-    };
+    }), [filteredData, currentMonth, currentYear]);
     
-    const goalProgress = monthlyGoalCents > 0 ? (stats.paidThisMonth / monthlyGoalCents) * 100 : 0;
+    const goalProgress = (selectedClientId === 'all' && monthlyGoalCents > 0) ? (stats.paidThisMonth / monthlyGoalCents) * 100 : 0;
 
     return (
         <div className="space-y-6">
             {profile.isNewUser && <OnboardingGuide />}
 
-            <h1 className="text-2xl font-semibold text-white">Hola, {profile?.full_name?.split(' ')[0]}</h1>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <h1 className="text-2xl font-semibold text-white">Hola, {profile?.full_name?.split(' ')[0]}</h1>
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <UsersIcon className="w-5 h-5 text-slate-400 shrink-0" />
+                    <select
+                        value={selectedClientId}
+                        onChange={(e) => setSelectedClientId(e.target.value)}
+                        className="block w-full md:w-64 pl-3 pr-10 py-2 text-base border-slate-600 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md bg-slate-800 text-white"
+                        aria-label="Filtrar por cliente"
+                    >
+                        <option value="all">Todos los Clientes</option>
+                        {clients.map(client => (
+                            <option key={client.id} value={client.id}>{client.name}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard icon={DollarSignIcon} title="Ingresos este Mes" value={formatCurrency(stats.paidThisMonth)} iconColor="text-green-400" />
@@ -269,14 +306,14 @@ const DashboardPage: React.FC = () => {
                 <StatCard icon={ClockIcon} title="Horas (Últimos 7 días)" value={`${stats.hoursThisWeek.toFixed(1)}h`} iconColor="text-purple-400"/>
             </div>
 
-            <AICoachWidget />
+            <AICoachWidget invoices={filteredData.invoices} timeEntries={filteredData.timeEntries} expenses={filteredData.expenses} />
 
             <Card>
                 <CardHeader>
                     <h2 className="text-lg font-semibold text-white">Resumen Mensual</h2>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
                         <div>
                             <p className="text-sm text-gray-400">Facturado</p>
                             <p className="text-xl font-bold text-blue-400">{formatCurrency(stats.issuedThisMonth)}</p>
@@ -285,20 +322,22 @@ const DashboardPage: React.FC = () => {
                             <p className="text-sm text-gray-400">Cobrado</p>
                             <p className="text-xl font-bold text-green-400">{formatCurrency(stats.paidThisMonth)}</p>
                         </div>
-                        <div>
-                            <p className="text-sm text-gray-400">Meta</p>
-                            <p className="text-xl font-bold text-white">{formatCurrency(monthlyGoalCents)}</p>
+                        <div className={selectedClientId !== 'all' ? 'hidden sm:block' : ''}>
+                             <p className="text-sm text-gray-400">Meta</p>
+                             <p className="text-xl font-bold text-white">{formatCurrency(monthlyGoalCents)}</p>
                         </div>
                     </div>
-                    <div>
-                        <div className="flex justify-between text-xs text-gray-400 mb-1">
-                            <span>Progreso de la Meta ({formatCurrency(monthlyGoalCents)})</span>
-                            <span>{goalProgress.toFixed(0)}%</span>
+                    {selectedClientId === 'all' && (
+                         <div>
+                            <div className="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Progreso de la Meta ({formatCurrency(monthlyGoalCents)})</span>
+                                <span>{goalProgress.toFixed(0)}%</span>
+                            </div>
+                            <div className="w-full bg-gray-700 rounded-full h-2.5">
+                                <div className="bg-gradient-to-r from-fuchsia-600 to-purple-600 h-2.5 rounded-full" style={{ width: `${Math.min(goalProgress, 100)}%` }}></div>
+                            </div>
                         </div>
-                        <div className="w-full bg-gray-700 rounded-full h-2.5">
-                            <div className="bg-gradient-to-r from-fuchsia-600 to-purple-600 h-2.5 rounded-full" style={{ width: `${Math.min(goalProgress, 100)}%` }}></div>
-                        </div>
-                    </div>
+                    )}
                 </CardContent>
             </Card>
 
@@ -309,12 +348,12 @@ const DashboardPage: React.FC = () => {
                     </CardHeader>
                     <CardContent>
                         <Suspense fallback={<div className="h-[300px]"><Skeleton className="h-full w-full"/></div>}>
-                            <IncomeExpenseChart invoices={invoices} expenses={expenses} />
+                            <IncomeExpenseChart invoices={filteredData.invoices} expenses={filteredData.expenses} />
                         </Suspense>
                     </CardContent>
                 </Card>
 
-                <NextStepsWidget />
+                <NextStepsWidget tasks={filteredData.tasks} invoices={filteredData.invoices} projects={filteredData.projects} />
             </div>
         </div>
     );
