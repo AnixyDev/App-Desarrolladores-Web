@@ -76,6 +76,10 @@ const ProjectDetailPage: React.FC = () => {
         return timeEntries.filter(entry => entry.project_id === projectId);
     }, [timeEntries, projectId]);
 
+    const unbilledTimeEntries = useMemo(() => {
+        return projectTimeEntries.filter(entry => !entry.invoice_id);
+    }, [projectTimeEntries]);
+
     const projectFilesForProject = useMemo(() => {
         return projectFiles.filter(file => file.project_id === projectId);
     }, [projectFiles, projectId]);
@@ -171,6 +175,20 @@ const ProjectDetailPage: React.FC = () => {
                 }
             });
         }
+    };
+
+    const handleCreateInvoiceFromHours = () => {
+        if (unbilledTimeEntries.length === 0) {
+             addToast('No hay horas pendientes de facturar.', 'info');
+             return;
+        }
+        navigate('/invoices/create', {
+            state: {
+                projectId: project.id,
+                clientId: client.id,
+                timeEntryIds: unbilledTimeEntries.map(e => e.id)
+            }
+        });
     };
 
     const handleDeleteClick = (task: Task) => {
@@ -275,6 +293,11 @@ const ProjectDetailPage: React.FC = () => {
                     {project.budget_cents > 0 && (
                         <Button onClick={handleCreateInvoiceFromBudget}>
                             <DollarSignIcon className="w-4 h-4 mr-2"/> Facturar Presupuesto
+                        </Button>
+                    )}
+                     {unbilledTimeEntries.length > 0 && (
+                        <Button onClick={handleCreateInvoiceFromHours} className="bg-purple-600 hover:bg-purple-700 focus:ring-purple-500">
+                            <ClockIcon className="w-4 h-4 mr-2"/> Facturar Horas ({ (unbilledTimeEntries.reduce((sum, e) => sum + e.duration_seconds, 0) / 3600).toFixed(1) }h)
                         </Button>
                     )}
                 </div>
