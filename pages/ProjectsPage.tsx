@@ -7,6 +7,7 @@ import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
 import { Project, NewProject, NewClient } from '../types';
 import { formatCurrency } from '../lib/utils';
 import StatusChip from '../components/ui/StatusChip';
@@ -109,18 +110,20 @@ const ProjectsPage: React.FC = () => {
         <div>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <h1 className="text-2xl font-semibold text-white">Proyectos</h1>
-                <div className="flex gap-2">
-                    <select
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value as any)}
-                        className="block px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white"
-                    >
-                        <option value="all">Todos</option>
-                        <option value="planning">Planificación</option>
-                        <option value="in-progress">En Progreso</option>
-                        <option value="completed">Completado</option>
-                        <option value="on-hold">En Pausa</option>
-                    </select>
+                <div className="flex gap-2 items-center">
+                    <div className="w-40">
+                        <Select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value as any)}
+                            options={[
+                                { value: 'all', label: 'Todos' },
+                                { value: 'planning', label: 'Planificación' },
+                                { value: 'in-progress', label: 'En Progreso' },
+                                { value: 'completed', label: 'Completado' },
+                                { value: 'on-hold', label: 'En Pausa' }
+                            ]}
+                        />
+                    </div>
                     <Button onClick={openProjectModal}>Añadir Proyecto</Button>
                 </div>
             </div>
@@ -139,7 +142,7 @@ const ProjectsPage: React.FC = () => {
                         }
 
                         return (
-                            <Card key={project.id} className="flex flex-col hover:border-primary-500/50 transition-colors">
+                            <Card key={project.id} className="flex flex-col hover:border-primary-500/50 transition-colors" hoverable>
                                 <CardHeader>
                                     <div className="flex justify-between items-start">
                                         <Link to={`/projects/${project.id}`} className="text-primary-400 text-lg font-semibold hover:underline pr-2">
@@ -166,7 +169,7 @@ const ProjectsPage: React.FC = () => {
                                         </div>
                                     </div>
                                 )}
-                                <div className="p-4 border-t border-gray-800 flex items-center justify-between text-sm">
+                                <div className="p-4 border-t border-white/[0.06] flex items-center justify-between text-sm bg-white/[0.02]">
                                     <div>
                                         <p className="text-gray-400">Vencimiento</p>
                                         <p className="text-white font-medium">{project.due_date}</p>
@@ -191,16 +194,21 @@ const ProjectsPage: React.FC = () => {
                     <div>
                          <label className="block text-sm font-medium text-gray-300 mb-1">Cliente</label>
                          <div className="flex gap-2">
-                            <select {...registerProject("client_id")} className="flex-1 block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
-                                {clients.length === 0 && <option disabled value="">Crea un cliente primero</option>}
-                                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
+                            <div className="flex-1">
+                                <Select 
+                                    {...registerProject("client_id")}
+                                    className="w-full"
+                                >
+                                    {clients.length === 0 && <option disabled value="">Crea un cliente primero</option>}
+                                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </Select>
+                            </div>
                             <Button type="button" variant="secondary" onClick={() => setIsClientModalOpen(true)}><PlusIcon className="w-4 h-4 mr-1" /> Nuevo</Button>
                          </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-1">Descripción</label>
-                         <textarea {...registerProject("description")} rows={4} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white" />
+                         <textarea {...registerProject("description")} rows={4} className="block w-full px-3 py-2 rounded-lg border border-slate-800 text-sm bg-slate-950/40 text-slate-200 focus:border-primary/50 focus:ring-primary/20 hover:border-slate-700 focus:outline-none focus:ring-2 transition-all duration-200" />
                     </div>
                      <div className="grid grid-cols-2 gap-4">
                         <Input label="Fecha de Inicio" type="date" {...registerProject("start_date", { required: true })} error={projectErrors.start_date && "Campo requerido."} />

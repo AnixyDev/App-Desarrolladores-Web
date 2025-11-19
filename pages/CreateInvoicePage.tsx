@@ -4,6 +4,8 @@ import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
+import Textarea from '../components/ui/Textarea';
 import Modal from '../components/ui/Modal';
 import { InvoiceItem } from '../types';
 import { PlusIcon, TrashIcon, SparklesIcon, RepeatIcon, SaveIcon } from '../components/icons/Icon';
@@ -228,26 +230,26 @@ const CreateInvoicePage: React.FC = () => {
             <Card>
                 <CardHeader>
                     <div className="flex justify-end">
-                         <select onChange={handleLoadTemplate} className="block w-full sm:w-auto px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
+                         <Select onChange={handleLoadTemplate} className="w-full sm:w-64">
                             <option value="">Cargar desde plantilla...</option>
                             {invoiceTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                        </select>
+                        </Select>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                              <label className="block text-sm font-medium text-gray-300 mb-1">Cliente</label>
-                             <select name="client_id" value={newInvoice.client_id} onChange={handleInputChange} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
+                             <Select name="client_id" value={newInvoice.client_id} onChange={handleInputChange}>
                                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
+                            </Select>
                         </div>
                          <div>
                              <label className="block text-sm font-medium text-gray-300 mb-1">Proyecto (Opcional)</label>
-                             <select name="project_id" value={newInvoice.project_id} onChange={handleInputChange} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
+                             <Select name="project_id" value={newInvoice.project_id} onChange={handleInputChange}>
                                 <option value="">Ninguno</option>
                                 {clientProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
+                            </Select>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -265,10 +267,10 @@ const CreateInvoicePage: React.FC = () => {
                             <div className="grid grid-cols-2 gap-4 mt-4 p-4 bg-gray-800/50 rounded-lg">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-300 mb-1">Frecuencia</label>
-                                    <select name="frequency" value={newInvoice.frequency} onChange={handleInputChange} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
+                                    <Select name="frequency" value={newInvoice.frequency} onChange={handleInputChange}>
                                         <option value="monthly">Mensual</option>
                                         <option value="yearly">Anual</option>
-                                    </select>
+                                    </Select>
                                 </div>
                                  <Input label="Fecha de Inicio" name="start_date" type="date" value={newInvoice.start_date} onChange={handleInputChange} />
                             </div>
@@ -306,7 +308,7 @@ const CreateInvoicePage: React.FC = () => {
             <Modal isOpen={isAIGeneratorOpen} onClose={() => setIsAIGeneratorOpen(false)} title="Generar Conceptos con IA">
                 <div className="space-y-4">
                     <label className="block text-sm font-medium text-gray-300 mb-1">Describe los conceptos a facturar:</label>
-                    <textarea value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} rows={4} className="w-full p-2 bg-gray-800 text-gray-300 border border-gray-700 rounded-md" placeholder="Ej: desarrollo de API de autenticación, 3 endpoints, y configuración de base de datos."/>
+                    <Textarea value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} rows={4} placeholder="Ej: desarrollo de API de autenticación, 3 endpoints, y configuración de base de datos."/>
                     <div className="flex justify-end pt-2">
                         <Button onClick={handleAiGenerate} disabled={isAiLoading || !aiPrompt}>
                            {isAiLoading ? 'Generando...' : `Generar (${AI_CREDIT_COSTS.generateInvoiceItems} créditos)`}

@@ -5,6 +5,8 @@ import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
+import Textarea from '../components/ui/Textarea';
 import { formatCurrency, generateICSFile } from '../lib/utils';
 import { Project, Task, InvoiceItem, ProjectFile, ProjectChangeLog } from '../types';
 import { PlusIcon, TrashIcon, ClockIcon, FileTextIcon, MessageSquareIcon, DollarSignIcon, Paperclip, Upload, Trash2, EditIcon, CalendarPlus, DownloadIcon, RefreshCwIcon } from '../components/icons/Icon';
@@ -331,7 +333,7 @@ const ProjectDetailPage: React.FC = () => {
         }
     };
 
-    const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setCurrentProjectForEdit(prev => prev ? { ...prev, [name]: value } : null);
     };
@@ -374,16 +376,16 @@ const ProjectDetailPage: React.FC = () => {
                         <CardContent className="space-y-4">
                             <div>
                                 <label className="text-sm font-medium text-gray-400 block">Estado</label>
-                                <select 
+                                <Select 
                                     value={project.status} 
                                     onChange={(e) => updateProjectStatus(project.id, e.target.value as Project['status'])}
-                                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-600 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md bg-gray-800 text-white"
+                                    className="mt-1"
                                 >
                                     <option value="planning">Planificación</option>
                                     <option value="in-progress">En Progreso</option>
                                     <option value="completed">Completado</option>
                                     <option value="on-hold">En Pausa</option>
-                                </select>
+                                </Select>
                             </div>
                              <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -599,10 +601,9 @@ const ProjectDetailPage: React.FC = () => {
                         />
                         <div>
                             <label className="block text-sm font-medium text-slate-400 mb-1">Descripción</label>
-                            <textarea 
+                            <Textarea 
                                 name="description"
                                 rows={4} 
-                                className="block w-full px-3 py-2 border rounded-lg shadow-sm placeholder-slate-500 focus:outline-none focus:ring-2 sm:text-sm bg-slate-900/50 text-white border-slate-700 focus:border-primary-500 focus:ring-primary-500/20 transition-all duration-200"
                                 value={currentProjectForEdit.description || ''}
                                 onChange={handleEditInputChange}
                             />
@@ -627,17 +628,16 @@ const ProjectDetailPage: React.FC = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-slate-400 mb-1">Estado</label>
-                            <select
+                            <Select
                                 name="status"
                                 value={currentProjectForEdit.status}
-                                onChange={(e) => setCurrentProjectForEdit(p => p ? {...p, status: e.target.value as any } : null)}
-                                className="block w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 sm:text-sm bg-slate-900/50 text-white border-slate-700 focus:border-primary-500 focus:ring-primary-500/20 transition-all duration-200"
+                                onChange={handleEditInputChange}
                             >
                                 <option value="planning">Planificación</option>
                                 <option value="in-progress">En Progreso</option>
                                 <option value="completed">Completado</option>
                                 <option value="on-hold">En Pausa</option>
-                            </select>
+                            </Select>
                         </div>
 
                          <div className="grid grid-cols-2 gap-4">
@@ -649,16 +649,15 @@ const ProjectDetailPage: React.FC = () => {
                             />
                             <div>
                                 <label className="block text-sm font-medium text-slate-400 mb-1">Prioridad</label>
-                                <select
+                                <Select
                                     name="priority"
                                     value={currentProjectForEdit.priority || 'Medium'}
-                                    onChange={(e) => setCurrentProjectForEdit(p => p ? {...p, priority: e.target.value as 'Low' | 'Medium' | 'High' } : null)}
-                                    className="block w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 sm:text-sm bg-slate-900/50 text-white border-slate-700 focus:border-primary-500 focus:ring-primary-500/20 transition-all duration-200"
+                                    onChange={handleEditInputChange}
                                 >
                                     <option value="Low">Baja</option>
                                     <option value="Medium">Media</option>
                                     <option value="High">Alta</option>
-                                </select>
+                                </Select>
                             </div>
                         </div>
                         <div className="flex justify-end pt-4">

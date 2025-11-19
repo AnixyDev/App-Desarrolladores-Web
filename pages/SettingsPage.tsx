@@ -3,6 +3,7 @@ import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Input from '../components/ui/Input';
+import Textarea from '../components/ui/Textarea';
 import Button from '../components/ui/Button';
 import { Link } from 'react-router-dom';
 import { UserIcon, DownloadIcon, RefreshCwIcon, SparklesIcon } from '../components/icons/Icon';
@@ -205,7 +206,7 @@ const SettingsPage: React.FC = () => {
                     <CardContent className="space-y-4">
                          <div>
                             <label htmlFor="bio" className="block text-sm font-medium text-gray-300 mb-1">Biografía Corta</label>
-                            <textarea id="bio" rows={4} {...register("bio")} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white" placeholder="Describe brevemente tu especialidad y experiencia."/>
+                            <Textarea id="bio" rows={4} {...register("bio")} placeholder="Describe brevemente tu especialidad y experiencia."/>
                          </div>
                         <Input label="Especialidad (ej. Frontend con React)" {...register("specialty")} placeholder="Tu principal área de expertise." />
                         <div>
@@ -295,11 +296,11 @@ const SettingsPage: React.FC = () => {
                         <p className="text-xs text-gray-500 px-1">La aplicación simulará el envío de emails cuando una factura esté a punto de vencer o haya vencido.</p>
                          <div>
                             <label htmlFor="reminder_template_upcoming" className="block text-sm font-medium text-gray-300 mb-1">Plantilla de recordatorio (Próximo Vencimiento)</label>
-                            <textarea id="reminder_template_upcoming" rows={5} {...register("reminder_template_upcoming")} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white font-mono text-xs" />
+                            <Textarea id="reminder_template_upcoming" rows={5} {...register("reminder_template_upcoming")} className="font-mono text-xs" />
                          </div>
                          <div>
                             <label htmlFor="reminder_template_overdue" className="block text-sm font-medium text-gray-300 mb-1">Plantilla de recordatorio (Vencida)</label>
-                            <textarea id="reminder_template_overdue" rows={5} {...register("reminder_template_overdue")} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white font-mono text-xs" />
+                            <Textarea id="reminder_template_overdue" rows={5} {...register("reminder_template_overdue")} className="font-mono text-xs" />
                          </div>
                          <p className="text-xs text-gray-500 px-1">Puedes usar las variables: [ClientName], [InvoiceNumber], [Amount], [DueDate], [YourName].</p>
                     </CardContent>

@@ -1,5 +1,6 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect, useRef } from 'react';
 import { X } from '../icons/Icon';
+import { cn } from '../../lib/utils';
 
 interface ModalProps {
   isOpen: boolean;
@@ -16,32 +17,57 @@ const sizeClasses = {
 }
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md' }) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      // Lock body scroll
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex justify-center items-center p-4"
+      className="fixed inset-0 bg-[#020617]/80 backdrop-blur-sm z-[100] flex justify-center items-center p-4 animate-in fade-in duration-200"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
       <div
-        className={`relative bg-slate-900 rounded-lg shadow-2xl w-full border border-slate-700 animate-modal-fade-in ${sizeClasses[size]} overflow-hidden`}
+        ref={modalRef}
+        className={cn(
+            "relative w-full rounded-xl shadow-2xl animate-in zoom-in-95 duration-200",
+            "bg-[#0f172a]/90 border border-white/10 backdrop-blur-md", // Glassmorphism style
+            "ring-1 ring-white/5", // Subtle inner ring
+            sizeClasses[size]
+        )}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-fuchsia-600 to-purple-600"></div>
-        <div className="flex justify-between items-center p-4 pt-6">
-          <h3 id="modal-title" className="text-lg font-semibold text-white">{title}</h3>
+        <div className="flex justify-between items-center p-6 border-b border-white/10">
+          <h3 id="modal-title" className="text-lg font-semibold text-white tracking-tight">{title}</h3>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-700 transition-colors"
+            className="text-slate-400 hover:text-white p-1.5 rounded-md hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
             aria-label="Cerrar modal"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-6 pt-2 bg-slate-900/50">
+        
+        <div className="p-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
           {children}
         </div>
       </div>

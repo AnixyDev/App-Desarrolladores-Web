@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import Textarea from '../components/ui/Textarea';
 import { useAppStore } from '../hooks/useAppStore';
 import { useToast } from '../hooks/useToast';
 import { Briefcase, DollarSign, Clock, Zap, RefreshCwIcon } from 'lucide-react';
@@ -128,12 +129,11 @@ const JobPostForm: React.FC = () => {
                         />
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-1">Descripción Completa (Soporta Markdown)</label>
-                            <textarea
+                            <Textarea
                                 name="descripcionLarga"
                                 value={formData.descripcionLarga}
                                 onChange={handleInputChange}
                                 rows={8}
-                                className="block w-full px-3 py-2 border rounded-md shadow-sm placeholder-slate-500 focus:outline-none sm:text-sm bg-slate-800 text-white border-slate-600 focus:ring-primary-500 focus:border-primary-500"
                                 placeholder="Detalla los requisitos, responsabilidades, y qué esperas del freelancer..."
                                 required
                             />
