@@ -1,6 +1,16 @@
-// lib/utils.ts
 
+// lib/utils.ts
 import { v4 as uuidv4 } from 'uuid';
+
+/**
+ * Combines multiple class names into a single string.
+ * Filters out falsy values (null, undefined, false).
+ * Note: For a production app, consider using 'clsx' and 'tailwind-merge' libraries
+ * to handle class conflicts automatically.
+ */
+export function cn(...classes: (string | undefined | null | false)[]) {
+  return classes.filter(Boolean).join(' ');
+}
 
 export const formatCurrency = (cents: number): string => {
     if (typeof cents !== 'number') {
@@ -45,19 +55,13 @@ export const jwtDecode = <T,>(token: string): T | null => {
 
 /**
  * Generates and downloads an .ics file for calendar events.
- * @param title The title of the event.
- * @param description A brief description of the event.
- * @param eventDate The date of the event.
- * @param filename The desired name for the downloaded file.
  */
 export const generateICSFile = (title: string, description: string, eventDate: Date, filename: string): void => {
-    // Helper to format date into YYYYMMDD for all-day events
     const formatDateForICS = (date: Date): string => {
         return date.toISOString().split('T')[0].replace(/-/g, '');
     };
 
     const startDate = formatDateForICS(eventDate);
-    // For all-day events, DTEND is typically the day after DTSTART
     const endDate = formatDateForICS(new Date(eventDate.getTime() + 24 * 60 * 60 * 1000));
     const now = new Date().toISOString().replace(/-/g, '').replace(/:/g, '').substring(0, 15) + 'Z';
 
@@ -89,7 +93,6 @@ export const generateICSFile = (title: string, description: string, eventDate: D
 
 export const validateEmail = (email: string): boolean => {
   if (!email) return false;
-  // A common and reasonably effective email regex.
   const re = new RegExp(
     /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
   );
