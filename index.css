@@ -1,38 +1,38 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Base System Colors - Dark Mode Default */
-    --background: 222.2 84% 4.9%;
+    /* Base System Colors - Deep Dark Mode */
+    --background: 224 71% 4%; /* #020617 - Very dark slate/blue */
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 224 71% 4%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 224 71% 4%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 300 100% 50%; /* Fuchsia */
+    /* Primary Brand Color - Vivid Fuchsia/Purple */
+    --primary: 292 84% 61%; /* #d946ef */
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 215 27.9% 16.9%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 217.9 10.6% 64.9%;
 
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 215 27.9% 16.9%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 300 100% 50%;
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 292 84% 61%;
 
     --radius: 0.75rem;
   }
@@ -47,45 +47,52 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
   
-  /* Modern Scrollbar */
+  html, body {
+    height: 100%;
+    overflow: hidden; /* Prevent double scrollbars */
+  }
+
+  /* Modern Scrollbar - Minimalist */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
     @apply bg-transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted rounded-full border-2 border-background;
+    @apply bg-slate-700/50 rounded-full transition-colors;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/50;
+    @apply bg-slate-600;
   }
 }
 
 @layer utilities {
-  /* Modern Glassmorphism Utility */
-  .glass {
-    @apply bg-slate-900/40 backdrop-blur-xl border border-white/10 shadow-xl;
+  /* Premium Glassmorphism Utility */
+  .glass-panel {
+    @apply bg-slate-900/60 backdrop-blur-md border border-white/[0.08] shadow-xl;
   }
   
-  .glass-card {
-    @apply bg-card/40 backdrop-blur-xl border border-border/50 shadow-lg transition-all duration-300 hover:border-primary/20 hover:shadow-primary/5;
-  }
-
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-400;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-slate-400;
   }
 
   .text-gradient-primary {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-fuchsia-400 to-purple-500;
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-fuchsia-400 to-purple-600;
+  }
+  
+  /* Subtle grain texture for backgrounds */
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
   }
 }
 
-/* Main App Background Pattern */
+/* Main App Background - Deep & Atmospheric */
 .main-app-background {
-    background-color: hsl(var(--background));
+    background-color: #020617;
     background-image: 
-        radial-gradient(circle at 50% 0%, rgba(120, 0, 200, 0.15) 0%, transparent 50%),
-        radial-gradient(circle at 100% 0%, rgba(100, 0, 255, 0.1) 0%, transparent 30%);
+        radial-gradient(at 0% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(236, 72, 153, 0.1) 0px, transparent 50%);
+    background-attachment: fixed;
 }

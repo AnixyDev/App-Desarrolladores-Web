@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { cn } from '../../lib/utils';
 
 type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
@@ -11,35 +12,37 @@ type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
 const Input: React.FC<InputProps> = ({ label, id, wrapperClassName = '', icon, error, className = '', ...props }) => {
   const hasIcon = !!icon;
   
-  // Improved contrast for inputs: using a darker background (slate-950) with some transparency to blend but stand out from slate-900 cards
-  const baseInputClasses = "block w-full border rounded-lg shadow-sm placeholder-slate-500 focus:outline-none focus:ring-2 sm:text-sm bg-slate-950/50 text-white disabled:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200";
+  const baseInputClasses = "block w-full rounded-lg border text-sm transition-all duration-200 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50";
   
-  const stateClasses = error 
-    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' 
-    : 'border-slate-700 focus:border-primary-500 focus:ring-primary-500/20 hover:border-slate-600';
+  // Style: Darker background ("carved out") with subtle border
+  const styleClasses = "bg-slate-950/40 border-slate-800 text-slate-200 placeholder-slate-500 focus:border-primary/50 focus:ring-primary/20 hover:border-slate-700";
+  
+  const errorClasses = error 
+    ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20' 
+    : '';
 
   const paddingClasses = hasIcon ? 'pl-10 pr-3 py-2.5' : 'px-3 py-2.5';
 
   return (
     <div className={wrapperClassName}>
       {label && (
-        <label htmlFor={id} className="block text-sm font-medium text-slate-300 mb-1.5">
+        <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1.5">
           {label}
         </label>
       )}
-      <div className="relative">
+      <div className="relative group">
         {hasIcon && (
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-primary-400 transition-colors">
             {icon}
           </div>
         )}
         <input
           id={id}
-          className={`${baseInputClasses} ${stateClasses} ${paddingClasses} ${className}`}
+          className={cn(baseInputClasses, styleClasses, errorClasses, paddingClasses, className)}
           {...props}
         />
       </div>
-      {error && <p className="mt-1 text-sm text-red-400 animate-fade-in-down">{error}</p>}
+      {error && <p className="mt-1.5 text-xs text-red-400 font-medium animate-fade-in-down">{error}</p>}
     </div>
   );
 };

@@ -24,14 +24,20 @@ const Button = <E extends React.ElementType = typeof defaultElement>({
 }: ButtonProps<E>) => {
   const Tag: React.ElementType = as || defaultElement;
 
-  const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed active:scale-95';
+  const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]';
 
   const variantStyles = {
-    primary: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25 hover:shadow-primary/40 border border-transparent',
-    secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border hover:border-primary/30',
-    danger: 'bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/50',
+    // Primary: Gradient background with shadow glow
+    primary: 'bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white hover:from-fuchsia-500 hover:to-purple-500 shadow-[0_0_20px_-5px_rgba(192,38,211,0.5)] hover:shadow-[0_0_25px_-5px_rgba(192,38,211,0.6)] border border-transparent',
+    
+    // Secondary: Glassy look
+    secondary: 'bg-white/[0.05] text-slate-200 hover:bg-white/[0.1] hover:text-white border border-white/[0.08]',
+    
+    // Danger: Subtle red
+    danger: 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40',
+    
     outline: 'bg-transparent text-foreground border border-input hover:bg-accent hover:text-accent-foreground',
-    ghost: 'hover:bg-accent hover:text-accent-foreground text-muted-foreground',
+    ghost: 'hover:bg-white/[0.05] text-slate-400 hover:text-white',
   };
 
   const sizeStyles = {
