@@ -18,8 +18,8 @@ const Card: React.FC<CardProps> = ({ children, className = '', noPadding = false
       hoverable && "hover:border-primary/30 hover:shadow-[0_0_30px_-10px_rgba(217,70,239,0.15)] hover:-translate-y-[2px] cursor-pointer",
       className
     )}>
-       {/* Noise Texture Overlay (Optional, keeps it subtle) */}
-      <div className="absolute inset-0 rounded-xl bg-noise opacity-20 pointer-events-none z-0"></div>
+       {/* Noise Texture Overlay - Optimized for Dark Mode Legibility */}
+      <div className="absolute inset-0 rounded-xl bg-noise opacity-5 pointer-events-none z-0"></div>
       
       <div className="relative z-10">
         {children}

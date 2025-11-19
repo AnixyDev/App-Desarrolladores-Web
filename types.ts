@@ -1,3 +1,4 @@
+
 // types.ts
 
 export interface Profile {
@@ -65,6 +66,7 @@ export interface Project {
   created_at: string;
   category?: string;
   priority?: 'Low' | 'Medium' | 'High';
+  external_link?: string;
 }
 export type NewProject = Omit<Project, 'id' | 'user_id' | 'created_at'>;
 

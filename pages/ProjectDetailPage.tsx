@@ -1,3 +1,4 @@
+
 // pages/ProjectDetailPage.tsx
 import React, { useState, useMemo, lazy, Suspense, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
@@ -9,7 +10,7 @@ import Select from '../components/ui/Select';
 import Textarea from '../components/ui/Textarea';
 import { formatCurrency, generateICSFile } from '../lib/utils';
 import { Project, Task, InvoiceItem, ProjectFile, ProjectChangeLog } from '../types';
-import { PlusIcon, TrashIcon, ClockIcon, FileTextIcon, MessageSquareIcon, DollarSignIcon, Paperclip, Upload, Trash2, EditIcon, CalendarPlus, DownloadIcon, RefreshCwIcon } from '../components/icons/Icon';
+import { PlusIcon, TrashIcon, ClockIcon, FileTextIcon, MessageSquareIcon, DollarSignIcon, Paperclip, Upload, Trash2, EditIcon, CalendarPlus, DownloadIcon, RefreshCwIcon, LinkIcon } from '../components/icons/Icon';
 import EmptyState from '../components/ui/EmptyState';
 import { useToast } from '../hooks/useToast';
 import Modal from '../components/ui/Modal';
@@ -79,6 +80,8 @@ const ProjectDetailPage: React.FC = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [currentProjectForEdit, setCurrentProjectForEdit] = useState<Project | null>(null);
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+    const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+    const [linkInput, setLinkInput] = useState('');
 
     const project = projectId ? getProjectById(projectId) : undefined;
     const client = project ? getClientById(project.client_id) : undefined;
@@ -112,6 +115,19 @@ const ProjectDetailPage: React.FC = () => {
                 setIsEditingBudget(false);
             } catch (error) {
                 addToast(`Error al actualizar el presupuesto: ${(error as Error).message}`, 'error');
+            }
+        }
+    };
+
+    const handleLinkSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (project) {
+            try {
+                await updateProject({ id: project.id, external_link: linkInput });
+                addToast('Enlace externo añadido.', 'success');
+                setIsLinkModalOpen(false);
+            } catch (error) {
+                addToast(`Error al añadir el enlace: ${(error as Error).message}`, 'error');
             }
         }
     };
@@ -361,6 +377,15 @@ const ProjectDetailPage: React.FC = () => {
                     {project.budget_cents > 0 && (
                          <Button variant="secondary" onClick={handleDownloadBudget} title="Descargar PDF del presupuesto">
                             <DownloadIcon className="w-4 h-4"/> PDF Presupuesto
+                        </Button>
+                    )}
+                    {project.external_link ? (
+                        <Button variant="secondary" as="a" href={project.external_link} target="_blank" rel="noopener noreferrer">
+                            <LinkIcon className="w-4 h-4 mr-2"/> Ver Recurso
+                        </Button>
+                    ) : (
+                        <Button variant="secondary" onClick={() => setIsLinkModalOpen(true)}>
+                            <LinkIcon className="w-4 h-4 mr-2"/> Añadir Enlace
                         </Button>
                     )}
                 </div>
@@ -660,6 +685,16 @@ const ProjectDetailPage: React.FC = () => {
                                 </Select>
                             </div>
                         </div>
+
+                        <Input 
+                            label="Enlace Externo (Repositorio, Figma...)"
+                            name="external_link"
+                            type="url"
+                            value={currentProjectForEdit.external_link || ''} 
+                            onChange={handleEditInputChange}
+                            placeholder="https://..."
+                        />
+
                         <div className="flex justify-end pt-4">
                             <Button type="submit">Guardar Cambios</Button>
                         </div>
@@ -695,6 +730,23 @@ const ProjectDetailPage: React.FC = () => {
                         </div>
                     </Button>
                 </div>
+            </Modal>
+
+            <Modal isOpen={isLinkModalOpen} onClose={() => setIsLinkModalOpen(false)} title="Añadir Enlace Externo">
+                <form onSubmit={handleLinkSave} className="space-y-4">
+                     <Input 
+                        label="URL del recurso"
+                        value={linkInput}
+                        type="url"
+                        onChange={(e) => setLinkInput(e.target.value)}
+                        placeholder="https://github.com/..."
+                        required
+                        autoFocus
+                    />
+                     <div className="flex justify-end pt-4">
+                        <Button type="submit">Guardar Enlace</Button>
+                    </div>
+                </form>
             </Modal>
 
             <Suspense fallback={null}>
