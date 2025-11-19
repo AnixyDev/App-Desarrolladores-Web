@@ -76,6 +76,7 @@ const ProjectDetailPage: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [currentProjectForEdit, setCurrentProjectForEdit] = useState<Project | null>(null);
+    const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
     const project = projectId ? getProjectById(projectId) : undefined;
     const client = project ? getClientById(project.client_id) : undefined;
@@ -335,6 +336,8 @@ const ProjectDetailPage: React.FC = () => {
         setCurrentProjectForEdit(prev => prev ? { ...prev, [name]: value } : null);
     };
 
+    const hoursTotalAmount = unbilledTimeEntries.reduce((sum, e) => sum + e.duration_seconds, 0) / 3600 * profile.hourly_rate_cents;
+
 
     return (
         <div className="space-y-6">
@@ -350,22 +353,12 @@ const ProjectDetailPage: React.FC = () => {
                     <Link to={`/clients/${client.id}`} className="text-lg text-primary-400 hover:underline">{client.name}</Link>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                    <Button variant="secondary" onClick={handleCreateInvoice}>
-                        <FileTextIcon className="w-4 h-4 mr-2"/> Crear Factura
+                     <Button onClick={() => setIsInvoiceModalOpen(true)}>
+                        <FileTextIcon className="w-4 h-4 mr-2"/> Generar Factura
                     </Button>
                     {project.budget_cents > 0 && (
-                        <>
-                            <Button onClick={handleCreateInvoiceFromBudget}>
-                                <DollarSignIcon className="w-4 h-4 mr-2"/> Facturar Presupuesto
-                            </Button>
-                            <Button variant="secondary" onClick={handleDownloadBudget} title="Descargar PDF del presupuesto">
-                                <DownloadIcon className="w-4 h-4"/> PDF
-                            </Button>
-                        </>
-                    )}
-                     {unbilledTimeEntries.length > 0 && (
-                        <Button onClick={handleCreateInvoiceFromHours} className="bg-purple-600 hover:bg-purple-700 focus:ring-purple-500">
-                            <ClockIcon className="w-4 h-4 mr-2"/> Facturar Horas ({ (unbilledTimeEntries.reduce((sum, e) => sum + e.duration_seconds, 0) / 3600).toFixed(1) }h)
+                         <Button variant="secondary" onClick={handleDownloadBudget} title="Descargar PDF del presupuesto">
+                            <DownloadIcon className="w-4 h-4"/> PDF Presupuesto
                         </Button>
                     )}
                 </div>
@@ -673,6 +666,36 @@ const ProjectDetailPage: React.FC = () => {
                         </div>
                     </form>
                 )}
+            </Modal>
+            
+            <Modal isOpen={isInvoiceModalOpen} onClose={() => setIsInvoiceModalOpen(false)} title="Generar Factura">
+                <div className="space-y-3">
+                    {project.budget_cents > 0 && (
+                        <Button variant="secondary" className="w-full justify-start" onClick={handleCreateInvoiceFromBudget}>
+                            <DollarSignIcon className="w-5 h-5 mr-3 text-green-400"/>
+                            <div className="text-left">
+                                <span className="block font-medium">Facturar Presupuesto</span>
+                                <span className="text-xs text-gray-400">Importe: {formatCurrency(project.budget_cents)}</span>
+                            </div>
+                        </Button>
+                    )}
+                    {unbilledTimeEntries.length > 0 && (
+                        <Button variant="secondary" className="w-full justify-start" onClick={handleCreateInvoiceFromHours}>
+                            <ClockIcon className="w-5 h-5 mr-3 text-purple-400"/>
+                            <div className="text-left">
+                                <span className="block font-medium">Facturar Horas Pendientes</span>
+                                <span className="text-xs text-gray-400">Total: {(projectStats.hoursTracked).toFixed(2)}h (~{formatCurrency(hoursTotalAmount)})</span>
+                            </div>
+                        </Button>
+                    )}
+                    <Button variant="secondary" className="w-full justify-start" onClick={handleCreateInvoice}>
+                        <FileTextIcon className="w-5 h-5 mr-3 text-blue-400"/>
+                        <div className="text-left">
+                            <span className="block font-medium">Factura en Blanco</span>
+                            <span className="text-xs text-gray-400">Crear una factura desde cero</span>
+                        </div>
+                    </Button>
+                </div>
             </Modal>
 
             <Suspense fallback={null}>
