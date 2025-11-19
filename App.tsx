@@ -1,9 +1,5 @@
-
-
-
-
 import React, { useState, Suspense, lazy, useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from './hooks/useAppStore';
 import { supabase } from './lib/supabaseClient';
 
@@ -92,8 +88,22 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 function App() {
   const { setSession, fetchInitialData, clearUserData, isLoading } = useAppStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
+    // Check for initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+        setSession(session);
+        if (session?.user) {
+            useAppStore.setState({ isLoading: true });
+            fetchInitialData(session.user).finally(() => {
+                useAppStore.setState({ isLoading: false });
+            });
+        } else {
+            useAppStore.setState({ isLoading: false });
+        }
+    });
+
     // This is the core authentication listener.
     // It handles SIGNED_IN, SIGNED_OUT, and TOKEN_REFRESHED events.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -102,6 +112,20 @@ function App() {
         setSession(session);
 
         if (event === 'SIGNED_IN' && session?.user) {
+          
+          // --- CLEANUP URL HASH LOGIC ---
+          // If the URL contains an access token (from OAuth redirect), clean it up
+          // to avoid the ugly URL and potential router confusion.
+          if (window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('type=recovery'))) {
+             // Remove the hash from the URL bar without reloading
+             window.history.replaceState(null, '', window.location.pathname);
+             
+             // Force navigation to root (Dashboard) to ensure HashRouter has a valid path
+             // This prevents getting stuck on an empty hash or weird state
+             navigate('/', { replace: true });
+          }
+          // -----------------------------
+
           // When a user signs in, fetch all their data.
           useAppStore.setState({ isLoading: true });
           await fetchInitialData(session.user);
@@ -117,7 +141,7 @@ function App() {
     return () => {
       subscription?.unsubscribe();
     };
-  }, [setSession, fetchInitialData, clearUserData]);
+  }, [setSession, fetchInitialData, clearUserData, navigate]);
   
 
   // Show a global loader only during the very initial page load.
