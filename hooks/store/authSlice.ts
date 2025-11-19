@@ -23,15 +23,22 @@ export interface AuthSlice {
     updateStripeConnection: (accountId: string, isComplete: boolean) => Promise<void>;
 }
 
-// FIX: Implement missing functions in createAuthSlice
 export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, get) => ({
     session: null,
     profile: null,
     isAuthenticated: false,
-    isLoading: true, // Will be set to false after initial check in App.tsx
+    isLoading: true, // Default to true to prevent flicker on refresh
 
     setSession: (session) => {
-        set({ session, isAuthenticated: !!session, isLoading: false });
+        // When setting a session, we only stop loading if the session is null (not logged in).
+        // If logged in, loading stops after fetchInitialData completes in App.tsx
+        set({ 
+            session, 
+            isAuthenticated: !!session,
+            // If no session, we are done loading (user needs to login).
+            // If session exists, we keep loading until data is fetched (handled in App.tsx).
+            isLoading: session ? true : false 
+        });
     },
 
     login: async (email, password) => {
@@ -60,10 +67,6 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     },
 
     register: async (name, email, password) => {
-        // The database now has a trigger (handle_new_user) that automatically creates
-        // a profile when a new user signs up in auth.users.
-        // This avoids race conditions and ensures a profile always exists.
-        // We just need to pass the full_name in the options data.
         const { error } = await supabase.auth.signUp({
             email,
             password,
@@ -79,14 +82,12 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     },
 
     logout: async () => {
-        // The onAuthStateChange listener in App.tsx will handle clearing the state.
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
+        set({ session: null, isAuthenticated: false, profile: null });
     },
     
-    // To be composed/overridden in the main store
     fetchInitialData: async (user: User) => {
-        // This is a placeholder. The main store will implement the full data fetching logic.
         await get().fetchProfile(user.id);
     },
 
@@ -94,7 +95,7 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
         const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
         if (error) {
             if (error.code === 'PGRST116') {
-                console.warn("Profile not found for user. This can happen with social logins for the first time or if profile creation failed.");
+                console.warn("Profile not found. Creating partial profile state.");
                 return;
             }
             throw error;
@@ -133,7 +134,6 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
 
         const { error } = await supabase.from('profiles').update({ ai_credits: newCredits }).eq('id', currentProfile.id);
         if (error) {
-            // Revert state on DB error
             set({ profile: currentProfile });
             throw error;
         }
@@ -156,7 +156,6 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
             .eq('id', currentProfile.id);
         
         if (error) {
-            // Revert state on DB error
             set({ profile: currentProfile });
             throw error;
         }

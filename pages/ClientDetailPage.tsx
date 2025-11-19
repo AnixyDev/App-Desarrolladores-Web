@@ -1,8 +1,6 @@
-
-
 // pages/ClientDetailPage.tsx
 import React, { useState, lazy, Suspense, useMemo, useEffect } from 'react';
-import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import { useAppStore } from '../hooks/useAppStore';
 import { formatCurrency } from '../lib/utils';
@@ -23,6 +21,7 @@ const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationMo
 const ClientDetailPage: React.FC = () => {
     const { clientId } = useParams<{ clientId: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const { addToast } = useToast();
     const { getClientById, projects, invoices, updateClient, deleteClient, setClientPaymentMethodStatus } = useAppStore();
 
@@ -30,19 +29,18 @@ const ClientDetailPage: React.FC = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [invoiceTab, setInvoiceTab] = useState<'pending' | 'paid'>('pending');
     const [isPortalLoading, setIsPortalLoading] = useState(false);
-    const [searchParams, setSearchParams] = useSearchParams();
     
     const client = clientId ? getClientById(clientId) : undefined;
     const [formData, setFormData] = useState<Client | NewClient | null>(client || null);
     
     useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
         if (searchParams.get('stripe_portal_return') === 'true' && client) {
             setClientPaymentMethodStatus(client.id, true);
             addToast('Método de pago guardado con éxito a través de Stripe.', 'success');
-            searchParams.delete('stripe_portal_return');
-            setSearchParams(searchParams, { replace: true });
+            navigate({ search: '' }, { replace: true });
         }
-    }, [searchParams, client, setClientPaymentMethodStatus, addToast, setSearchParams]);
+    }, [location.search, client, setClientPaymentMethodStatus, addToast, navigate]);
 
 
     const clientProjects = projects.filter(p => p.client_id === clientId);

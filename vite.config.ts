@@ -3,50 +3,44 @@ import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // Ensure process.cwd() works in all environments
   const cwd = typeof (process as any).cwd === 'function' ? (process as any).cwd() : '/';
   const env = loadEnv(mode, cwd, '');
   
+  // Helper para buscar en múltiples keys posibles
+  const getEnvVar = (keys: string[]) => {
+    for (const key of keys) {
+      if (env[key]) return env[key];
+    }
+    return '';
+  };
+
+  const supabaseUrl = getEnvVar([
+    'VITE_SUPABASE_URL', 
+    'URL_SUPABASE_VITE', 
+    'SUPABASE_URL', 
+    'ALMACENAMIENTO_SUPABASE_URL',
+    'URL_SUPABASE_PÚBLICA_SIGUIENTE',
+    'NEXT_PUBLIC_SUPABASE_URL'
+  ]);
+
+  const supabaseKey = getEnvVar([
+    'VITE_SUPABASE_ANON_KEY', 
+    'SUPABASE_ANON_KEY', 
+    'SUPABASE_KEY', 
+    'SIGUIENTE_CLAVE_ANÓNIMA_SUPABASE_PÚBLICA',
+    'NEXT_PUBLIC_SUPABASE_ANON_KEY'
+  ]);
+
   return {
     plugins: [react()],
     define: {
-      // Polyfill process.env for client-side usage.
-      // Mapeamos nombres alternativos (incluyendo traducciones automáticas) a las keys estándar.
-      'process.env.API_KEY': JSON.stringify(
-        env.VITE_API_KEY || 
-        env.API_KEY || 
-        env.API_KEY_VITE || 
-        env['Clave API'] ||
-        ''
-      ),
-      'process.env.VITE_SUPABASE_URL': JSON.stringify(
-        env.VITE_SUPABASE_URL || 
-        env.URL_SUPABASE_VITE || 
-        env.SUPABASE_URL || 
-        env.ALMACENAMIENTO_SUPABASE_URL ||
-        env.URL_SUPABASE_PÚBLICA_SIGUIENTE || 
-        env.NEXT_PUBLIC_SUPABASE_URL ||
-        ''
-      ),
-      'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(
-        env.VITE_SUPABASE_ANON_KEY || 
-        env.SUPABASE_ANON_KEY || 
-        env.SUPABASE_KEY ||
-        env.SIGUIENTE_CLAVE_ANÓNIMA_SUPABASE_PÚBLICA ||
-        env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-        ''
-      ),
-      // Variables para uso en backend (si se usaran en edge functions via define, 
-      // aunque normalmente estas se leen de process.env en runtime)
-      'process.env.STRIPE_SECRET_KEY': JSON.stringify(
-        env.STRIPE_SECRET_KEY ||
-        env['CLAVE SECRETA DE STRIPE'] ||
-        ''
-      ),
-      'process.env.RESEND_API_KEY': JSON.stringify(
-        env.RESEND_API_KEY ||
-        ''
-      )
+      // Polyfill process.env para que el código cliente pueda acceder a las variables
+      // independientemente de si usa import.meta.env o process.env
+      'process.env.API_KEY': JSON.stringify(getEnvVar(['VITE_API_KEY', 'API_KEY', 'API_KEY_VITE', 'Clave API'])),
+      'process.env.VITE_SUPABASE_URL': JSON.stringify(supabaseUrl),
+      'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(supabaseKey),
+      'process.env.STRIPE_SECRET_KEY': JSON.stringify(getEnvVar(['STRIPE_SECRET_KEY', 'CLAVE SECRETA DE STRIPE'])),
+      'process.env.RESEND_API_KEY': JSON.stringify(getEnvVar(['RESEND_API_KEY']))
     },
   }
 })

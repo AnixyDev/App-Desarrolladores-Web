@@ -1,8 +1,8 @@
 import React from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Logo } from '../../components/icons/Logo';
 
-const AuthLayout: React.FC = () => {
+const AuthLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
     return (
         <div className="auth-background min-h-screen flex flex-col justify-center items-center p-4 relative text-white">
             <header className="flex justify-center mb-6">
@@ -10,7 +10,7 @@ const AuthLayout: React.FC = () => {
             </header>
 
             <main className="w-full max-w-md">
-                <Outlet />
+                {children}
             </main>
             
             <div className="absolute bottom-6 text-center">

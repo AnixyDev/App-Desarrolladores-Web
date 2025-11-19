@@ -1,12 +1,13 @@
 import React, { useState, Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from './hooks/useAppStore';
-import { supabase } from './lib/supabaseClient';
+import { supabase, isConfigured } from './lib/supabaseClient';
 
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import ToastContainer from './components/ui/Toast';
 import PageLoader from './components/layout/PageLoader';
+import { AlertTriangleIcon } from './components/icons/Icon';
 
 // Lazy load pages
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
@@ -75,9 +76,14 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
-const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAppStore();
+// Protected Route Guard: Redirects to Login if not authenticated
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAppStore();
   const location = useLocation();
+
+  if (isLoading) {
+    return <div className="h-screen w-screen bg-slate-950 flex items-center justify-center"><PageLoader /></div>;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
@@ -86,94 +92,145 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   return <>{children}</>;
 };
 
+// Public Route Guard: Redirects to Dashboard if already authenticated
+const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { isAuthenticated, isLoading } = useAppStore();
+    
+    if (isLoading) {
+        return <div className="h-screen w-screen bg-slate-950 flex items-center justify-center"><PageLoader /></div>;
+    }
+
+    if (isAuthenticated) {
+        return <Navigate to="/" replace />;
+    }
+
+    return <>{children}</>;
+};
+
+
 function App() {
+  // 1. Verificación Crítica de Configuración
+  // Si Supabase no está configurado, detenemos el renderizado de la app para evitar crashes.
+  if (!isConfigured) {
+      return (
+          <div className="h-screen w-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 text-center">
+              <div className="bg-red-500/10 p-6 rounded-full mb-6">
+                  <AlertTriangleIcon className="w-16 h-16 text-red-500" />
+              </div>
+              <h1 className="text-3xl font-bold text-white mb-4">Configuración Requerida</h1>
+              <p className="text-slate-400 max-w-lg mb-8 text-lg">
+                  La aplicación no puede conectarse a la base de datos. Parece que faltan las variables de entorno de Supabase.
+              </p>
+              <div className="bg-slate-900 p-6 rounded-lg border border-slate-800 text-left w-full max-w-lg">
+                  <p className="text-sm text-slate-500 mb-2 uppercase font-bold tracking-wider">Variables Faltantes:</p>
+                  <code className="block text-red-400 font-mono text-sm mb-1">VITE_SUPABASE_URL</code>
+                  <code className="block text-red-400 font-mono text-sm">VITE_SUPABASE_ANON_KEY</code>
+              </div>
+          </div>
+      );
+  }
+
   const { setSession, fetchInitialData, clearUserData, isLoading } = useAppStore();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-        setSession(session);
-        if (session?.user) {
-            useAppStore.setState({ isLoading: true });
-            fetchInitialData(session.user).finally(() => {
-                useAppStore.setState({ isLoading: false });
-            });
-        } else {
-            useAppStore.setState({ isLoading: false });
-        }
-    });
+    let mounted = true;
 
-    // This is the core authentication listener.
-    // It handles SIGNED_IN, SIGNED_OUT, and TOKEN_REFRESHED events.
+    const checkSession = async () => {
+        try {
+            useAppStore.setState({ isLoading: true });
+            const { data: { session }, error } = await supabase.auth.getSession();
+            
+            if (error) throw error;
+
+            if (mounted) {
+                setSession(session);
+                if (session?.user) {
+                    await fetchInitialData(session.user);
+                }
+            }
+        } catch (error) {
+            console.error("Error checking session:", error);
+            if (mounted) clearUserData();
+        } finally {
+            if (mounted) useAppStore.setState({ isLoading: false });
+        }
+    };
+
+    checkSession();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // Set the session for all auth events.
+        if (!mounted) return;
+
+        // Actualizar estado de sesión
         setSession(session);
 
         if (event === 'SIGNED_IN' && session?.user) {
-          
-          // --- CLEANUP URL HASH LOGIC ---
-          // If the URL contains an access token (from OAuth redirect), clean it up
-          // to avoid the ugly URL and potential router confusion.
-          if (window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('type=recovery'))) {
-             // Remove the hash from the URL bar without reloading
-             window.history.replaceState(null, '', window.location.pathname);
-             
-             // Force navigation to root (Dashboard) to ensure HashRouter has a valid path
-             // This prevents getting stuck on an empty hash or weird state
-             navigate('/', { replace: true });
-          }
-          // -----------------------------
+            // Limpiar hash de URL (OAuth)
+            if (window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('type=recovery'))) {
+                window.history.replaceState(null, '', window.location.pathname);
+                navigate('/', { replace: true });
+            }
+            
+            // Cargar datos
+            useAppStore.setState({ isLoading: true });
+            await fetchInitialData(session.user);
+            useAppStore.setState({ isLoading: false });
 
-          // When a user signs in, fetch all their data.
-          useAppStore.setState({ isLoading: true });
-          await fetchInitialData(session.user);
-          useAppStore.setState({ isLoading: false });
         } else if (event === 'SIGNED_OUT') {
-          // When a user signs out, clear all their data from the store.
-          clearUserData();
+            clearUserData();
+            navigate('/auth/login', { replace: true });
         }
       }
     );
 
-    // This cleanup function will run when the App component unmounts.
     return () => {
+      mounted = false;
       subscription?.unsubscribe();
     };
   }, [setSession, fetchInitialData, clearUserData, navigate]);
   
 
-  // Show a global loader only during the very initial page load.
   if (isLoading) {
-    return <div className="h-screen w-screen bg-slate-950 flex items-center justify-center"><PageLoader /></div>;
+      return <div className="h-screen w-screen bg-slate-950 flex items-center justify-center"><PageLoader /></div>;
   }
 
   return (
     <>
       <Routes>
+        {/* --- PUBLIC ROUTES (Auth) --- */}
         <Route path="/auth/*" element={
-          <Suspense fallback={<div className="h-screen w-screen bg-[#0a0a0a]" />}>
-            <AuthLayout />
-          </Suspense>
-        }>
-          <Route path="login" element={<LoginPage />} />
-          <Route path="register" element={<RegisterPage />} />
-        </Route>
+          <PublicRoute>
+            <Suspense fallback={<div className="h-screen w-screen bg-[#0a0a0a]" />}>
+                <AuthLayout>
+                    <Routes>
+                        <Route path="login" element={<LoginPage />} />
+                        <Route path="register" element={<RegisterPage />} />
+                        <Route path="*" element={<Navigate to="login" replace />} />
+                    </Routes>
+                </AuthLayout>
+            </Suspense>
+          </PublicRoute>
+        } />
 
+        {/* --- PORTAL ROUTES (Public/Semi-private) --- */}
         <Route path="/portal/*" element={
           <Suspense fallback={<div className="h-screen w-screen bg-slate-900" />}>
-            <PortalLayout />
+            <PortalLayout>
+              <Routes>
+                <Route path="login" element={<PortalLoginPage />} />
+                <Route path="dashboard/:clientId" element={<PortalDashboardPage />} />
+                <Route path="invoice/:invoiceId" element={<PortalInvoiceViewPage />} />
+                <Route path="budget/:budgetId" element={<PortalBudgetViewPage />} />
+                <Route path="proposal/:proposalId" element={<PortalProposalViewPage />} />
+                <Route path="contract/:contractId" element={<PortalContractViewPage />} />
+                <Route path="project/:projectId/files" element={<PortalProjectFilesPage />} />
+                <Route path="*" element={<Navigate to="login" replace />} />
+              </Routes>
+            </PortalLayout>
           </Suspense>
-        }>
-          <Route path="login" element={<PortalLoginPage />} />
-          <Route path="dashboard/:clientId" element={<PortalDashboardPage />} />
-          <Route path="invoice/:invoiceId" element={<PortalInvoiceViewPage />} />
-          <Route path="budget/:budgetId" element={<PortalBudgetViewPage />} />
-          <Route path="proposal/:proposalId" element={<PortalProposalViewPage />} />
-          <Route path="contract/:contractId" element={<PortalContractViewPage />} />
-          <Route path="project/:projectId/files" element={<PortalProjectFilesPage />} />
-        </Route>
+        } />
         
         <Route path="/privacy-policy" element={
           <Suspense fallback={<div className="h-screen w-screen bg-slate-950" />}>
@@ -181,51 +238,50 @@ function App() {
           </Suspense>
         }/>
 
-        <Route
-          path="/*"
-          element={
-            <PrivateRoute>
+        {/* --- PROTECTED ROUTES (Main App) --- */}
+        <Route path="/*" element={
+            <ProtectedRoute>
               <MainLayout>
                 <Routes>
                   <Route path="/" element={<DashboardPage />} />
-                  <Route path="/clients" element={<ClientsPage />} />
-                  <Route path="/clients/:clientId" element={<ClientDetailPage />} />
-                  <Route path="/projects" element={<ProjectsPage />} />
-                  <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
-                  <Route path="/time-tracking" element={<TimeTrackingPage />} />
-                  <Route path="/budgets" element={<BudgetsPage />} />
-                  <Route path="/proposals" element={<ProposalsPage />} />
-                  <Route path="/contracts" element={<ContractsPage />} />
-                  <Route path="/invoices" element={<InvoicesPage />} />
-                  <Route path="/invoices/create" element={<CreateInvoicePage />} />
-                  <Route path="/expenses" element={<ExpensesPage />} />
-                  <Route path="/tax-ledger" element={<TaxLedgerPage />} />
-                  <Route path="/reports" element={<ReportsPage />} />
-                  <Route path="/reports/profitability" element={<ProfitabilityReportPage />} />
-                  <Route path="/forecasting" element={<ForecastingPage />} />
-                  <Route path="/ai-assistant" element={<AIAssistantPage />} />
-                  <Route path="/team" element={<TeamManagementDashboard />} />
-                  <Route path="/my-timesheet" element={<MyTeamTimesheet />} />
-                  <Route path="/roles" element={<RoleManagement />} />
-                  <Route path="/knowledge-base" element={<KnowledgeBase />} />
-                  <Route path="/integrations" element={<IntegrationsManager />} />
-                  <Route path="/job-market" element={<JobMarketDashboard />} />
-                  <Route path="/job-market/:jobId" element={<JobDetailPage />} />
-                  <Route path="/saved-jobs" element={<SavedJobsPage />} />
-                  <Route path="/my-applications" element={<MyApplicationsPage />} />
-                  <Route path="/post-job" element={<PostJobForm />} />
-                  <Route path="/my-job-posts" element={<MyJobPostsPage />} />
-                  <Route path="/my-job-posts/:jobId/applicants" element={<JobApplicantsPage />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route path="/public-profile" element={<PublicProfilePage />} />
-                  <Route path="/billing" element={<BillingPage />} />
-                  <Route path="/templates" element={<TemplatesPage />} />
-                  <Route path="/affiliate" element={<AffiliateProgramPage />} />
+                  <Route path="clients" element={<ClientsPage />} />
+                  <Route path="clients/:clientId" element={<ClientDetailPage />} />
+                  <Route path="projects" element={<ProjectsPage />} />
+                  <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+                  <Route path="time-tracking" element={<TimeTrackingPage />} />
+                  <Route path="budgets" element={<BudgetsPage />} />
+                  <Route path="proposals" element={<ProposalsPage />} />
+                  <Route path="contracts" element={<ContractsPage />} />
+                  <Route path="invoices" element={<InvoicesPage />} />
+                  <Route path="invoices/create" element={<CreateInvoicePage />} />
+                  <Route path="expenses" element={<ExpensesPage />} />
+                  <Route path="tax-ledger" element={<TaxLedgerPage />} />
+                  <Route path="reports" element={<ReportsPage />} />
+                  <Route path="reports/profitability" element={<ProfitabilityReportPage />} />
+                  <Route path="forecasting" element={<ForecastingPage />} />
+                  <Route path="ai-assistant" element={<AIAssistantPage />} />
+                  <Route path="team" element={<TeamManagementDashboard />} />
+                  <Route path="my-timesheet" element={<MyTeamTimesheet />} />
+                  <Route path="roles" element={<RoleManagement />} />
+                  <Route path="knowledge-base" element={<KnowledgeBase />} />
+                  <Route path="integrations" element={<IntegrationsManager />} />
+                  <Route path="job-market" element={<JobMarketDashboard />} />
+                  <Route path="job-market/:jobId" element={<JobDetailPage />} />
+                  <Route path="saved-jobs" element={<SavedJobsPage />} />
+                  <Route path="my-applications" element={<MyApplicationsPage />} />
+                  <Route path="post-job" element={<PostJobForm />} />
+                  <Route path="my-job-posts" element={<MyJobPostsPage />} />
+                  <Route path="my-job-posts/:jobId/applicants" element={<JobApplicantsPage />} />
+                  <Route path="settings" element={<SettingsPage />} />
+                  <Route path="public-profile" element={<PublicProfilePage />} />
+                  <Route path="billing" element={<BillingPage />} />
+                  <Route path="templates" element={<TemplatesPage />} />
+                  <Route path="affiliate" element={<AffiliateProgramPage />} />
 
-                  <Route path="*" element={<Navigate to="/" />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </MainLayout>
-            </PrivateRoute>
+            </ProtectedRoute>
           }
         />
       </Routes>

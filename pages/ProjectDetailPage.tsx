@@ -1,4 +1,3 @@
-
 // pages/ProjectDetailPage.tsx
 import React, { useState, useMemo, lazy, Suspense, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
@@ -671,6 +670,7 @@ const ProjectDetailPage: React.FC = () => {
                                 name="category"
                                 value={currentProjectForEdit.category || ''} 
                                 onChange={handleEditInputChange}
+                                placeholder="Ej: Web, Móvil..."
                             />
                             <div>
                                 <label className="block text-sm font-medium text-slate-400 mb-1">Prioridad</label>

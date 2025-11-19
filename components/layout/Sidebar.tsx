@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { SIDEBAR_STRUCTURE } from '../../constants';
 import { useAppStore } from '../../hooks/useAppStore';
 import { Logo } from '../icons/Logo';
@@ -13,6 +12,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
     const { profile } = useAppStore();
+    const location = useLocation();
     const [openGroups, setOpenGroups] = useState<string[]>([]);
 
     const handleGroupClick = (label: string) => {
@@ -57,29 +57,27 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
                 <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto custom-scrollbar">
                     {SIDEBAR_STRUCTURE.map((item, index) => {
                         if (item.type === 'link') {
+                            const isActive = item.href === '/' 
+                                ? location.pathname === '/' 
+                                : location.pathname.startsWith(item.href);
+
                             return (
                                 <NavLink
                                     key={item.href}
                                     to={item.href}
                                     end={item.href === '/'}
                                     onClick={handleLinkClick}
-                                    className={({ isActive }) =>
-                                        `flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 group relative ${
+                                    className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 group relative ${
                                         isActive
                                             ? 'text-white bg-white/[0.08]'
                                             : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-                                        }`
-                                    }
+                                    }`}
                                 >
-                                    {({ isActive }) => (
-                                        <>
-                                            {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 bg-primary rounded-r-full"></div>}
-                                            <item.icon className={`w-5 h-5 mr-3 transition-colors ${
-                                                isActive ? 'text-primary-400' : 'text-slate-500 group-hover:text-slate-300'
-                                            }`} />
-                                            <span>{item.label}</span>
-                                        </>
-                                    )}
+                                    {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 bg-primary rounded-r-full"></div>}
+                                    <item.icon className={`w-5 h-5 mr-3 transition-colors ${
+                                        isActive ? 'text-primary-400' : 'text-slate-500 group-hover:text-slate-300'
+                                    }`} />
+                                    <span>{item.label}</span>
                                 </NavLink>
                             );
                         }
@@ -102,25 +100,20 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
                                     <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isGroupOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
                                         <div className="mt-1 space-y-0.5">
                                             {item.items.map(subItem => {
+                                                const isActive = location.pathname.startsWith(subItem.href);
                                                 return (
                                                  <NavLink
                                                     key={subItem.href}
                                                     to={subItem.href}
                                                     onClick={handleLinkClick}
-                                                    className={({ isActive }) =>
-                                                        `flex items-center pl-9 pr-3 py-2 rounded-lg text-sm transition-colors relative ${
+                                                    className={`flex items-center pl-9 pr-3 py-2 rounded-lg text-sm transition-colors relative ${
                                                         isActive
                                                             ? 'text-white bg-white/[0.08]'
                                                             : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-                                                        }`
-                                                    }
+                                                    }`}
                                                 >
-                                                    {({ isActive }) => (
-                                                        <>
-                                                             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 bg-primary-400 rounded-r-full ml-1"></div>}
-                                                            <span>{subItem.label}</span>
-                                                        </>
-                                                    )}
+                                                    {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 bg-primary-400 rounded-r-full ml-1"></div>}
+                                                    <span>{subItem.label}</span>
                                                 </NavLink>
                                                 )
                                             })}

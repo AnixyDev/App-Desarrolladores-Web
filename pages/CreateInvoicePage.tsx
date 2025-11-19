@@ -51,7 +51,8 @@ const CreateInvoicePage: React.FC = () => {
     const [templateName, setTemplateName] = useState('');
     
     useEffect(() => {
-        const { projectId, clientId, timeEntryIds, budgetItems } = location.state || {};
+        const state = location.state as { projectId?: string, clientId?: string, timeEntryIds?: string[], budgetItems?: InvoiceItem[] } | null;
+        const { projectId, clientId, timeEntryIds, budgetItems } = state || {};
         let stateHandled = false;
 
         if (clientId && projectId && timeEntryIds && timeEntryIds.length > 0) {
@@ -99,7 +100,7 @@ const CreateInvoicePage: React.FC = () => {
 
         if (stateHandled) {
             // Clear state from navigation after using it
-            window.history.replaceState({}, document.title);
+             window.history.replaceState({}, document.title);
         }
     }, [location.state, timeEntries, profile.hourly_rate_cents, addToast]);
 
