@@ -77,39 +77,52 @@ export const useAppStore = create<AppStore>()(
             clearUserData: () => set({ ...initialState, isLoading: false, isAuthenticated: false }),
 
             fetchInitialData: async (user) => {
-                const { 
-                    fetchProfile, fetchClients, fetchProjects, fetchTasks, 
-                    fetchInvoices, fetchRecurringInvoices, fetchExpenses, fetchRecurringExpenses, 
-                    fetchTimeEntries, fetchProposals, fetchContracts, fetchBudgets,
-                    fetchUsers, fetchArticles, fetchJobs, fetchApplications,
-                    fetchProjectComments, fetchProjectFiles, fetchTemplates
-                } = get();
-                
+                const state = get();
                 set({ isLoading: true });
+
                 try {
-                    await Promise.all([
-                        fetchProfile(user.id),
-                        fetchClients(),
-                        fetchProjects(),
-                        fetchTasks(),
-                        fetchInvoices(),
-                        fetchRecurringInvoices(),
-                        fetchExpenses(),
-                        fetchRecurringExpenses(),
-                        fetchTimeEntries(),
-                        fetchProposals(),
-                        fetchContracts(),
-                        fetchBudgets(),
-                        fetchUsers(),
-                        fetchArticles(),
-                        fetchJobs(),
-                        fetchApplications(),
-                        fetchProjectComments(),
-                        fetchProjectFiles(),
-                        fetchTemplates(),
-                    ]);
+                    // Paso 1: Cargar el perfil primero. Es crítico para la UI y para ciertas lógicas.
+                    // Si falla esto, lo registramos pero permitimos intentar cargar el resto si es posible.
+                    try {
+                        await state.fetchProfile(user.id);
+                    } catch (profileError) {
+                        console.error("Error fetching profile:", profileError);
+                    }
+
+                    // Paso 2: Cargar el resto de datos en paralelo de forma robusta
+                    const dataFetchers = [
+                        { name: 'Clients', fn: state.fetchClients },
+                        { name: 'Projects', fn: state.fetchProjects },
+                        { name: 'Tasks', fn: state.fetchTasks },
+                        { name: 'Invoices', fn: state.fetchInvoices },
+                        { name: 'RecurringInvoices', fn: state.fetchRecurringInvoices },
+                        { name: 'Expenses', fn: state.fetchExpenses },
+                        { name: 'RecurringExpenses', fn: state.fetchRecurringExpenses },
+                        { name: 'TimeEntries', fn: state.fetchTimeEntries },
+                        { name: 'Proposals', fn: state.fetchProposals },
+                        { name: 'Contracts', fn: state.fetchContracts },
+                        { name: 'Budgets', fn: state.fetchBudgets },
+                        { name: 'Users', fn: state.fetchUsers },
+                        { name: 'Articles', fn: state.fetchArticles },
+                        { name: 'Jobs', fn: state.fetchJobs },
+                        { name: 'Applications', fn: state.fetchApplications },
+                        { name: 'ProjectComments', fn: state.fetchProjectComments },
+                        { name: 'ProjectFiles', fn: state.fetchProjectFiles },
+                        { name: 'Templates', fn: state.fetchTemplates },
+                    ];
+                    
+                    // Usamos allSettled para que si falla una tabla (ej. migración pendiente),
+                    // no detenga la carga del resto de la aplicación.
+                    const results = await Promise.allSettled(dataFetchers.map(fetcher => fetcher.fn()));
+                    
+                    results.forEach((result, index) => {
+                        if (result.status === 'rejected') {
+                            // Log discreto para no saturar la consola del usuario final, pero útil para debug
+                            console.warn(`⚠️ Datos parciales: No se pudo cargar ${dataFetchers[index].name}`, result.reason);
+                        }
+                    });
                 } catch (error) {
-                    console.error("Failed to fetch initial data:", error);
+                    console.error("Critical error during initial data fetch:", error);
                 } finally {
                     set({ isLoading: false });
                 }

@@ -68,6 +68,16 @@ export interface Project {
 }
 export type NewProject = Omit<Project, 'id' | 'user_id' | 'created_at'>;
 
+export interface ProjectChangeLog {
+    id: string;
+    project_id: string;
+    field: string; // 'status', 'budget', 'start_date', 'due_date'
+    old_value: string;
+    new_value: string;
+    changed_by: string;
+    changed_at: string;
+}
+
 export interface Task {
   id: string;
   user_id: string;

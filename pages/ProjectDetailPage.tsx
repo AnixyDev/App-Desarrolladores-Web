@@ -1,3 +1,4 @@
+
 // pages/ProjectDetailPage.tsx
 import React, { useState, useMemo, lazy, Suspense, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
@@ -6,14 +7,42 @@ import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { formatCurrency, generateICSFile } from '../lib/utils';
-import { Project, Task, InvoiceItem, ProjectFile } from '../types';
-import { PlusIcon, TrashIcon, ClockIcon, FileTextIcon, MessageSquareIcon, DollarSignIcon, Paperclip, Upload, Trash2, EditIcon, CalendarPlus } from '../components/icons/Icon';
+import { Project, Task, InvoiceItem, ProjectFile, ProjectChangeLog } from '../types';
+import { PlusIcon, TrashIcon, ClockIcon, FileTextIcon, MessageSquareIcon, DollarSignIcon, Paperclip, Upload, Trash2, EditIcon, CalendarPlus, DownloadIcon, RefreshCwIcon } from '../components/icons/Icon';
 import EmptyState from '../components/ui/EmptyState';
 import { useToast } from '../hooks/useToast';
 import Modal from '../components/ui/Modal';
+import { generateProjectBudgetPdf } from '../services/pdfService';
 
 const ProjectChat = lazy(() => import('../components/ProjectChat'));
 const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal'));
+
+const HistoryFeed: React.FC<{ logs: ProjectChangeLog[] }> = ({ logs }) => {
+    if (logs.length === 0) return <p className="text-sm text-gray-500">No hay cambios registrados.</p>;
+
+    const sortedLogs = [...logs].sort((a, b) => new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime());
+
+    return (
+        <div className="relative pl-4 border-l border-gray-700 space-y-6">
+            {sortedLogs.map((log) => (
+                <div key={log.id} className="relative">
+                    <div className="absolute -left-[21px] top-1 h-3 w-3 rounded-full border-2 border-gray-900 bg-gray-500"></div>
+                    <p className="text-sm text-gray-300">
+                        <span className="font-semibold text-white">{log.field}</span>
+                        {log.field === 'created' ? (
+                            <span> {log.new_value}</span>
+                        ) : (
+                            <span> cambió de <span className="text-red-300 line-through">{log.old_value || '(vacío)'}</span> a <span className="text-green-400">{log.new_value}</span></span>
+                        )}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                        Por {log.changed_by} • {new Date(log.changed_at).toLocaleString()}
+                    </p>
+                </div>
+            ))}
+        </div>
+    );
+};
 
 const ProjectDetailPage: React.FC = () => {
     const { projectId } = useParams<{ projectId: string }>();
@@ -35,7 +64,9 @@ const ProjectDetailPage: React.FC = () => {
         updateProjectBudget,
         projectFiles,
         addProjectFile,
-        deleteProjectFile
+        deleteProjectFile,
+        projectLogs,
+        fetchProjectLogs
     } = useAppStore();
 
     const [newTaskDescription, setNewTaskDescription] = useState('');
@@ -60,6 +91,12 @@ const ProjectDetailPage: React.FC = () => {
         }
     }, [project]);
 
+    useEffect(() => {
+        if (projectId) {
+            fetchProjectLogs(projectId);
+        }
+    }, [projectId, fetchProjectLogs]);
+
     const handleBudgetSave = async () => {
         if (project) {
             try {
@@ -83,6 +120,10 @@ const ProjectDetailPage: React.FC = () => {
     const projectFilesForProject = useMemo(() => {
         return projectFiles.filter(file => file.project_id === projectId);
     }, [projectFiles, projectId]);
+
+    const projectHistoryLogs = useMemo(() => {
+        return projectLogs.filter(log => log.project_id === projectId);
+    }, [projectLogs, projectId]);
 
     const projectStats = useMemo(() => {
         const completedTasks = tasks.filter(t => t.status === 'completed').length;
@@ -191,6 +232,18 @@ const ProjectDetailPage: React.FC = () => {
         });
     };
 
+    const handleDownloadBudget = async () => {
+        if (project && client && profile) {
+            try {
+                await generateProjectBudgetPdf(project, client, profile);
+                addToast('PDF del presupuesto descargado.', 'success');
+            } catch (error) {
+                addToast('Error al generar el PDF.', 'error');
+                console.error(error);
+            }
+        }
+    };
+
     const handleDeleteClick = (task: Task) => {
         setTaskToDelete(task);
         setIsConfirmModalOpen(true);
@@ -291,9 +344,14 @@ const ProjectDetailPage: React.FC = () => {
                         <FileTextIcon className="w-4 h-4 mr-2"/> Crear Factura
                     </Button>
                     {project.budget_cents > 0 && (
-                        <Button onClick={handleCreateInvoiceFromBudget}>
-                            <DollarSignIcon className="w-4 h-4 mr-2"/> Facturar Presupuesto
-                        </Button>
+                        <>
+                            <Button onClick={handleCreateInvoiceFromBudget}>
+                                <DollarSignIcon className="w-4 h-4 mr-2"/> Facturar Presupuesto
+                            </Button>
+                            <Button variant="secondary" onClick={handleDownloadBudget} title="Descargar PDF del presupuesto">
+                                <DownloadIcon className="w-4 h-4"/> PDF
+                            </Button>
+                        </>
                     )}
                      {unbilledTimeEntries.length > 0 && (
                         <Button onClick={handleCreateInvoiceFromHours} className="bg-purple-600 hover:bg-purple-700 focus:ring-purple-500">
@@ -421,6 +479,17 @@ const ProjectDetailPage: React.FC = () => {
                             </CardContent>
                         </Card>
                     )}
+
+                    <Card>
+                        <CardHeader>
+                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <RefreshCwIcon className="w-5 h-5"/> Historial de Cambios
+                            </h2>
+                        </CardHeader>
+                        <CardContent className="max-h-64 overflow-y-auto pr-2">
+                            <HistoryFeed logs={projectHistoryLogs} />
+                        </CardContent>
+                    </Card>
                 </div>
 
                 <Card className="lg:col-span-2">
@@ -529,11 +598,44 @@ const ProjectDetailPage: React.FC = () => {
                             <textarea 
                                 name="description"
                                 rows={4} 
-                                className="block w-full px-3 py-2 border-2 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-0 sm:text-sm bg-[#2a2a50] text-white border-transparent focus:border-fuchsia-500"
+                                className="block w-full px-3 py-2 border rounded-lg shadow-sm placeholder-slate-500 focus:outline-none focus:ring-2 sm:text-sm bg-slate-900/50 text-white border-slate-700 focus:border-primary-500 focus:ring-primary-500/20 transition-all duration-200"
                                 value={currentProjectForEdit.description || ''}
                                 onChange={handleEditInputChange}
                             />
                         </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                            <Input
+                                label="Fecha de Inicio"
+                                name="start_date"
+                                type="date"
+                                value={currentProjectForEdit.start_date}
+                                onChange={handleEditInputChange}
+                            />
+                            <Input
+                                label="Fecha de Entrega"
+                                name="due_date"
+                                type="date"
+                                value={currentProjectForEdit.due_date}
+                                onChange={handleEditInputChange}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">Estado</label>
+                            <select
+                                name="status"
+                                value={currentProjectForEdit.status}
+                                onChange={(e) => setCurrentProjectForEdit(p => p ? {...p, status: e.target.value as any } : null)}
+                                className="block w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 sm:text-sm bg-slate-900/50 text-white border-slate-700 focus:border-primary-500 focus:ring-primary-500/20 transition-all duration-200"
+                            >
+                                <option value="planning">Planificación</option>
+                                <option value="in-progress">En Progreso</option>
+                                <option value="completed">Completado</option>
+                                <option value="on-hold">En Pausa</option>
+                            </select>
+                        </div>
+
                          <div className="grid grid-cols-2 gap-4">
                             <Input 
                                 label="Categoría"
@@ -547,11 +649,11 @@ const ProjectDetailPage: React.FC = () => {
                                     name="priority"
                                     value={currentProjectForEdit.priority || 'Medium'}
                                     onChange={(e) => setCurrentProjectForEdit(p => p ? {...p, priority: e.target.value as 'Low' | 'Medium' | 'High' } : null)}
-                                    className="block w-full px-3 py-2 border-2 rounded-md shadow-sm focus:outline-none focus:ring-0 sm:text-sm bg-[#2a2a50] text-white border-transparent focus:border-fuchsia-500"
+                                    className="block w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 sm:text-sm bg-slate-900/50 text-white border-slate-700 focus:border-primary-500 focus:ring-primary-500/20 transition-all duration-200"
                                 >
-                                    <option>Low</option>
-                                    <option>Medium</option>
-                                    <option>High</option>
+                                    <option value="Low">Baja</option>
+                                    <option value="Medium">Media</option>
+                                    <option value="High">Alta</option>
                                 </select>
                             </div>
                         </div>
