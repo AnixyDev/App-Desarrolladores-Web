@@ -16,7 +16,7 @@ export interface AuthSlice {
     register: (name: string, email: string, pass: string) => Promise<void>;
     logout: () => Promise<void>;
     fetchProfile: (userId: string) => Promise<void>;
-    fetchInitialData: (user: User) => Promise<void>; // This will be composed in the main store
+    fetchInitialData: (user: User) => Promise<void>;
     updateProfile: (updatedProfile: Partial<Profile>) => Promise<void>;
     completeOnboarding: () => void;
     consumeCredits: (amount: number) => Promise<void>;
@@ -27,17 +27,20 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     session: null,
     profile: null,
     isAuthenticated: false,
-    isLoading: true, // Default to true to prevent flicker on refresh
+    isLoading: true, // Start loading by default
 
     setSession: (session) => {
-        // When setting a session, we only stop loading if the session is null (not logged in).
-        // If logged in, loading stops after fetchInitialData completes in App.tsx
-        set({ 
-            session, 
-            isAuthenticated: !!session,
-            // If no session, we are done loading (user needs to login).
-            // If session exists, we keep loading until data is fetched (handled in App.tsx).
-            isLoading: session ? true : false 
+        set((state) => {
+            // If we are setting a session, we are authenticated.
+            // If session is null, we are not.
+            // isLoading should NOT be set to false here immediately if there is a session,
+            // because we likely want to fetch data next.
+            // However, if session is null, we are done loading (we are just logged out).
+            return { 
+                session, 
+                isAuthenticated: !!session,
+                isLoading: session ? state.isLoading : false 
+            };
         });
     },
 
@@ -84,10 +87,11 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     logout: async () => {
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
-        set({ session: null, isAuthenticated: false, profile: null });
+        set({ session: null, isAuthenticated: false, profile: null, isLoading: false });
     },
     
     fetchInitialData: async (user: User) => {
+        // Use get() to access the store's fetchProfile method
         await get().fetchProfile(user.id);
     },
 
@@ -96,6 +100,7 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
         if (error) {
             if (error.code === 'PGRST116') {
                 console.warn("Profile not found. Creating partial profile state.");
+                // Optional: Create profile here if missing
                 return;
             }
             throw error;

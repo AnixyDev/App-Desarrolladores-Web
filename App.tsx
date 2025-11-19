@@ -8,6 +8,7 @@ import Header from './components/layout/Header';
 import ToastContainer from './components/ui/Toast';
 import PageLoader from './components/layout/PageLoader';
 import { AlertTriangleIcon } from './components/icons/Icon';
+import { useToast } from './hooks/useToast';
 
 // Lazy load pages
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
@@ -76,7 +77,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
-// Protected Route Guard: Redirects to Login if not authenticated
+// Protected Route Guard
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAppStore();
   const location = useLocation();
@@ -92,7 +93,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
-// Public Route Guard: Redirects to Dashboard if already authenticated
+// Public Route Guard (for Login/Register)
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { isAuthenticated, isLoading } = useAppStore();
     
@@ -109,89 +110,73 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 
 function App() {
-  // 1. Verificación Crítica de Configuración
-  // Si Supabase no está configurado, detenemos el renderizado de la app para evitar crashes.
-  if (!isConfigured) {
-      return (
-          <div className="h-screen w-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 text-center">
-              <div className="bg-red-500/10 p-6 rounded-full mb-6">
-                  <AlertTriangleIcon className="w-16 h-16 text-red-500" />
-              </div>
-              <h1 className="text-3xl font-bold text-white mb-4">Configuración Requerida</h1>
-              <p className="text-slate-400 max-w-lg mb-8 text-lg">
-                  La aplicación no puede conectarse a la base de datos. Parece que faltan las variables de entorno de Supabase.
-              </p>
-              <div className="bg-slate-900 p-6 rounded-lg border border-slate-800 text-left w-full max-w-lg">
-                  <p className="text-sm text-slate-500 mb-2 uppercase font-bold tracking-wider">Variables Faltantes:</p>
-                  <code className="block text-red-400 font-mono text-sm mb-1">VITE_SUPABASE_URL</code>
-                  <code className="block text-red-400 font-mono text-sm">VITE_SUPABASE_ANON_KEY</code>
-              </div>
-          </div>
-      );
-  }
+  // NOTE: Removed the blocking '!isConfigured' check. 
+  // If config is missing, the app will still load the Login screen, giving the user a chance to see the UI.
+  // Auth attempts will simply fail if the keys are invalid.
 
   const { setSession, fetchInitialData, clearUserData, isLoading } = useAppStore();
   const navigate = useNavigate();
+  const { addToast } = useToast();
 
   useEffect(() => {
-    let mounted = true;
+    if (!isConfigured) {
+        console.error("App initialized with missing Supabase configuration.");
+        addToast("Error de configuración: No se ha podido conectar con Supabase.", "error");
+    }
 
-    const checkSession = async () => {
+    // Initial Session Check
+    const initAuth = async () => {
         try {
             useAppStore.setState({ isLoading: true });
             const { data: { session }, error } = await supabase.auth.getSession();
             
             if (error) throw error;
 
-            if (mounted) {
-                setSession(session);
-                if (session?.user) {
-                    await fetchInitialData(session.user);
+            setSession(session); // Update Zustand store
+
+            if (session?.user) {
+                // Clean up OAuth URL hash if present
+                if (window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('type=recovery'))) {
+                     window.history.replaceState(null, '', window.location.pathname);
+                     navigate('/', { replace: true });
                 }
+
+                // Fetch app data
+                await fetchInitialData(session.user);
             }
         } catch (error) {
-            console.error("Error checking session:", error);
-            if (mounted) clearUserData();
+            console.error("Auth initialization error:", error);
+            clearUserData();
         } finally {
-            if (mounted) useAppStore.setState({ isLoading: false });
+            useAppStore.setState({ isLoading: false });
         }
     };
 
-    checkSession();
+    initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-
-        // Actualizar estado de sesión
-        setSession(session);
-
-        if (event === 'SIGNED_IN' && session?.user) {
-            // Limpiar hash de URL (OAuth)
-            if (window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('type=recovery'))) {
-                window.history.replaceState(null, '', window.location.pathname);
-                navigate('/', { replace: true });
+    // Auth State Listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+            setSession(session);
+            // Fetch data only if not already loading (prevent double fetch on init)
+            if (!useAppStore.getState().profile) {
+                 useAppStore.setState({ isLoading: true });
+                 await fetchInitialData(session.user);
+                 useAppStore.setState({ isLoading: false });
             }
-            
-            // Cargar datos
-            useAppStore.setState({ isLoading: true });
-            await fetchInitialData(session.user);
-            useAppStore.setState({ isLoading: false });
-
         } else if (event === 'SIGNED_OUT') {
             clearUserData();
             navigate('/auth/login', { replace: true });
         }
-      }
-    );
+    });
 
     return () => {
-      mounted = false;
       subscription?.unsubscribe();
     };
-  }, [setSession, fetchInitialData, clearUserData, navigate]);
+  }, [setSession, fetchInitialData, clearUserData, navigate, addToast]);
   
 
+  // If global loading is true (initial check), show loader
   if (isLoading) {
       return <div className="h-screen w-screen bg-slate-950 flex items-center justify-center"><PageLoader /></div>;
   }
