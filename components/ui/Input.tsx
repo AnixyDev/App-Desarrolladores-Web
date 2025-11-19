@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
@@ -10,14 +11,14 @@ type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
 const Input: React.FC<InputProps> = ({ label, id, wrapperClassName = '', icon, error, className = '', ...props }) => {
   const hasIcon = !!icon;
   
-  // Use slate-800 for background to match cards and other UI elements better than specific hex
-  const baseInputClasses = "block w-full border rounded-lg shadow-sm placeholder-slate-500 focus:outline-none focus:ring-2 sm:text-sm bg-slate-900/50 text-white disabled:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200";
+  // Improved contrast for inputs: using a darker background (slate-950) with some transparency to blend but stand out from slate-900 cards
+  const baseInputClasses = "block w-full border rounded-lg shadow-sm placeholder-slate-500 focus:outline-none focus:ring-2 sm:text-sm bg-slate-950/50 text-white disabled:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200";
   
   const stateClasses = error 
     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' 
     : 'border-slate-700 focus:border-primary-500 focus:ring-primary-500/20 hover:border-slate-600';
 
-  const paddingClasses = hasIcon ? 'pl-10 pr-3 py-2' : 'px-3 py-2';
+  const paddingClasses = hasIcon ? 'pl-10 pr-3 py-2.5' : 'px-3 py-2.5';
 
   return (
     <div className={wrapperClassName}>

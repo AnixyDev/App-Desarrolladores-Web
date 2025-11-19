@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Button from './Button';
 import { PlusIcon } from '../icons/Icon';
@@ -10,7 +11,7 @@ interface CardProps {
 
 const Card: React.FC<CardProps> = ({ children, className = '', noPadding = false }) => {
   return (
-    <div className={`bg-slate-900 border border-slate-800 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300 ${className}`}>
+    <div className={`bg-slate-900 border border-slate-800 rounded-xl shadow-sm overflow-hidden ${className}`}>
       {children}
     </div>
   );
@@ -60,7 +61,7 @@ interface CardFooterProps {
   className?: string;
 }
 export const CardFooter: React.FC<CardFooterProps> = ({ children, className = '' }) => {
-  return <div className={`px-6 py-4 bg-slate-900/50 border-t border-slate-800 ${className}`}>{children}</div>;
+  return <div className={`px-6 py-4 bg-slate-900/50 border-t border-slate-800 flex flex-col sm:flex-row gap-4 ${className}`}>{children}</div>;
 };
 
 export default Card;

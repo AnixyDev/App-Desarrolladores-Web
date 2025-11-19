@@ -1,4 +1,3 @@
-
 // pages/ProjectDetailPage.tsx
 import React, { useState, useMemo, lazy, Suspense, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
@@ -99,6 +98,11 @@ const ProjectDetailPage: React.FC = () => {
 
     const handleBudgetSave = async () => {
         if (project) {
+            if (budgetInput < 0 || isNaN(budgetInput)) {
+                addToast('El presupuesto debe ser un número válido y positivo.', 'error');
+                return;
+            }
+
             try {
                 await updateProjectBudget(project.id, Math.round(budgetInput * 100));
                 addToast('Presupuesto actualizado.', 'success');
@@ -334,6 +338,12 @@ const ProjectDetailPage: React.FC = () => {
 
     return (
         <div className="space-y-6">
+             <nav className="flex items-center text-sm text-gray-400">
+                <Link to="/projects" className="hover:text-white transition-colors">Proyectos</Link>
+                <span className="mx-2">/</span>
+                <span className="text-white truncate max-w-[200px] sm:max-w-md">{project.name}</span>
+            </nav>
+
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-white">{project.name}</h1>
@@ -417,6 +427,7 @@ const ProjectDetailPage: React.FC = () => {
                                             onChange={(e) => setBudgetInput(Number(e.target.value))}
                                             className="w-32 py-1"
                                             step="0.01"
+                                            min={0}
                                             autoFocus
                                         />
                                         <Button size="sm" onClick={handleBudgetSave}>Guardar</Button>

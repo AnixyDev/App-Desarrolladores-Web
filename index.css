@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,6 +7,7 @@ html, body {
   height: 100%;
   margin: 0;
   background-color: #0f172a; /* slate-900 */
+  scroll-behavior: smooth;
 }
 
 body {
@@ -16,7 +18,7 @@ body {
 }
 
 ::selection {
-  background-color: rgba(240, 0, 184, 0.3);
+  background-color: rgba(240, 0, 184, 0.4);
   color: #ffffff;
 }
 
@@ -27,13 +29,14 @@ body {
 
 .main-app-background {
     background-color: #0f172a;
-    background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 60%);
+    background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 80%);
+    background-attachment: fixed;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar Global */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -42,16 +45,23 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: #334155; /* slate-700 */
-  border-radius: 4px;
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #475569; /* slate-600 */
 }
 
+/* Specific utility for thinner scrollbars in sidebars/lists */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
 /* Global Transitions */
 button, a, input, select, textarea {
-  transition: all 0.15s ease-in-out;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }
 
 /* Animations */
