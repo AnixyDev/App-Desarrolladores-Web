@@ -9,7 +9,6 @@ import { redirectToCheckout, createConnectAccount, redirectToFreelancerPortal, r
 const UpgradeModal = lazy(() => import('../components/modals/UpgradeModal'));
 
 const BillingPage: React.FC = () => {
-    // FIX: Removed upgradePlan and purchaseCredits as they are not in the store
     const { profile, updateStripeConnection } = useAppStore();
     const { addToast } = useToast();
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -38,10 +37,15 @@ const BillingPage: React.FC = () => {
     }
 
     const handleUpgrade = async (newPlan: 'Free' | 'Pro' | 'Teams') => {
+        // Teams plan might require contacting sales or a specific flow, 
+        // but for now we redirect to checkout if it's configured.
+        // If you want a modal for Teams, uncomment the logic below.
+        /*
         if (newPlan === 'Teams') {
             setIsUpgradeModalOpen(true);
             return;
         }
+        */
         
         try {
             const itemKey = newPlan === 'Pro' ? 'proPlan' : 'teamsPlan';
@@ -51,7 +55,7 @@ const BillingPage: React.FC = () => {
         }
     };
 
-    const handleBuyCredits = async (amount: number, itemKey: 'credits50' | 'credits200' | 'credits1000') => {
+    const handleBuyCredits = async (amount: number, itemKey: 'credits100' | 'credits500' | 'credits1000') => {
         try {
             addToast(`Redirigiendo a la pasarela de pago para comprar ${amount} créditos...`, 'info');
             await redirectToCheckout(itemKey);
@@ -146,7 +150,7 @@ const BillingPage: React.FC = () => {
                  <PlanCard
                     plan="Pro"
                     title="Plan Profesional"
-                    price="12,95€"
+                    price="3,95€"
                     features={['Clientes ilimitados', 'Perfil Público', 'Marketplace de Proyectos', '100 Créditos de IA/mes']}
                     isCurrent={profile.plan === 'Pro'}
                 />
@@ -169,9 +173,9 @@ const BillingPage: React.FC = () => {
                         <p className="text-3xl font-bold text-purple-400">{profile.ai_credits}</p>
                     </div>
                     <div className="flex gap-2 flex-wrap">
-                        <Button variant="secondary" onClick={() => handleBuyCredits(50, 'credits50')}>Comprar 50 créditos (5€)</Button>
-                        <Button variant="secondary" onClick={() => handleBuyCredits(200, 'credits200')}>Comprar 200 créditos (15€)</Button>
-                        <Button variant="secondary" onClick={() => handleBuyCredits(1000, 'credits1000')}>Comprar 1000 créditos (50€)</Button>
+                        <Button variant="secondary" onClick={() => handleBuyCredits(100, 'credits100')}>100 créditos (1,95€)</Button>
+                        <Button variant="secondary" onClick={() => handleBuyCredits(500, 'credits500')}>500 créditos (3,95€)</Button>
+                        <Button variant="secondary" onClick={() => handleBuyCredits(1000, 'credits1000')}>1000 créditos (5,95€)</Button>
                     </div>
                 </CardContent>
             </Card>

@@ -11,12 +11,11 @@ interface JobPostPaymentModalProps {
 }
 
 const JobPostPaymentModal: React.FC<JobPostPaymentModalProps> = ({ isOpen, onClose, onPaymentSuccess }) => {
-  // In a real app, this would integrate with Stripe Elements
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Destacar Oferta">
       <div className="space-y-4 text-center">
         <CreditCard className="w-12 h-12 text-primary-400 mx-auto mb-4" />
-        <h3 className="text-lg font-bold text-white">Pago de 29€</h3>
+        <h3 className="text-lg font-bold text-white">Pago de 5,95€</h3>
         <p className="text-gray-400">
           Estás a punto de realizar un pago único para destacar tu oferta de trabajo.
           Esto aumentará su visibilidad en el marketplace.
@@ -24,7 +23,7 @@ const JobPostPaymentModal: React.FC<JobPostPaymentModalProps> = ({ isOpen, onClo
         <div className="pt-4 flex justify-center gap-4">
           <Button variant="secondary" onClick={onClose}>Cancelar</Button>
           <Button onClick={onPaymentSuccess}>
-            Pagar 29€ (Simulación)
+            Pagar 5,95€
           </Button>
         </div>
       </div>

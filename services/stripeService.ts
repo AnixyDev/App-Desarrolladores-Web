@@ -1,3 +1,4 @@
+
 // services/stripeService.ts
 import { supabase } from '../lib/supabaseClient';
 
@@ -10,7 +11,7 @@ const getAuthHeader = async () => {
     };
 };
 
-type CheckoutItemKey = 'proPlan' | 'teamsPlan' | 'credits50' | 'credits200' | 'credits1000' | 'featuredJob' | 'invoice_payment';
+type CheckoutItemKey = 'proPlan' | 'teamsPlan' | 'credits100' | 'credits500' | 'credits1000' | 'featuredJob' | 'invoice_payment';
 
 interface CheckoutOptions {
     invoiceId?: string;
