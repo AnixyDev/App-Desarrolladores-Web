@@ -19,14 +19,25 @@ interface ApiResponse {
   };
 }
 
+// Validación estricta de clave secreta
+if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error("STRIPE_SECRET_KEY is missing in server environment.");
+}
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error("Supabase Service Role credentials missing in server environment.");
+}
+
 const supabaseAdmin = createClient(supabaseUrl!, supabaseServiceKey!);
 
+// En producción, estos IDs deben ser los Price IDs reales de tu Dashboard de Stripe (Live Mode)
 const productPrices: { [key: string]: string } = {
-    proPlan: process.env.PRO_PLAN_PRICE_ID || 'price_pro_plan_placeholder', // Reemplazar con ID real de Stripe
-    teamsPlan: process.env.TEAMS_PLAN_PRICE_ID || 'price_teams_plan_placeholder', // Reemplazar con ID real de Stripe
+    proPlan: process.env.PRO_PLAN_PRICE_ID || '', 
+    teamsPlan: process.env.TEAMS_PLAN_PRICE_ID || '', 
 };
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
@@ -48,11 +59,13 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
     if (userError || !user) {
-        return res.status(401).json({ error: `Authentication error: ${userError?.message || 'User not found'}` });
+        return res.status(401).json({ error: 'Authentication error: User not found' });
     }
 
     const { itemKey, invoiceId, amount_cents, description } = req.body;
-    const origin = req.headers.origin || 'http://localhost:3000';
+    
+    // Determinar el origen dinámicamente para soportar entornos de producción y preview
+    const origin = req.headers.origin || 'https://devfreelancer.app';
 
     let session;
     const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
@@ -62,6 +75,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     switch(itemKey) {
         case 'proPlan':
         case 'teamsPlan':
+            if (!productPrices[itemKey]) {
+                return res.status(500).json({ error: `Price ID for ${itemKey} not configured on server.` });
+            }
             mode = 'subscription';
             line_items.push({ price: productPrices[itemKey], quantity: 1 });
             break;
@@ -89,17 +105,19 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     }
 
     const { data: profile, error: profileError } = await supabaseAdmin.from('profiles').select('stripe_customer_id').eq('id', user.id).single();
-    if (profileError && profileError.code !== 'PGRST116') throw profileError;
     
     let customerId = profile?.stripe_customer_id;
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
         line_items,
         mode,
-        success_url: `${origin}/#/billing?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${origin}/#/billing`,
+        success_url: `${origin}/#/billing?session_id={CHECKOUT_SESSION_ID}&stripe_return=true`,
+        cancel_url: `${origin}/#/billing?canceled=true`,
         client_reference_id: user.id,
         metadata,
+        // Forzamos recolección de dirección para facturación real si es necesario
+        billing_address_collection: 'auto',
+        allow_promotion_codes: true,
     };
 
     if (customerId) {
@@ -117,6 +135,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   } catch (err: any) {
     console.error('Stripe session creation error:', err);
-    res.status(err.statusCode || 500).json({ error: err.message });
+    res.status(500).json({ error: 'Payment initialization failed. Please try again.' });
   }
 }

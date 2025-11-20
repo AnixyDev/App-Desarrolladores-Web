@@ -78,11 +78,13 @@ export const useAppStore = create<AppStore>()(
 
             fetchInitialData: async (user) => {
                 const state = get();
-                set({ isLoading: true });
+                
+                // OPTIMIZATION: Do NOT set global isLoading to true here.
+                // We want the Dashboard to render immediately with skeletons if needed,
+                // rather than blocking the entire app with a full-screen loader.
 
                 try {
                     // Paso 1: Cargar el perfil primero. Es crítico para la UI y para ciertas lógicas.
-                    // Si falla esto, lo registramos pero permitimos intentar cargar el resto si es posible.
                     try {
                         await state.fetchProfile(user.id);
                     } catch (profileError) {
@@ -117,15 +119,14 @@ export const useAppStore = create<AppStore>()(
                     
                     results.forEach((result, index) => {
                         if (result.status === 'rejected') {
-                            // Log discreto para no saturar la consola del usuario final, pero útil para debug
+                            // Log discreto para no saturar la consola del usuario final
                             console.warn(`⚠️ Datos parciales: No se pudo cargar ${dataFetchers[index].name}`, result.reason);
                         }
                     });
                 } catch (error) {
                     console.error("Critical error during initial data fetch:", error);
-                } finally {
-                    set({ isLoading: false });
-                }
+                } 
+                // No need to set isLoading false here, handled by App.tsx or logic flow
             },
 
             // --- GETTERS ---
