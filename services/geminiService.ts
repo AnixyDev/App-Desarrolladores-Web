@@ -21,6 +21,8 @@ export const AI_CREDIT_COSTS = {
     generateInvoiceItems: 8,
     getDashboardInsights: 2,
     suggestSkills: 5,
+    improveText: 1,
+    analyzeProjectRisk: 10,
 };
 
 // Función auxiliar centralizada para gestionar las llamadas a la API de forma segura
@@ -87,7 +89,7 @@ export const generateProposalText = async (jobTitle: string, jobDescription: str
             maxOutputTokens: 512,
         }
     }, "Error generating proposal with Gemini");
-    return response.text;
+    return response.text || '';
 };
 
 export const refineProposalText = async (originalProposal: string, refinementType: 'formal' | 'conciso' | 'entusiasta'): Promise<string> => {
@@ -112,7 +114,7 @@ export const refineProposalText = async (originalProposal: string, refinementTyp
             maxOutputTokens: 512,
         }
     }, "Error refining proposal with Gemini");
-    return response.text;
+    return response.text || '';
 };
 
 export const summarizeApplicant = async (jobDescription: string, applicantProfile: string, applicantProposal: string): Promise<{ summary: string, pros: string[], cons: string[] }> => {
@@ -152,7 +154,8 @@ export const summarizeApplicant = async (jobDescription: string, applicantProfil
         },
     }, "Error summarizing applicant with Gemini");
 
-    const resultText = response.text.trim();
+    const resultText = response.text?.trim();
+    if (!resultText) throw new Error("Empty response from AI");
     try {
         return JSON.parse(resultText);
     } catch (e) {
@@ -205,6 +208,7 @@ export const generateFinancialForecast = async (data: any): Promise<any> => {
 
     try {
         const resultText = response.text;
+        if (!resultText) return { summary: "Error generating forecast", potentialRisks: [], suggestions: [] };
         if (resultText.startsWith("Error:")) {
             return { summary: resultText, potentialRisks: [], suggestions: [] };
         }
@@ -247,7 +251,7 @@ export const generateTimeEntryDescription = async (projectName: string, projectD
         }
     }, "Error generating time entry description");
     
-    return response.text.trim();
+    return response.text?.trim() || '';
 };
 
 
@@ -274,7 +278,8 @@ export const generateItemsForDocument = async (prompt: string, hourlyRate: numbe
         },
     }, "Error generating invoice items with Gemini");
     
-    const resultText = response.text.trim();
+    const resultText = response.text?.trim();
+    if (!resultText) return [];
     try {
         return JSON.parse(resultText);
     } catch (e) {
@@ -295,7 +300,8 @@ export const rankArticlesByRelevance = async (query: string, articles: { id: str
         },
     }, "Error ranking articles with Gemini");
 
-    const resultText = response.text.trim();
+    const resultText = response.text?.trim();
+    if (!resultText) return [];
     try {
         return JSON.parse(resultText);
     } catch (e) {
@@ -330,7 +336,8 @@ export const analyzeProfitability = async (data: any) => {
         }
     }, "Error analyzing profitability with Gemini");
 
-    const resultText = response.text.trim();
+    const resultText = response.text?.trim();
+    if (!resultText) return null;
     try {
         return JSON.parse(resultText);
     } catch (e) {
@@ -355,7 +362,9 @@ export const analyzeReceipt = async (imageDataBase64: string): Promise<{ descrip
         config: { responseMimeType: "application/json" }
     }, "Error analyzing receipt with Gemini");
 
-    const resultText = response.text.trim();
+    const resultText = response.text?.trim();
+    if (!resultText) throw new Error("No text returned from image analysis");
+
     try {
         const parsedResult = JSON.parse(resultText);
         return {
@@ -387,7 +396,9 @@ export const getDashboardInsights = async (summaryData: any): Promise<string[]> 
         },
     }, "Error getting dashboard insights from Gemini");
 
-    const resultText = response.text.trim();
+    const resultText = response.text?.trim();
+    if (!resultText) return ["Hubo un problema al generar las sugerencias."];
+
     try {
         return JSON.parse(resultText);
     } catch (e) {
@@ -403,7 +414,7 @@ export const generateDocumentContent = async (topic: string): Promise<string> =>
         contents: prompt,
         config: { maxOutputTokens: 1024 }
     }, "Error generating document content with Gemini");
-    return response.text;
+    return response.text || '';
 };
 
 export const generateQuizFromContent = async (content: string): Promise<string> => {
@@ -412,7 +423,7 @@ export const generateQuizFromContent = async (content: string): Promise<string> 
         model: 'gemini-flash-latest',
         contents: prompt
     }, "Error generating quiz with Gemini");
-    return response.text;
+    return response.text || '';
 };
 
 export const summarizeChatHistory = async (history: string): Promise<string> => {
@@ -449,7 +460,8 @@ export const suggestSkills = async (bio: string, specialty: string): Promise<str
         },
     }, "Error suggesting skills with Gemini");
 
-    const resultText = response.text.trim();
+    const resultText = response.text?.trim();
+    if (!resultText) return [];
     try {
         const skills = JSON.parse(resultText);
         if (Array.isArray(skills)) {
@@ -459,5 +471,77 @@ export const suggestSkills = async (bio: string, specialty: string): Promise<str
     } catch (e) {
         console.error("Error parsing suggested skills from Gemini:", e);
         return [];
+    }
+};
+
+// --- AI TEXT IMPROVEMENT ---
+export const improveText = async (text: string, action: 'fix_grammar' | 'professional' | 'shorten' | 'expand'): Promise<string> => {
+    let instruction = "";
+    switch (action) {
+        case 'fix_grammar': instruction = "Corrige la gramática y ortografía. Mantén el idioma original."; break;
+        case 'professional': instruction = "Reescribe el texto para que suene más profesional y corporativo, ideal para un cliente."; break;
+        case 'shorten': instruction = "Resume el texto haciéndolo más conciso sin perder los puntos clave."; break;
+        case 'expand': instruction = "Expande el texto añadiendo detalles relevantes y explicaciones para que sea más completo."; break;
+    }
+
+    const prompt = `
+        ${instruction}
+        
+        Texto:
+        """
+        ${text}
+        """
+        
+        Devuelve SOLAMENTE el texto reescrito, sin introducciones ni explicaciones.
+    `;
+
+    const response = await makeApiCall({
+        model: 'gemini-flash-latest', // Fast model for UI interactions
+        contents: prompt,
+        config: { maxOutputTokens: 1000 }
+    }, "Error improving text with Gemini");
+
+    return response.text?.trim() || text;
+};
+
+// --- PROJECT RISK ANALYSIS ---
+export const analyzeProjectRisk = async (projectData: any): Promise<{ riskLevel: 'Bajo' | 'Medio' | 'Alto', analysis: string, actions: string[] }> => {
+    const prompt = `
+        Actúa como un Senior Project Manager. Analiza los datos de este proyecto y evalúa el riesgo de retraso o desviación de presupuesto.
+
+        Datos del Proyecto:
+        ${JSON.stringify(projectData)}
+
+        Proporciona una respuesta en formato JSON con los campos:
+        - riskLevel: "Bajo", "Medio", o "Alto"
+        - analysis: Un párrafo explicando por qué (máx 3 frases).
+        - actions: Un array de 3 acciones correctivas recomendadas.
+    `;
+
+    const response = await makeApiCall({
+        model: 'gemini-2.5-pro', // Pro model for complex reasoning
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+             responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    riskLevel: { type: Type.STRING, enum: ["Bajo", "Medio", "Alto"] },
+                    analysis: { type: Type.STRING },
+                    actions: { type: Type.ARRAY, items: { type: Type.STRING } },
+                },
+                required: ["riskLevel", "analysis", "actions"],
+            },
+        }
+    }, "Error analyzing project risk with Gemini");
+
+    const resultText = response.text?.trim();
+    if (!resultText) throw new Error("No analysis returned");
+
+    try {
+        return JSON.parse(resultText);
+    } catch (e) {
+        console.error("Error parsing risk analysis:", e);
+        throw new Error("Formato de respuesta de IA inválido");
     }
 };

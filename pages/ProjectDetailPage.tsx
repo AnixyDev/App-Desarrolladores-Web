@@ -9,14 +9,16 @@ import Select from '../components/ui/Select';
 import Textarea from '../components/ui/Textarea';
 import { formatCurrency, generateICSFile } from '../lib/utils';
 import { Project, Task, InvoiceItem, ProjectFile, ProjectChangeLog } from '../types';
-import { PlusIcon, TrashIcon, ClockIcon, FileTextIcon, MessageSquareIcon, DollarSignIcon, Paperclip, Upload, Trash2, EditIcon, CalendarPlus, DownloadIcon, RefreshCwIcon, LinkIcon } from '../components/icons/Icon';
+import { PlusIcon, TrashIcon, ClockIcon, FileTextIcon, MessageSquareIcon, DollarSignIcon, Paperclip, Upload, Trash2, EditIcon, CalendarPlus, DownloadIcon, RefreshCwIcon, LinkIcon, AlertTriangleIcon, CheckCircleIcon, SparklesIcon } from '../components/icons/Icon';
 import EmptyState from '../components/ui/EmptyState';
 import { useToast } from '../hooks/useToast';
 import Modal from '../components/ui/Modal';
 import { generateProjectBudgetPdf } from '../services/pdfService';
+import { analyzeProjectRisk, AI_CREDIT_COSTS } from '../services/geminiService';
 
 const ProjectChat = lazy(() => import('../components/ProjectChat'));
 const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal'));
+const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal'));
 
 const HistoryFeed: React.FC<{ logs: ProjectChangeLog[] }> = ({ logs }) => {
     if (logs.length === 0) return <p className="text-sm text-gray-500">No hay cambios registrados.</p>;
@@ -67,7 +69,8 @@ const ProjectDetailPage: React.FC = () => {
         addProjectFile,
         deleteProjectFile,
         projectLogs,
-        fetchProjectLogs
+        fetchProjectLogs,
+        consumeCredits
     } = useAppStore();
 
     const [newTaskDescription, setNewTaskDescription] = useState('');
@@ -81,6 +84,9 @@ const ProjectDetailPage: React.FC = () => {
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
     const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
     const [linkInput, setLinkInput] = useState('');
+    const [riskAnalysis, setRiskAnalysis] = useState<{ riskLevel: string, analysis: string, actions: string[] } | null>(null);
+    const [isAnalyzingRisk, setIsAnalyzingRisk] = useState(false);
+    const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
 
     const project = projectId ? getProjectById(projectId) : undefined;
     const client = project ? getClientById(project.client_id) : undefined;
@@ -353,7 +359,47 @@ const ProjectDetailPage: React.FC = () => {
         setCurrentProjectForEdit(prev => prev ? { ...prev, [name]: value } : null);
     };
 
+    const handleAnalyzeRisk = async () => {
+        if (!profile || profile.ai_credits < AI_CREDIT_COSTS.analyzeProjectRisk) {
+            setIsBuyCreditsModalOpen(true);
+            return;
+        }
+        
+        setIsAnalyzingRisk(true);
+        try {
+            const analysisData = {
+                projectName: project.name,
+                status: project.status,
+                startDate: project.start_date,
+                dueDate: project.due_date,
+                budget: project.budget_cents / 100,
+                tasksTotal: tasks.length,
+                tasksCompleted: projectStats.completedTasks,
+                hoursTracked: projectStats.hoursTracked,
+                currentDate: new Date().toISOString().split('T')[0]
+            };
+
+            const result = await analyzeProjectRisk(analysisData);
+            setRiskAnalysis(result);
+            consumeCredits(AI_CREDIT_COSTS.analyzeProjectRisk);
+            addToast('Análisis de riesgo completado.', 'success');
+        } catch (error) {
+            addToast(`Error en el análisis: ${(error as Error).message}`, 'error');
+        } finally {
+            setIsAnalyzingRisk(false);
+        }
+    };
+
     const hoursTotalAmount = unbilledTimeEntries.reduce((sum, e) => sum + e.duration_seconds, 0) / 3600 * profile.hourly_rate_cents;
+
+    const getRiskColor = (level: string) => {
+        switch(level) {
+            case 'Bajo': return 'text-green-400 bg-green-500/10 border-green-500/30';
+            case 'Medio': return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
+            case 'Alto': return 'text-red-400 bg-red-500/10 border-red-500/30';
+            default: return 'text-gray-400';
+        }
+    };
 
 
     return (
@@ -473,6 +519,48 @@ const ProjectDetailPage: React.FC = () => {
                                 <p className="text-sm font-medium text-gray-400 flex items-center gap-2"><ClockIcon className="w-4 h-4"/> Horas Registradas</p>
                                 <p className="text-2xl font-bold text-white mt-1">{projectStats.hoursTracked.toFixed(2)}h</p>
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* AI Risk Analysis Widget */}
+                    <Card className="border-l-4 border-l-purple-500">
+                        <CardHeader>
+                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <SparklesIcon className="w-5 h-5 text-purple-400"/> Analista de Riesgos IA
+                            </h2>
+                        </CardHeader>
+                        <CardContent>
+                            {!riskAnalysis ? (
+                                <div className="text-center py-4">
+                                    <p className="text-sm text-gray-400 mb-4">Obtén una evaluación de riesgos y recomendaciones estratégicas para este proyecto.</p>
+                                    <Button variant="secondary" onClick={handleAnalyzeRisk} disabled={isAnalyzingRisk}>
+                                        {isAnalyzingRisk ? <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin"/> : <AlertTriangleIcon className="w-4 h-4 mr-2"/>}
+                                        {isAnalyzingRisk ? 'Analizando...' : `Analizar Riesgo (${AI_CREDIT_COSTS.analyzeProjectRisk} créditos)`}
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="space-y-4 animate-fade-in-down">
+                                    <div className={`p-3 rounded-lg border flex items-center justify-between ${getRiskColor(riskAnalysis.riskLevel)}`}>
+                                        <span className="font-bold">Nivel de Riesgo: {riskAnalysis.riskLevel}</span>
+                                        <Button size="sm" variant="ghost" onClick={() => setRiskAnalysis(null)}><RefreshCwIcon className="w-3 h-3"/></Button>
+                                    </div>
+                                    <div className="text-sm text-gray-300">
+                                        <p className="font-semibold mb-1 text-white">Análisis:</p>
+                                        <p>{riskAnalysis.analysis}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Acciones Recomendadas:</p>
+                                        <ul className="space-y-2">
+                                            {riskAnalysis.actions.map((action, idx) => (
+                                                <li key={idx} className="flex items-start gap-2 text-sm text-gray-300 bg-white/5 p-2 rounded">
+                                                    <CheckCircleIcon className="w-4 h-4 text-green-400 shrink-0 mt-0.5"/>
+                                                    <span>{action}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 
@@ -767,6 +855,9 @@ const ProjectDetailPage: React.FC = () => {
                         title="¿Eliminar Archivo?"
                         message={`¿Estás seguro de que quieres eliminar el archivo: "${fileToDelete?.fileName}"?`}
                     />
+                )}
+                {isBuyCreditsModalOpen && (
+                    <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />
                 )}
             </Suspense>
         </div>
