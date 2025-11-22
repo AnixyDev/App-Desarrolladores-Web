@@ -5,6 +5,7 @@ import type { Client, NewClient } from '../../types';
 
 export interface ClientSlice {
     clients: Client[];
+    isClientsLoading: boolean;
     fetchClients: () => Promise<void>;
     addClient: (newClient: NewClient) => Promise<Client>;
     updateClient: (updatedClient: Client) => Promise<void>;
@@ -14,11 +15,19 @@ export interface ClientSlice {
 
 export const createClientSlice: StateCreator<AppStore, [], [], ClientSlice> = (set, get) => ({
     clients: [],
+    isClientsLoading: true,
 
     fetchClients: async () => {
-        const { data, error } = await supabase.from('clients').select('*');
-        if (error) throw error;
-        set({ clients: data || [] });
+        set({ isClientsLoading: true });
+        try {
+            const { data, error } = await supabase.from('clients').select('*');
+            if (error) throw error;
+            set({ clients: data || [] });
+        } catch (error) {
+            console.error("Error fetching clients:", error);
+        } finally {
+            set({ isClientsLoading: false });
+        }
     },
 
     addClient: async (newClient) => {

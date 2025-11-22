@@ -8,10 +8,12 @@ import { formatCurrency } from '../../lib/utils';
 export interface ProjectSlice {
     projects: Project[];
     tasks: Task[];
-    projectLogs: ProjectChangeLog[]; // Added logs state
+    projectLogs: ProjectChangeLog[];
+    isProjectsLoading: boolean;
+    isTasksLoading: boolean;
     fetchProjects: () => Promise<void>;
     fetchTasks: () => Promise<void>;
-    fetchProjectLogs: (projectId: string) => Promise<void>; // Fetch logs action
+    fetchProjectLogs: (projectId: string) => Promise<void>;
     addProject: (newProject: NewProject) => Promise<void>;
     updateProject: (updatedProject: Partial<Project> & { id: string }) => Promise<void>;
     updateProjectStatus: (id: string, status: Project['status']) => Promise<void>;
@@ -25,26 +27,39 @@ export const createProjectSlice: StateCreator<AppStore, [], [], ProjectSlice> = 
     projects: [],
     tasks: [],
     projectLogs: [],
+    isProjectsLoading: true,
+    isTasksLoading: true,
 
     fetchProjects: async () => {
-        const { data, error } = await supabase.from('projects').select('*');
-        if (error) throw error;
-        set({ projects: data || [] });
+        set({ isProjectsLoading: true });
+        try {
+            const { data, error } = await supabase.from('projects').select('*');
+            if (error) throw error;
+            set({ projects: data || [] });
+        } catch (error) {
+            console.error("Error fetching projects:", error);
+        } finally {
+            set({ isProjectsLoading: false });
+        }
     },
 
     fetchTasks: async () => {
-        const { data, error } = await supabase.from('tasks').select('*');
-        if (error) throw error;
-        set({ tasks: data || [] });
+        set({ isTasksLoading: true });
+        try {
+            const { data, error } = await supabase.from('tasks').select('*');
+            if (error) throw error;
+            set({ tasks: data || [] });
+        } catch (error) {
+            console.error("Error fetching tasks:", error);
+        } finally {
+            set({ isTasksLoading: false });
+        }
     },
     
     fetchProjectLogs: async (projectId: string) => {
-        // Mock implementation for fetching logs. In a real app, this would query a 'project_logs' table.
-        // We will filter the local state if it exists, or return mock data if empty to demonstrate.
         const existingLogs = get().projectLogs.filter(log => log.project_id === projectId);
         
         if (existingLogs.length === 0) {
-            // Generate some mock history for demonstration if none exists in state
             const mockLogs: ProjectChangeLog[] = [
                 {
                     id: uuidv4(),
@@ -72,7 +87,6 @@ export const createProjectSlice: StateCreator<AppStore, [], [], ProjectSlice> = 
         
         if (error) throw error;
         
-        // Log creation
         const newLog: ProjectChangeLog = {
             id: uuidv4(),
             project_id: data.id,
@@ -102,7 +116,6 @@ export const createProjectSlice: StateCreator<AppStore, [], [], ProjectSlice> = 
         
         if (error) throw error;
         
-        // Generate logs for changed fields
         const newLogs: ProjectChangeLog[] = [];
         const userName = get().profile?.full_name || 'Usuario';
         const now = new Date().toISOString();

@@ -24,35 +24,51 @@ const StatCard: React.FC<{
     trend?: number; // Percentage change
     trendLabel?: string;
     link?: string; 
-    iconColor?: string; 
-}> = ({ icon: Icon, title, value, trend, trendLabel = "vs mes anterior", link, iconColor = 'text-primary-400' }) => {
+    iconColor?: string;
+    isLoading?: boolean;
+}> = ({ icon: Icon, title, value, trend, trendLabel = "vs mes anterior", link, iconColor = 'text-primary-400', isLoading }) => {
     
     const content = (
         <CardContent className="flex flex-col justify-between h-full p-5">
-            <div className="flex justify-between items-start">
-                <div>
-                    <p className="text-sm font-medium text-slate-400 mb-1">{title}</p>
-                    <p className="text-2xl font-bold text-white tracking-tight">{value}</p>
+            {isLoading ? (
+                <div className="space-y-4">
+                    <div className="flex justify-between items-start">
+                        <div className="space-y-2">
+                            <Skeleton className="h-4 w-24 bg-slate-800"/>
+                            <Skeleton className="h-8 w-32 bg-slate-800"/>
+                        </div>
+                        <Skeleton className="h-10 w-10 rounded-xl bg-slate-800"/>
+                    </div>
+                    <Skeleton className="h-4 w-full bg-slate-800"/>
                 </div>
-                <div className={`p-3 rounded-xl bg-slate-800/50 border border-white/5 ${iconColor}`}>
-                    <Icon className="w-6 h-6" />
-                </div>
-            </div>
-            
-            {trend !== undefined && (
-                <div className="mt-4 flex items-center text-xs">
-                    {trend > 0 ? (
-                        <ArrowUpCircleIcon className="w-4 h-4 text-green-400 mr-1" />
-                    ) : trend < 0 ? (
-                        <ArrowDownCircleIcon className="w-4 h-4 text-red-400 mr-1" />
-                    ) : (
-                        <div className="w-4 h-4 mr-1" /> // Spacer
+            ) : (
+                <>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-sm font-medium text-slate-400 mb-1">{title}</p>
+                            <p className="text-2xl font-bold text-white tracking-tight">{value}</p>
+                        </div>
+                        <div className={`p-3 rounded-xl bg-slate-800/50 border border-white/5 ${iconColor}`}>
+                            <Icon className="w-6 h-6" />
+                        </div>
+                    </div>
+                    
+                    {trend !== undefined && (
+                        <div className="mt-4 flex items-center text-xs">
+                            {trend > 0 ? (
+                                <ArrowUpCircleIcon className="w-4 h-4 text-green-400 mr-1" />
+                            ) : trend < 0 ? (
+                                <ArrowDownCircleIcon className="w-4 h-4 text-red-400 mr-1" />
+                            ) : (
+                                <div className="w-4 h-4 mr-1" /> // Spacer
+                            )}
+                            <span className={`font-semibold ${trend > 0 ? 'text-green-400' : trend < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                                {trend > 0 ? '+' : ''}{trend.toFixed(1)}%
+                            </span>
+                            <span className="text-slate-500 ml-1">{trendLabel}</span>
+                        </div>
                     )}
-                    <span className={`font-semibold ${trend > 0 ? 'text-green-400' : trend < 0 ? 'text-red-400' : 'text-slate-500'}`}>
-                        {trend > 0 ? '+' : ''}{trend.toFixed(1)}%
-                    </span>
-                    <span className="text-slate-500 ml-1">{trendLabel}</span>
-                </div>
+                </>
             )}
         </CardContent>
     );
@@ -63,19 +79,21 @@ const StatCard: React.FC<{
         </Card>
     );
 
-    if (link) {
+    if (link && !isLoading) {
         return <Link to={link} className="block h-full">{cardElement}</Link>;
     }
     return cardElement;
 };
 
-const AICoachWidget: React.FC<{invoices: any[], timeEntries: any[], expenses: any[]}> = ({ invoices, timeEntries, expenses }) => {
+const AICoachWidget: React.FC<{invoices: any[], timeEntries: any[], expenses: any[], isLoading?: boolean}> = ({ invoices, timeEntries, expenses, isLoading: isDataLoading }) => {
     const [insights, setInsights] = useState<string[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isAiLoading, setIsAiLoading] = useState(true);
 
     useEffect(() => {
+        if (isDataLoading) return;
+
         const fetchInsights = async () => {
-            setIsLoading(true);
+            setIsAiLoading(true);
             try {
                 const unbilledHours = timeEntries
                     .filter(t => !t.invoice_id)
@@ -96,17 +114,18 @@ const AICoachWidget: React.FC<{invoices: any[], timeEntries: any[], expenses: an
                     setInsights(result);
                 }
             } catch (error) {
-                // Fail silently in UI, log error
                 console.error("Failed to get AI insights:", error);
                 setInsights(["No se pudieron cargar las sugerencias de la IA por el momento."]);
             } finally {
-                setIsLoading(false);
+                setIsAiLoading(false);
             }
         };
 
         fetchInsights();
-    }, [invoices, timeEntries, expenses]);
+    }, [invoices, timeEntries, expenses, isDataLoading]);
     
+    const loading = isDataLoading || isAiLoading;
+
     return (
         <Card className="border-l-4 border-l-purple-500">
             <CardHeader className="pb-2">
@@ -118,7 +137,7 @@ const AICoachWidget: React.FC<{invoices: any[], timeEntries: any[], expenses: an
                 </h2>
             </CardHeader>
             <CardContent>
-                {isLoading ? (
+                {loading ? (
                     <div className="space-y-3 py-2">
                         <Skeleton className="h-4 w-5/6 bg-slate-800" />
                         <Skeleton className="h-4 w-full bg-slate-800" />
@@ -140,7 +159,7 @@ const AICoachWidget: React.FC<{invoices: any[], timeEntries: any[], expenses: an
     );
 }
 
-const NextStepsWidget: React.FC<{tasks: Task[], invoices: any[], projects: any[]}> = ({ tasks, invoices, projects }) => {
+const NextStepsWidget: React.FC<{tasks: Task[], invoices: any[], projects: any[], isLoading?: boolean}> = ({ tasks, invoices, projects, isLoading }) => {
     const { getProjectById, getClientById, updateTaskStatus, addTask } = useAppStore();
     const { addToast } = useToast();
 
@@ -178,6 +197,26 @@ const NextStepsWidget: React.FC<{tasks: Task[], invoices: any[], projects: any[]
             setNewTask({ description: '', project_id: projects[0]?.id || '' });
         }
     };
+
+    if (isLoading) {
+        return (
+            <Card className="h-full flex flex-col">
+                <CardHeader><Skeleton className="h-6 w-40 bg-slate-800" /></CardHeader>
+                <CardContent className="p-5 flex-1 space-y-6">
+                    <div className="space-y-3">
+                        <Skeleton className="h-5 w-32 bg-slate-800 mb-4" />
+                        <Skeleton className="h-12 w-full bg-slate-800" />
+                        <Skeleton className="h-12 w-full bg-slate-800" />
+                        <Skeleton className="h-12 w-full bg-slate-800" />
+                    </div>
+                    <div className="space-y-3">
+                        <Skeleton className="h-5 w-32 bg-slate-800 mb-4" />
+                        <Skeleton className="h-12 w-full bg-slate-800" />
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
         <>
@@ -289,7 +328,12 @@ const NextStepsWidget: React.FC<{tasks: Task[], invoices: any[], projects: any[]
 
 
 const DashboardPage: React.FC = () => {
-    const { invoices, expenses, projects, timeEntries, profile, monthlyGoalCents, clients, tasks, fetchInitialData, session } = useAppStore();
+    const { 
+        invoices, expenses, projects, timeEntries, profile, monthlyGoalCents, clients, tasks, 
+        fetchInitialData, session,
+        isProjectsLoading, isInvoicesLoading, isExpensesLoading, isTimeEntriesLoading, isTasksLoading
+    } = useAppStore();
+    
     const [selectedClientId, setSelectedClientId] = useState<string>('all');
     const [isRefreshing, setIsRefreshing] = useState(false);
     const { addToast } = useToast();
@@ -427,6 +471,7 @@ const DashboardPage: React.FC = () => {
                     value={formatCurrency(stats.paidThisMonth)} 
                     trend={stats.incomeTrend}
                     iconColor="text-emerald-400 bg-emerald-500/10" 
+                    isLoading={isInvoicesLoading}
                 />
                 <StatCard 
                     icon={FileTextIcon} 
@@ -434,6 +479,7 @@ const DashboardPage: React.FC = () => {
                     value={formatCurrency(stats.pendingInvoices)} 
                     iconColor="text-amber-400 bg-amber-500/10"
                     link="/invoices"
+                    isLoading={isInvoicesLoading}
                 />
                 <StatCard 
                     icon={BriefcaseIcon} 
@@ -441,6 +487,7 @@ const DashboardPage: React.FC = () => {
                     value={stats.activeProjects} 
                     iconColor="text-blue-400 bg-blue-500/10"
                     link="/projects"
+                    isLoading={isProjectsLoading}
                 />
                 <StatCard 
                     icon={ClockIcon} 
@@ -450,6 +497,7 @@ const DashboardPage: React.FC = () => {
                     trendLabel="vs semana anterior"
                     iconColor="text-fuchsia-400 bg-fuchsia-500/10"
                     link="/time-tracking"
+                    isLoading={isTimeEntriesLoading}
                 />
             </div>
 
@@ -462,7 +510,7 @@ const DashboardPage: React.FC = () => {
                                 Flujo de Caja
                             </h2>
                             <div className={selectedClientId !== 'all' ? 'hidden sm:block' : ''}>
-                                 {selectedClientId === 'all' && monthlyGoalCents > 0 && (
+                                 {selectedClientId === 'all' && monthlyGoalCents > 0 && !isInvoicesLoading && (
                                     <div className="flex items-center gap-3 bg-slate-800/50 px-3 py-1.5 rounded-full border border-white/5">
                                         <div className="flex flex-col items-end">
                                             <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Meta Mensual</span>
@@ -476,17 +524,33 @@ const DashboardPage: React.FC = () => {
                             </div>
                         </CardHeader>
                         <CardContent className="h-[350px]">
-                            <Suspense fallback={<div className="h-full w-full flex items-center justify-center"><Skeleton className="h-[300px] w-full"/></div>}>
-                                <IncomeExpenseChart invoices={filteredData.invoices} expenses={filteredData.expenses} />
-                            </Suspense>
+                            {isInvoicesLoading || isExpensesLoading ? (
+                                <div className="h-full w-full flex items-center justify-center">
+                                    <Skeleton className="h-[300px] w-full bg-slate-800" />
+                                </div>
+                            ) : (
+                                <Suspense fallback={<div className="h-full w-full flex items-center justify-center"><Skeleton className="h-[300px] w-full bg-slate-800"/></div>}>
+                                    <IncomeExpenseChart invoices={filteredData.invoices} expenses={filteredData.expenses} />
+                                </Suspense>
+                            )}
                         </CardContent>
                     </Card>
 
-                    <AICoachWidget invoices={filteredData.invoices} timeEntries={filteredData.timeEntries} expenses={filteredData.expenses} />
+                    <AICoachWidget 
+                        invoices={filteredData.invoices} 
+                        timeEntries={filteredData.timeEntries} 
+                        expenses={filteredData.expenses} 
+                        isLoading={isInvoicesLoading || isTimeEntriesLoading || isExpensesLoading}
+                    />
                 </div>
 
                 <div className="xl:col-span-1 h-full">
-                    <NextStepsWidget tasks={filteredData.tasks} invoices={filteredData.invoices} projects={filteredData.projects} />
+                    <NextStepsWidget 
+                        tasks={filteredData.tasks} 
+                        invoices={filteredData.invoices} 
+                        projects={filteredData.projects}
+                        isLoading={isTasksLoading || isInvoicesLoading || isProjectsLoading}
+                    />
                 </div>
             </div>
         </div>

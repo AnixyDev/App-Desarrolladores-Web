@@ -70,7 +70,7 @@
   
   /* Global Table Styles for Consistency */
   thead tr th {
-    @apply text-xs font-semibold uppercase tracking-wider text-slate-400 bg-slate-900/50 backdrop-blur-md;
+    @apply text-xs font-semibold uppercase tracking-wider text-slate-300 bg-slate-950/60 backdrop-blur-md;
   }
 }
 
@@ -98,7 +98,7 @@
     @apply w-full text-left border-collapse;
   }
   .table-glass th {
-    @apply p-4 text-slate-400 font-medium border-b border-white/[0.06];
+    @apply p-4 text-slate-200 bg-black/20 font-semibold border-b border-white/[0.1] uppercase text-xs tracking-wider;
   }
   .table-glass td {
     @apply p-4 border-b border-white/[0.04] transition-colors;

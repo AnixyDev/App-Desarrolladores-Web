@@ -20,6 +20,10 @@ export interface FinanceSlice {
     proposalTemplates: ProposalTemplate[];
     contractTemplates: ContractTemplate[];
     
+    isInvoicesLoading: boolean;
+    isExpensesLoading: boolean;
+    isTimeEntriesLoading: boolean;
+
     fetchInvoices: () => Promise<void>;
     fetchExpenses: () => Promise<void>;
     fetchTimeEntries: () => Promise<void>;
@@ -73,21 +77,45 @@ export const createFinanceSlice: StateCreator<AppStore, [], [], FinanceSlice> = 
     invoiceTemplates: [],
     proposalTemplates: [],
     contractTemplates: [],
+    isInvoicesLoading: true,
+    isExpensesLoading: true,
+    isTimeEntriesLoading: true,
 
     fetchInvoices: async () => {
-        const { data, error } = await supabase.from('invoices').select('*');
-        if (error) throw error;
-        set({ invoices: data || [] });
+        set({ isInvoicesLoading: true });
+        try {
+            const { data, error } = await supabase.from('invoices').select('*');
+            if (error) throw error;
+            set({ invoices: data || [] });
+        } catch (error) {
+            console.error("Error fetching invoices:", error);
+        } finally {
+            set({ isInvoicesLoading: false });
+        }
     },
     fetchExpenses: async () => {
-        const { data, error } = await supabase.from('expenses').select('*');
-        if (error) throw error;
-        set({ expenses: data || [] });
+        set({ isExpensesLoading: true });
+        try {
+            const { data, error } = await supabase.from('expenses').select('*');
+            if (error) throw error;
+            set({ expenses: data || [] });
+        } catch (error) {
+            console.error("Error fetching expenses:", error);
+        } finally {
+            set({ isExpensesLoading: false });
+        }
     },
     fetchTimeEntries: async () => {
-        const { data, error } = await supabase.from('time_entries').select('*');
-        if (error) throw error;
-        set({ timeEntries: data || [] });
+        set({ isTimeEntriesLoading: true });
+        try {
+            const { data, error } = await supabase.from('time_entries').select('*');
+            if (error) throw error;
+            set({ timeEntries: data || [] });
+        } catch (error) {
+            console.error("Error fetching time entries:", error);
+        } finally {
+            set({ isTimeEntriesLoading: false });
+        }
     },
      fetchBudgets: async () => {
         const { data, error } = await supabase.from('budgets').select('*');

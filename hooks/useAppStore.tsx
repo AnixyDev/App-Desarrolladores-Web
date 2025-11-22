@@ -30,6 +30,8 @@ const initialState = {
     profile: null,
     isAuthenticated: false,
     isLoading: true,
+    
+    // Data
     clients: [],
     projects: [],
     tasks: [],
@@ -58,6 +60,14 @@ const initialState = {
     portalComments: [],
     portalFiles: [],
     monthlyGoalCents: 500000,
+
+    // Granular Loading States
+    isClientsLoading: true,
+    isProjectsLoading: true,
+    isTasksLoading: true,
+    isInvoicesLoading: true,
+    isExpensesLoading: true,
+    isTimeEntriesLoading: true,
 };
 
 
