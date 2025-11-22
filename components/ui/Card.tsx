@@ -17,7 +17,7 @@ const Card: React.FC<CardProps> = ({ children, className = '', noPadding = false
       hoverable && "hover:border-primary/40 hover:shadow-[0_0_30px_-10px_rgba(217,70,239,0.2)] hover:-translate-y-[2px] cursor-pointer",
       className
     )}>
-       {/* Noise Texture Overlay - Very Subtle */}
+       {/* Noise Texture Overlay - Very Subtle (Reduced Opacity) */}
       <div className="absolute inset-0 rounded-xl bg-noise opacity-[0.03] pointer-events-none z-0"></div>
       
       {/* Inner Glow Top Highlight */}

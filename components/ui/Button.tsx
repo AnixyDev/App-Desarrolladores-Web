@@ -23,20 +23,20 @@ const Button = <E extends React.ElementType = typeof defaultElement>({
 }: ButtonProps<E>) => {
   const Tag: React.ElementType = as || defaultElement;
 
-  const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]';
+  const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] shadow-sm';
 
   const variantStyles = {
-    // Primary: Vibrant Gradient with Glow
-    primary: 'bg-gradient-to-r from-fuchsia-600 via-purple-600 to-purple-700 text-white hover:brightness-110 shadow-[0_0_20px_-5px_rgba(192,38,211,0.4)] hover:shadow-[0_0_25px_-5px_rgba(192,38,211,0.6)] border border-white/10',
+    // Primary: Vibrant Gradient with Enhanced Glow
+    primary: 'bg-gradient-to-r from-fuchsia-600 via-purple-600 to-purple-700 text-white hover:brightness-110 shadow-[0_0_15px_-3px_rgba(192,38,211,0.4)] hover:shadow-[0_0_25px_-5px_rgba(192,38,211,0.6)] border border-white/10',
     
-    // Secondary: Glassy, subtle but interactive
-    secondary: 'bg-white/[0.03] text-slate-200 hover:bg-white/[0.08] hover:text-white border border-white/[0.1] shadow-sm',
+    // Secondary: Glassy look with subtle interactivity
+    secondary: 'bg-slate-800/50 text-slate-200 hover:bg-slate-700/80 hover:text-white border border-white/10 backdrop-blur-sm',
     
-    // Danger: Red tint
+    // Danger: Red tint with subtle border
     danger: 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 transition-colors',
     
     outline: 'bg-transparent text-foreground border border-white/20 hover:bg-white/5 hover:border-white/40',
-    ghost: 'hover:bg-white/5 text-slate-400 hover:text-white',
+    ghost: 'bg-transparent text-slate-400 hover:text-white hover:bg-white/5 shadow-none',
   };
 
   const sizeStyles = {
