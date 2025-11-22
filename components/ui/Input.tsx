@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { cn } from '../../lib/utils';
 
@@ -12,10 +11,10 @@ type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
 const Input: React.FC<InputProps> = ({ label, id, wrapperClassName = '', icon, error, className = '', ...props }) => {
   const hasIcon = !!icon;
   
-  const baseInputClasses = "block w-full rounded-lg border text-sm transition-all duration-200 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50";
+  const baseInputClasses = "block w-full rounded-lg border text-sm transition-all duration-200 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 shadow-inner";
   
-  // Style: Darker background ("carved out") with subtle border
-  const styleClasses = "bg-slate-950/40 border-slate-800 text-slate-200 placeholder-slate-500 focus:border-primary/50 focus:ring-primary/20 hover:border-slate-700";
+  // Style: "Carved out" look with very dark background and subtle borders
+  const styleClasses = "bg-[#0b1121] border-white/10 text-slate-200 placeholder-slate-600 focus:border-primary/50 focus:ring-primary/20 hover:border-white/20 focus:bg-[#0f172a]";
   
   const errorClasses = error 
     ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20' 
@@ -26,7 +25,7 @@ const Input: React.FC<InputProps> = ({ label, id, wrapperClassName = '', icon, e
   return (
     <div className={wrapperClassName}>
       {label && (
-        <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1.5">
+        <label htmlFor={id} className="block text-xs font-medium uppercase tracking-wider text-slate-400 mb-1.5 ml-0.5">
           {label}
         </label>
       )}
@@ -42,7 +41,7 @@ const Input: React.FC<InputProps> = ({ label, id, wrapperClassName = '', icon, e
           {...props}
         />
       </div>
-      {error && <p className="mt-1.5 text-xs text-red-400 font-medium animate-fade-in-down">{error}</p>}
+      {error && <p className="mt-1.5 text-xs text-red-400 font-medium animate-fade-in">{error}</p>}
     </div>
   );
 };

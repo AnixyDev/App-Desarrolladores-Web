@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Button from './Button';
 import { PlusIcon } from '../icons/Icon';
@@ -14,13 +13,16 @@ interface CardProps {
 const Card: React.FC<CardProps> = ({ children, className = '', noPadding = false, hoverable = false }) => {
   return (
     <div className={cn(
-      "group relative rounded-xl border border-white/[0.08] bg-[#0f172a]/60 backdrop-blur-sm transition-all duration-300",
-      hoverable && "hover:border-primary/30 hover:shadow-[0_0_30px_-10px_rgba(217,70,239,0.15)] hover:-translate-y-[2px] cursor-pointer",
+      "group relative rounded-xl border border-white/[0.08] bg-[#0f172a]/70 backdrop-blur-md transition-all duration-300",
+      hoverable && "hover:border-primary/40 hover:shadow-[0_0_30px_-10px_rgba(217,70,239,0.2)] hover:-translate-y-[2px] cursor-pointer",
       className
     )}>
-       {/* Noise Texture Overlay - Optimized for Dark Mode Legibility */}
-      <div className="absolute inset-0 rounded-xl bg-noise opacity-5 pointer-events-none z-0"></div>
+       {/* Noise Texture Overlay - Very Subtle */}
+      <div className="absolute inset-0 rounded-xl bg-noise opacity-[0.03] pointer-events-none z-0"></div>
       
+      {/* Inner Glow Top Highlight */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-50"></div>
+
       <div className="relative z-10">
         {children}
       </div>
@@ -76,7 +78,7 @@ interface CardFooterProps {
 
 export const CardFooter: React.FC<CardFooterProps> = ({ children, className = '' }) => {
   return (
-    <div className={cn("px-6 py-4 bg-white/[0.02] border-t border-white/[0.06] flex flex-col sm:flex-row gap-4", className)}>
+    <div className={cn("px-6 py-4 bg-white/[0.02] border-t border-white/[0.06] flex flex-col sm:flex-row gap-4 rounded-b-xl", className)}>
       {children}
     </div>
   );
