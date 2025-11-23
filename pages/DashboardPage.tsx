@@ -26,10 +26,10 @@ const StatCard: React.FC<{
     link?: string; 
     iconColor?: string;
     isLoading?: boolean;
-}> = ({ icon: Icon, title, value, trend, trendLabel = "vs mes anterior", link, iconColor = 'text-primary-400', isLoading }) => {
+}> = ({ icon: Icon, title, value, trend, trendLabel = "vs mes anterior", link, iconColor = 'text-fuchsia-400', isLoading }) => {
     
     const content = (
-        <CardContent className="flex flex-col justify-between h-full p-5">
+        <CardContent className="flex flex-col justify-between h-full p-5 sm:p-6 relative overflow-hidden">
             {isLoading ? (
                 <div className="space-y-4">
                     <div className="flex justify-between items-start">
@@ -43,18 +43,18 @@ const StatCard: React.FC<{
                 </div>
             ) : (
                 <>
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start z-10">
                         <div>
                             <p className="text-sm font-medium text-slate-400 mb-1">{title}</p>
-                            <p className="text-2xl font-bold text-white tracking-tight">{value}</p>
+                            <p className="text-2xl sm:text-3xl font-bold text-white tracking-tight">{value}</p>
                         </div>
-                        <div className={`p-3 rounded-xl bg-slate-800/50 border border-white/5 ${iconColor}`}>
+                        <div className={`p-3 rounded-xl bg-slate-800/80 border border-white/5 ${iconColor} shadow-inner`}>
                             <Icon className="w-6 h-6" />
                         </div>
                     </div>
                     
                     {trend !== undefined && (
-                        <div className="mt-4 flex items-center text-xs">
+                        <div className="mt-4 flex items-center text-xs z-10">
                             {trend > 0 ? (
                                 <ArrowUpCircleIcon className="w-4 h-4 text-green-400 mr-1" />
                             ) : trend < 0 ? (
@@ -65,22 +65,25 @@ const StatCard: React.FC<{
                             <span className={`font-semibold ${trend > 0 ? 'text-green-400' : trend < 0 ? 'text-red-400' : 'text-slate-500'}`}>
                                 {trend > 0 ? '+' : ''}{trend.toFixed(1)}%
                             </span>
-                            <span className="text-slate-500 ml-1">{trendLabel}</span>
+                            <span className="text-slate-500 ml-1 truncate max-w-[120px]">{trendLabel}</span>
                         </div>
                     )}
+                    
+                    {/* Decorative Gradient Blob */}
+                    <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-gradient-to-br from-white/5 to-transparent rounded-full blur-xl pointer-events-none"></div>
                 </>
             )}
         </CardContent>
     );
 
     const cardElement = (
-        <Card className="h-full transition-all duration-300 hover:border-primary/20 hover:shadow-lg">
+        <Card className="h-full transition-all duration-300 hover:border-white/10 hover:shadow-xl" noPadding>
             {content}
         </Card>
     );
 
     if (link && !isLoading) {
-        return <Link to={link} className="block h-full">{cardElement}</Link>;
+        return <Link to={link} className="block h-full hover:scale-[1.02] transition-transform duration-200">{cardElement}</Link>;
     }
     return cardElement;
 };
@@ -127,7 +130,7 @@ const AICoachWidget: React.FC<{invoices: any[], timeEntries: any[], expenses: an
     const loading = isDataLoading || isAiLoading;
 
     return (
-        <Card className="border-l-4 border-l-purple-500">
+        <Card className="border-l-4 border-l-purple-500 h-full bg-gradient-to-br from-[#0f172a] to-[#1e1b4b]/20">
             <CardHeader className="pb-2">
                 <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                     <SparklesIcon className="text-purple-400 w-5 h-5"/> 
@@ -139,14 +142,20 @@ const AICoachWidget: React.FC<{invoices: any[], timeEntries: any[], expenses: an
             <CardContent>
                 {loading ? (
                     <div className="space-y-3 py-2">
-                        <Skeleton className="h-4 w-5/6 bg-slate-800" />
-                        <Skeleton className="h-4 w-full bg-slate-800" />
+                        <div className="flex items-center gap-3">
+                            <Skeleton className="h-8 w-8 rounded-full bg-slate-800 shrink-0" />
+                            <Skeleton className="h-4 w-3/4 bg-slate-800" />
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Skeleton className="h-8 w-8 rounded-full bg-slate-800 shrink-0" />
+                            <Skeleton className="h-4 w-5/6 bg-slate-800" />
+                        </div>
                     </div>
                 ) : (
                     <ul className="space-y-3">
                         {insights.map((insight, index) => (
-                            <li key={index} className="flex items-start gap-3 text-sm text-slate-300 bg-white/[0.03] p-3 rounded-lg">
-                                <div className="mt-0.5 p-1 rounded-full bg-purple-500/10 shrink-0">
+                            <li key={index} className="flex items-start gap-3 text-sm text-slate-300 bg-white/[0.03] p-3 rounded-xl border border-white/5 hover:bg-white/[0.06] transition-colors animate-fade-in-down" style={{ animationDelay: `${index * 100}ms` }}>
+                                <div className="mt-0.5 p-1.5 rounded-full bg-purple-500/10 shrink-0 ring-1 ring-purple-500/30">
                                     <SparklesIcon className="w-3.5 h-3.5 text-purple-400" />
                                 </div>
                                 <span className="leading-relaxed">{insight}</span>
@@ -207,11 +216,6 @@ const NextStepsWidget: React.FC<{tasks: Task[], invoices: any[], projects: any[]
                         <Skeleton className="h-5 w-32 bg-slate-800 mb-4" />
                         <Skeleton className="h-12 w-full bg-slate-800" />
                         <Skeleton className="h-12 w-full bg-slate-800" />
-                        <Skeleton className="h-12 w-full bg-slate-800" />
-                    </div>
-                    <div className="space-y-3">
-                        <Skeleton className="h-5 w-32 bg-slate-800 mb-4" />
-                        <Skeleton className="h-12 w-full bg-slate-800" />
                     </div>
                 </CardContent>
             </Card>
@@ -224,14 +228,14 @@ const NextStepsWidget: React.FC<{tasks: Task[], invoices: any[], projects: any[]
                 <CardHeader>
                     <h2 className="text-lg font-semibold text-white">Actividad Reciente</h2>
                 </CardHeader>
-                <CardContent className="p-0 flex-1 flex flex-col divide-y divide-slate-800">
+                <CardContent className="p-0 flex-1 flex flex-col divide-y divide-white/5">
                     {/* TAREAS SECTION */}
                     <div className="p-5 flex-1">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-semibold text-slate-300 flex items-center gap-2 text-sm uppercase tracking-wider">
-                                <ListTodo className="w-4 h-4 text-purple-400"/> Tareas Pendientes
+                            <h3 className="font-semibold text-slate-300 flex items-center gap-2 text-xs uppercase tracking-wider">
+                                <ListTodo className="w-4 h-4 text-fuchsia-400"/> Tareas Pendientes
                             </h3>
-                            <button onClick={() => setIsTaskModalOpen(true)} className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1 font-medium transition-colors">
+                            <button onClick={() => setIsTaskModalOpen(true)} className="text-xs text-fuchsia-400 hover:text-fuchsia-300 flex items-center gap-1 font-medium transition-colors hover:bg-fuchsia-500/10 px-2 py-1 rounded-md">
                                 <PlusIcon className="w-3 h-3"/> Nueva
                             </button>
                         </div>
@@ -242,12 +246,12 @@ const NextStepsWidget: React.FC<{tasks: Task[], invoices: any[], projects: any[]
                                         <input
                                             type="checkbox"
                                             onChange={() => handleToggleTask(task)}
-                                            className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-primary-600 focus:ring-primary-500 focus:ring-offset-slate-900 cursor-pointer transition-all"
+                                            className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800/50 text-fuchsia-600 focus:ring-fuchsia-500 focus:ring-offset-slate-900 cursor-pointer transition-all"
                                             aria-label={`Marcar como completada: ${task.description}`}
                                         />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm text-slate-200 group-hover:text-white transition-colors truncate">{task.description}</p>
-                                            <Link to={`/projects/${task.project_id}`} className="text-xs text-slate-500 hover:text-primary-400 transition-colors truncate block">
+                                            <Link to={`/projects/${task.project_id}`} className="text-xs text-slate-500 hover:text-fuchsia-400 transition-colors truncate block mt-0.5">
                                                 {getProjectById(task.project_id)?.name}
                                             </Link>
                                         </div>
@@ -263,14 +267,14 @@ const NextStepsWidget: React.FC<{tasks: Task[], invoices: any[], projects: any[]
 
                     {/* FACTURAS SECTION */}
                     <div className="p-5">
-                        <h3 className="font-semibold text-slate-300 flex items-center gap-2 text-sm uppercase tracking-wider mb-4">
-                            <FileTextIcon className="w-4 h-4 text-yellow-400"/> Facturas por Cobrar
+                        <h3 className="font-semibold text-slate-300 flex items-center gap-2 text-xs uppercase tracking-wider mb-4">
+                            <FileTextIcon className="w-4 h-4 text-amber-400"/> Facturas por Cobrar
                         </h3>
                         {actionableInvoices.length > 0 ? (
-                            <ul className="space-y-3">
+                            <ul className="space-y-2">
                                 {actionableInvoices.map(invoice => (
                                     <li key={invoice.id}>
-                                        <Link to="/invoices" className="flex items-center justify-between p-2 -mx-2 rounded-lg hover:bg-slate-800/50 transition-colors group">
+                                        <Link to="/invoices" className="flex items-center justify-between p-2.5 -mx-2 rounded-lg hover:bg-white/[0.04] transition-colors group border border-transparent hover:border-white/5">
                                             <div className="min-w-0">
                                                 <p className="text-sm text-slate-200 font-mono group-hover:text-white">#{invoice.invoice_number}</p>
                                                 <p className="text-xs text-slate-500 truncate">{getClientById(invoice.client_id)?.name}</p>
@@ -303,15 +307,15 @@ const NextStepsWidget: React.FC<{tasks: Task[], invoices: any[], projects: any[]
                         placeholder="Ej: Diseñar mockup de la home"
                     />
                     <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Proyecto</label>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5 ml-0.5">Proyecto</label>
                         <select
                             value={newTask.project_id}
                             onChange={(e) => setNewTask(prev => ({ ...prev, project_id: e.target.value }))}
-                            className="block w-full px-3 py-2.5 border border-slate-800 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm bg-slate-950/40 text-slate-200"
+                            className="block w-full px-3 py-2.5 border border-white/10 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500/50 text-sm bg-slate-950/50 text-slate-200 appearance-none"
                             required
                         >
                             {projects.length > 0 ? (
-                                projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)
+                                projects.map(p => <option key={p.id} value={p.id} className="bg-slate-900">{p.name}</option>)
                             ) : (
                                 <option disabled value="">Crea un proyecto primero</option>
                             )}
@@ -375,18 +379,17 @@ const DashboardPage: React.FC = () => {
         };
     }, [selectedClientId, invoices, projects, timeEntries, expenses, tasks]);
 
-    // Helper for stats
-    const calculateMonthlyIncome = (invs: typeof invoices, month: number, year: number) => {
-        return invs
-            .filter(i => i.paid && i.payment_date && new Date(i.payment_date).getMonth() === month && new Date(i.payment_date).getFullYear() === year)
-            .reduce((sum, i) => sum + i.total_cents, 0);
-    };
-
+    // Stats Calculations
     const stats = useMemo(() => {
+        const calculateMonthlyIncome = (invs: typeof invoices, month: number, year: number) => {
+            return invs
+                .filter(i => i.paid && i.payment_date && new Date(i.payment_date).getMonth() === month && new Date(i.payment_date).getFullYear() === year)
+                .reduce((sum, i) => sum + i.total_cents, 0);
+        };
+
         const incomeCurrentMonth = calculateMonthlyIncome(filteredData.invoices, currentMonth, currentYear);
         const incomeLastMonth = calculateMonthlyIncome(filteredData.invoices, lastMonth, lastMonthYear);
         
-        // Avoid division by zero for trend
         const incomeTrend = incomeLastMonth === 0 
             ? (incomeCurrentMonth > 0 ? 100 : 0) 
             : ((incomeCurrentMonth - incomeLastMonth) / incomeLastMonth) * 100;
@@ -395,7 +398,6 @@ const DashboardPage: React.FC = () => {
         
         const activeProjectsCount = filteredData.projects.filter(p => p.status === 'in-progress').length;
 
-        // Hours Calculation
         const hoursThisWeek = filteredData.timeEntries
             .filter(t => new Date(t.start_time) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
             .reduce((sum, t) => sum + t.duration_seconds, 0) / 3600;
@@ -427,18 +429,19 @@ const DashboardPage: React.FC = () => {
     const goalProgress = (selectedClientId === 'all' && monthlyGoalCents > 0) ? (stats.paidThisMonth / monthlyGoalCents) * 100 : 0;
 
     return (
-        <div className="space-y-8 pb-10">
+        <div className="space-y-8 pb-10 animate-fade-in">
             {profile.isNewUser && <OnboardingGuide />}
 
+            {/* Header & Controls */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-white tracking-tight">
-                        Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">{profile?.full_name?.split(' ')[0]}</span>
+                        Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-fuchsia-300">{profile?.full_name?.split(' ')[0]}</span>
                     </h1>
-                    <p className="text-slate-400 mt-1">Aquí tienes el resumen de tu actividad.</p>
+                    <p className="text-slate-400 mt-1">Aquí tienes el resumen de tu actividad reciente.</p>
                 </div>
                 
-                <div className="flex items-center gap-3 w-full md:w-auto bg-slate-900/50 p-1 rounded-lg border border-white/5">
+                <div className="flex items-center gap-3 w-full md:w-auto bg-[#0f172a]/60 p-1 rounded-lg border border-white/10 shadow-sm">
                     <div className="relative flex-1 md:w-48">
                         <UsersIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                         <select
@@ -464,7 +467,8 @@ const DashboardPage: React.FC = () => {
                 </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Stats Grid - Responsive Breakpoints Fixed */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard 
                     icon={DollarSignIcon} 
                     title="Ingresos (Mes)" 
@@ -501,6 +505,7 @@ const DashboardPage: React.FC = () => {
                 />
             </div>
 
+            {/* Main Content Grid */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 <div className="xl:col-span-2 space-y-6">
                     <Card>
@@ -536,12 +541,16 @@ const DashboardPage: React.FC = () => {
                         </CardContent>
                     </Card>
 
-                    <AICoachWidget 
-                        invoices={filteredData.invoices} 
-                        timeEntries={filteredData.timeEntries} 
-                        expenses={filteredData.expenses} 
-                        isLoading={isInvoicesLoading || isTimeEntriesLoading || isExpensesLoading}
-                    />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <AICoachWidget 
+                            invoices={filteredData.invoices} 
+                            timeEntries={filteredData.timeEntries} 
+                            expenses={filteredData.expenses} 
+                            isLoading={isInvoicesLoading || isTimeEntriesLoading || isExpensesLoading}
+                        />
+                        {/* Placeholder for another widget if needed, now hidden to balance layout */}
+                        {/* <div className="hidden lg:block"></div> */} 
+                    </div>
                 </div>
 
                 <div className="xl:col-span-1 h-full">

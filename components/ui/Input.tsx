@@ -13,11 +13,11 @@ const Input: React.FC<InputProps> = ({ label, id, wrapperClassName = '', icon, e
   
   const baseInputClasses = "block w-full rounded-lg border text-sm transition-all duration-200 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 shadow-inner";
   
-  // Style: "Carved out" look with very dark background (slate-950) and subtle borders
-  const styleClasses = "bg-slate-950/50 border-slate-800 text-slate-200 placeholder-slate-500 focus:border-primary/50 focus:ring-primary/20 hover:border-slate-700 focus:bg-slate-900/80";
+  // Style: Deep background for "carved" look, light border on hover
+  const styleClasses = "bg-slate-950/60 border-white/10 text-slate-100 placeholder-slate-500 focus:border-fuchsia-500/50 focus:ring-fuchsia-500/20 hover:border-white/20 focus:bg-slate-900";
   
   const errorClasses = error 
-    ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20' 
+    ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20 text-red-200' 
     : '';
 
   const paddingClasses = hasIcon ? 'pl-10 pr-3 py-2.5' : 'px-3 py-2.5';
@@ -25,13 +25,13 @@ const Input: React.FC<InputProps> = ({ label, id, wrapperClassName = '', icon, e
   return (
     <div className={wrapperClassName}>
       {label && (
-        <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1.5 ml-0.5">
+        <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5 ml-0.5">
           {label}
         </label>
       )}
       <div className="relative group">
         {hasIcon && (
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-primary-400 transition-colors">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-fuchsia-400 transition-colors">
             {icon}
           </div>
         )}

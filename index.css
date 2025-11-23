@@ -5,7 +5,7 @@
 @layer base {
   :root {
     /* Base System Colors - Deep Dark Mode */
-    --background: 224 71% 4%; /* #020617 - Very dark slate/blue */
+    --background: 224 71% 4%; /* #020617 */
     --foreground: 210 40% 98%;
 
     --card: 224 71% 4%;
@@ -36,42 +36,38 @@
 
     --radius: 0.75rem;
   }
-}
 
-@layer base {
   * {
-    @apply border-border;
+    @apply border-border box-border;
   }
   
   html {
     -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    
+    /* Standard Scrollbar (Firefox) */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(71, 85, 105, 0.5) transparent;
   }
   
+  /* Prevent body scroll when mobile menu is open if needed, 
+     but generally MainLayout handles overflow */
   html, body {
     height: 100%;
-    overflow: hidden; /* Prevent double scrollbars - layout handles scroll */
+    overflow: hidden; 
   }
 
-  /* --- Global Interactions --- */
-  
-  /* Custom Text Selection Color */
-  ::selection {
-    @apply bg-primary-500/30 text-white;
-  }
-
-  /* Focus Management for Accessibility & Aesthetics */
+  /* Focus Management */
   :focus-visible {
     @apply outline-none ring-2 ring-primary-500/50 ring-offset-2 ring-offset-[#020617];
   }
 
-  /* Modern Scrollbar - Minimalist & Integrated */
+  /* Webkit Scrollbar - Minimalist & Integrated */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -86,82 +82,45 @@
     @apply bg-slate-600/80;
   }
   
-  /* Global Table Styles for Consistency */
-  thead tr th {
-    @apply text-xs font-semibold uppercase tracking-wider text-slate-300 bg-slate-950/60 backdrop-blur-md;
+  /* Global Text Selection */
+  ::selection {
+    @apply bg-fuchsia-500/30 text-fuchsia-100;
   }
 }
 
 @layer utilities {
-  /* --- Design System Tokens --- */
-
-  /* Premium Glassmorphism Utility */
-  .glass-panel {
-    @apply bg-slate-900/60 backdrop-blur-md border border-white/[0.08] shadow-xl;
-  }
-  
-  /* Typography Gradients */
+  /* Typography */
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-slate-400;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400;
   }
 
   .text-gradient-primary {
     @apply bg-clip-text text-transparent bg-gradient-to-br from-fuchsia-400 to-purple-600;
   }
   
-  /* Subtle grain texture for backgrounds */
+  /* Backgrounds */
   .bg-noise {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
   }
 
-  /* Table Utilities */
-  .table-glass {
-    @apply w-full text-left border-collapse;
-  }
-  .table-glass th {
-    @apply p-4 text-slate-200 bg-black/20 font-semibold border-b border-white/[0.1] uppercase text-xs tracking-wider;
-  }
-  .table-glass td {
-    @apply p-4 border-b border-white/[0.04] transition-colors;
-  }
-  .table-glass tr:hover td {
-    @apply bg-white/[0.02];
-  }
+  /* Animations */
+  .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+  .animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+  .animate-fade-in-down { animation: fadeInDown 0.3s ease-out forwards; }
+  .animate-scale-in { animation: scaleIn 0.2s ease-out forwards; }
 
-  /* --- Animations --- */
-  .animate-fade-in {
-    animation: fadeIn 0.3s ease-out forwards;
-  }
-  
-  .animate-fade-in-up {
-    animation: fadeInUp 0.4s ease-out forwards;
-  }
-
-  .animate-scale-in {
-    animation: scaleIn 0.2s ease-out forwards;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes scaleIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
-  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 }
 
-/* Main App Background - Deep & Atmospheric */
+/* Main App Background - Optimized for depth */
 .main-app-background {
     background-color: #020617;
     background-image: 
-        radial-gradient(at 0% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%),
-        radial-gradient(at 100% 0%, rgba(236, 72, 153, 0.1) 0px, transparent 50%);
+        radial-gradient(at 0% 0%, rgba(168, 85, 247, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(236, 72, 153, 0.08) 0px, transparent 50%);
     background-attachment: fixed;
+    min-height: 100vh;
 }
