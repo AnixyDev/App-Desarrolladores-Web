@@ -1,3 +1,4 @@
+
 // /api/send-email.ts
 import { Resend } from 'resend';
 
@@ -16,7 +17,6 @@ interface ApiResponse {
   };
 }
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = 'DevFreelancer <noreply@devfreelancer.app>';
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
@@ -35,6 +35,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         console.warn("ADVERTENCIA: RESEND_API_KEY no está configurada. Simulando envío de email exitoso.");
         return res.status(200).json({ message: "Simulación de envío exitosa. Configura RESEND_API_KEY para envíos reales." });
     }
+
+    // Initialize Resend inside the handler to prevent client-side build errors
+    // or runtime crashes if the environment variable is missing at module load time.
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
