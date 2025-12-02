@@ -1,109 +1,74 @@
-
-// services/stripeService.ts
-import { supabase } from '../lib/supabaseClient';
-
-const getAuthHeader = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error("No autenticado. Por favor, inicia sesión de nuevo.");
-    return { 
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json'
-    };
-};
-
-type CheckoutItemKey = 'proPlan' | 'teamsPlan' | 'credits100' | 'credits500' | 'credits1000' | 'featuredJob' | 'invoice_payment';
-
-interface CheckoutOptions {
-    invoiceId?: string;
-    amount_cents?: number;
-    description?: string;
-}
-
-export const redirectToCheckout = async (itemKey: CheckoutItemKey, options: CheckoutOptions = {}) => {
-    const authHeaders = await getAuthHeader();
-    const body = { itemKey, ...options };
-
-    const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify(body),
-    });
-
-    const data = await response.json();
-    if (response.ok && data.url) {
-        window.location.href = data.url;
-    } else {
-        throw new Error(data.error || 'No se pudo iniciar el pago.');
+// These item keys match what's expected in the PaymentHandler component
+export const STRIPE_ITEMS = {
+    proPlan: {
+        priceId: 'price_pro_plan_monthly', // Example Price ID from Stripe
+        mode: 'subscription' as const,
+        name: 'Plan Pro',
+        description: 'Acceso ilimitado y funciones avanzadas.',
+    },
+    teamsPlan: {
+        priceId: 'price_teams_plan_monthly',
+        mode: 'subscription' as const,
+        name: 'Plan Teams',
+        description: 'Colaboración en equipo y gestión de roles.'
+    },
+    aiCredits500: {
+        priceId: 'price_credits_500',
+        mode: 'payment' as const,
+        name: '500 Créditos de IA',
+        credits: 500,
+    },
+    aiCredits1500: {
+        priceId: 'price_credits_1500',
+        mode: 'payment' as const,
+        name: '1500 Créditos de IA',
+        credits: 1500,
+    },
+    featuredJobPost: {
+        priceId: 'price_featured_job_post',
+        mode: 'payment' as const,
+        name: 'Oferta de Trabajo Destacada',
+    },
+    // This is a dynamic item for invoices, so it won't have a static price ID here.
+    invoicePayment: {
+        mode: 'payment' as const,
+        name: 'Pago de Factura',
     }
 };
 
-export const createConnectAccount = async () => {
-    const authHeaders = await getAuthHeader();
-    const response = await fetch('/api/create-connect-account', {
-        method: 'POST',
-        headers: authHeaders,
-    });
+export type StripeItemKey = keyof typeof STRIPE_ITEMS;
 
-    const data = await response.json();
-    if (response.ok && data.url) {
-        window.location.href = data.url;
-    } else {
-        throw new Error(data.error || 'No se pudo conectar con Stripe.');
+/**
+ * Redirects the user to a Stripe Checkout session.
+ * This is a mock function that simulates a call to a serverless function.
+ * @param itemKey The key of the item in STRIPE_ITEMS.
+ * @param extraParams Additional parameters to pass to the checkout session, like invoice_id.
+ */
+export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Record<string, any> = {}) => {
+    const item = STRIPE_ITEMS[itemKey];
+
+    if (!item) {
+        throw new Error('El artículo de compra no es válido.');
     }
-};
 
-interface CustomerPortalOptions {
-    email: string;
-    name: string;
-    id: string;
-}
+    // In a real application, you would make a POST request to a backend endpoint.
+    // This endpoint would create a Stripe Checkout Session and return its URL.
+    // For this simulation, we'll just redirect to a success or cancelled URL with parameters.
+    // This mimics Stripe's redirect behavior.
+    console.log(`Simulating Stripe checkout for: ${item.name}`, extraParams);
+    
+    // Simulate a successful payment redirection for demonstration purposes.
+    const baseUrl = window.location.href.split('#')[0];
+    const hashPath = window.location.hash.split('?')[0];
 
-export const redirectToCustomerPortal = async (options: CustomerPortalOptions) => {
-    const authHeaders = await getAuthHeader();
-    const response = await fetch('/api/create-portal-session', {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({
-            clientEmail: options.email,
-            clientName: options.name,
-            clientId: options.id
-        }),
-    });
-
-    const data = await response.json();
-    if (response.ok && data.url) {
-        window.location.href = data.url;
-    } else {
-        throw new Error(data.error || 'No se pudo abrir el portal del cliente.');
+    const params = new URLSearchParams();
+    params.set('payment', 'success');
+    params.set('item', itemKey);
+    for (const key in extraParams) {
+        params.set(key, extraParams[key]);
     }
-};
-
-export const redirectToFreelancerPortal = async () => {
-    const authHeaders = await getAuthHeader();
-    const response = await fetch('/api/create-freelancer-portal-session', {
-        method: 'POST',
-        headers: authHeaders,
-    });
-
-    const data = await response.json();
-    if (response.ok && data.url) {
-        window.location.href = data.url;
-    } else {
-        throw new Error(data.error || 'No se pudo abrir tu portal de facturación.');
-    }
-};
-
-export const redirectToConnectDashboard = async () => {
-    const authHeaders = await getAuthHeader();
-    const response = await fetch('/api/create-connect-dashboard-link', {
-        method: 'POST',
-        headers: authHeaders,
-    });
-
-    const data = await response.json();
-    if (response.ok && data.url) {
-        window.location.href = data.url;
-    } else {
-        throw new Error(data.error || 'No se pudo abrir el panel de Stripe.');
-    }
+    
+    // Simulate redirecting to Stripe and then back to our app
+    // We'll just directly go to the success URL for this mock.
+    window.location.href = `${baseUrl}${hashPath}?${params.toString()}`;
 };

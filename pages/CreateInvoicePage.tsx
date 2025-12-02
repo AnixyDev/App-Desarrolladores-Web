@@ -1,17 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAppStore } from '../hooks/useAppStore';
-import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
-import Select from '../components/ui/Select';
-import Textarea from '../components/ui/Textarea';
-import Modal from '../components/ui/Modal';
-import { InvoiceItem } from '../types';
-import { PlusIcon, TrashIcon, SparklesIcon, RepeatIcon, SaveIcon } from '../components/icons/Icon';
-import { useToast } from '../hooks/useToast';
-import { generateItemsForDocument, AI_CREDIT_COSTS } from '../services/geminiService';
-import BuyCreditsModal from '../components/modals/BuyCreditsModal';
+import { useAppStore } from '../hooks/useAppStore.tsx';
+import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card.tsx';
+import Button from '../components/ui/Button.tsx';
+import Input from '../components/ui/Input.tsx';
+import Modal from '../components/ui/Modal.tsx';
+import { InvoiceItem } from '../types.ts';
+import { PlusIcon, TrashIcon, SparklesIcon, RepeatIcon } from '../components/icons/Icon.tsx';
+import { useToast } from '../hooks/useToast.ts';
+import { generateItemsForDocument, AI_CREDIT_COSTS } from '../services/geminiService.ts';
+import BuyCreditsModal from '../components/modals/BuyCreditsModal.tsx';
 
 
 const CreateInvoicePage: React.FC = () => {
@@ -22,9 +20,7 @@ const CreateInvoicePage: React.FC = () => {
         profile, 
         addInvoice,
         addRecurringInvoice,
-        consumeCredits,
-        invoiceTemplates,
-        addInvoiceTemplate
+        consumeCredits
     } = useAppStore();
     const navigate = useNavigate();
     const location = useLocation();
@@ -47,16 +43,11 @@ const CreateInvoicePage: React.FC = () => {
     const [aiPrompt, setAiPrompt] = useState('');
     const [isAiLoading, setIsAiLoading] = useState(false);
     const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
-    const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
-    const [templateName, setTemplateName] = useState('');
     
     useEffect(() => {
-        const state = location.state as { projectId?: string, clientId?: string, timeEntryIds?: string[], budgetItems?: InvoiceItem[] } | null;
-        const { projectId, clientId, timeEntryIds, budgetItems } = state || {};
-        let stateHandled = false;
+        const { projectId, clientId, timeEntryIds, budgetItems } = location.state || {};
 
         if (clientId && projectId && timeEntryIds && timeEntryIds.length > 0) {
-            stateHandled = true;
             setTimeEntryIdsToBill(timeEntryIds);
             const entriesToBill = timeEntries.filter(t => timeEntryIds.includes(t.id));
 
@@ -80,7 +71,6 @@ const CreateInvoicePage: React.FC = () => {
                  setNewInvoice(prev => ({ ...prev, client_id: clientId, project_id: projectId }));
             }
         } else if (clientId && projectId && budgetItems && budgetItems.length > 0) {
-            stateHandled = true;
             setNewInvoice(prev => ({
                 ...prev,
                 client_id: clientId,
@@ -88,20 +78,10 @@ const CreateInvoicePage: React.FC = () => {
                 items: budgetItems,
             }));
             addToast('Factura pre-rellenada desde el presupuesto del proyecto.', 'info');
-        } else if (clientId && projectId) {
-            stateHandled = true;
-            setNewInvoice(prev => ({
-                ...prev,
-                client_id: clientId,
-                project_id: projectId,
-            }));
-            addToast('Cliente y proyecto pre-seleccionados.', 'info');
         }
 
-        if (stateHandled) {
-            // Clear state from navigation after using it
-             window.history.replaceState({}, document.title);
-        }
+        // Clear state from navigation after using it
+        window.history.replaceState({}, document.title);
     }, [location.state, timeEntries, profile.hourly_rate_cents, addToast]);
 
 
@@ -143,32 +123,6 @@ const CreateInvoicePage: React.FC = () => {
         if (newInvoice.items.length > 1) {
             const items = newInvoice.items.filter((_, i) => i !== index);
             setNewInvoice(prev => ({ ...prev, items }));
-        }
-    };
-
-    const handleSaveTemplate = () => {
-        if (templateName) {
-            addInvoiceTemplate({
-                name: templateName,
-                items: newInvoice.items,
-                tax_percent: newInvoice.tax_percent
-            });
-            addToast(`Plantilla "${templateName}" guardada.`, 'success');
-            setIsTemplateModalOpen(false);
-            setTemplateName('');
-        }
-    };
-
-    const handleLoadTemplate = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const templateId = e.target.value;
-        const template = invoiceTemplates.find(t => t.id === templateId);
-        if (template) {
-            setNewInvoice(prev => ({
-                ...prev,
-                items: template.items,
-                tax_percent: template.tax_percent
-            }));
-            addToast(`Plantilla "${template.name}" cargada.`, 'info');
         }
     };
 
@@ -229,28 +183,20 @@ const CreateInvoicePage: React.FC = () => {
                 <Button type="button" variant="secondary" onClick={() => navigate('/invoices')}>Cancelar</Button>
             </div>
             <Card>
-                <CardHeader>
-                    <div className="flex justify-end">
-                         <Select onChange={handleLoadTemplate} className="w-full sm:w-64">
-                            <option value="">Cargar desde plantilla...</option>
-                            {invoiceTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                        </Select>
-                    </div>
-                </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                              <label className="block text-sm font-medium text-gray-300 mb-1">Cliente</label>
-                             <Select name="client_id" value={newInvoice.client_id} onChange={handleInputChange}>
+                             <select name="client_id" value={newInvoice.client_id} onChange={handleInputChange} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
                                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </Select>
+                            </select>
                         </div>
                          <div>
                              <label className="block text-sm font-medium text-gray-300 mb-1">Proyecto (Opcional)</label>
-                             <Select name="project_id" value={newInvoice.project_id} onChange={handleInputChange}>
+                             <select name="project_id" value={newInvoice.project_id} onChange={handleInputChange} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
                                 <option value="">Ninguno</option>
                                 {clientProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </Select>
+                            </select>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -268,10 +214,10 @@ const CreateInvoicePage: React.FC = () => {
                             <div className="grid grid-cols-2 gap-4 mt-4 p-4 bg-gray-800/50 rounded-lg">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-300 mb-1">Frecuencia</label>
-                                    <Select name="frequency" value={newInvoice.frequency} onChange={handleInputChange}>
+                                    <select name="frequency" value={newInvoice.frequency} onChange={handleInputChange} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
                                         <option value="monthly">Mensual</option>
                                         <option value="yearly">Anual</option>
-                                    </Select>
+                                    </select>
                                 </div>
                                  <Input label="Fecha de Inicio" name="start_date" type="date" value={newInvoice.start_date} onChange={handleInputChange} />
                             </div>
@@ -297,10 +243,7 @@ const CreateInvoicePage: React.FC = () => {
                     ))}
                     <Button type="button" variant="secondary" size="sm" onClick={addItem}><PlusIcon className="w-4 h-4 mr-1"/>Añadir Concepto</Button>
                 </CardContent>
-                <CardFooter className="flex justify-end gap-2">
-                     <Button type="button" variant="secondary" onClick={() => setIsTemplateModalOpen(true)}>
-                        <SaveIcon className="w-4 h-4 mr-2" />Guardar como Plantilla
-                     </Button>
+                <CardFooter className="flex justify-end">
                      <Button type="submit">Guardar Factura</Button>
                 </CardFooter>
             </Card>
@@ -309,21 +252,10 @@ const CreateInvoicePage: React.FC = () => {
             <Modal isOpen={isAIGeneratorOpen} onClose={() => setIsAIGeneratorOpen(false)} title="Generar Conceptos con IA">
                 <div className="space-y-4">
                     <label className="block text-sm font-medium text-gray-300 mb-1">Describe los conceptos a facturar:</label>
-                    <Textarea value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} rows={4} placeholder="Ej: desarrollo de API de autenticación, 3 endpoints, y configuración de base de datos."/>
+                    <textarea value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} rows={4} className="w-full p-2 bg-gray-800 text-gray-300 border border-gray-700 rounded-md" placeholder="Ej: desarrollo de API de autenticación, 3 endpoints, y configuración de base de datos."/>
                     <div className="flex justify-end pt-2">
                         <Button onClick={handleAiGenerate} disabled={isAiLoading || !aiPrompt}>
                            {isAiLoading ? 'Generando...' : `Generar (${AI_CREDIT_COSTS.generateInvoiceItems} créditos)`}
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
-            
-            <Modal isOpen={isTemplateModalOpen} onClose={() => setIsTemplateModalOpen(false)} title="Guardar Plantilla de Factura">
-                <div className="space-y-4">
-                    <Input label="Nombre de la Plantilla" value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="Ej: Factura de Mantenimiento Mensual" />
-                    <div className="flex justify-end pt-2">
-                        <Button onClick={handleSaveTemplate} disabled={!templateName}>
-                            Guardar Plantilla
                         </Button>
                     </div>
                 </div>

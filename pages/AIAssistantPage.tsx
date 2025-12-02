@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
+// FIX: Remove .tsx extensions from imports to fix module resolution errors.
 import { SendIcon, SparklesIcon, UserIcon } from '../components/icons/Icon';
 import { getAIResponse } from '../services/geminiService';
 import { useAppStore } from '../hooks/useAppStore';
@@ -102,9 +103,8 @@ const AIAssistantPage: React.FC = () => {
                     let functionResult: any;
                     switch (call.name) {
                         case 'addExpense':
-                            // FIX: Cast arguments from function call to their expected types
-                            const { description, amount, category } = call.args as { description: string, amount: number, category: string };
-                            await store.addExpense({
+                            const { description, amount, category } = call.args;
+                            store.addExpense({
                                 description,
                                 amount_cents: Math.round(amount * 100),
                                 category,
@@ -117,8 +117,7 @@ const AIAssistantPage: React.FC = () => {
                             break;
                         
                         case 'createInvoice':
-                            // FIX: Cast arguments from function call to their expected types
-                            const { clientName, projectName, items } = call.args as { clientName: string, projectName?: string, items: any[] };
+                            const { clientName, projectName, items } = call.args;
                             const client = store.getClientByName(clientName);
                             const project = projectName ? store.getProjectByName(projectName) : null;
 
@@ -132,7 +131,7 @@ const AIAssistantPage: React.FC = () => {
                                     quantity: item.quantity,
                                     price_cents: Math.round(item.amount * 100),
                                 }));
-                                await store.addInvoice({
+                                store.addInvoice({
                                     client_id: client.id,
                                     project_id: project ? project.id : null,
                                     items: invoiceItems,

@@ -1,12 +1,15 @@
+
+
+
 import React, { useState, useEffect } from 'react';
-import Modal from '../ui/Modal';
-import Button from '../ui/Button';
-import { SparklesIcon, RefreshCwIcon, SendIcon } from '../icons/Icon';
-import { generateProposalText, refineProposalText, AI_CREDIT_COSTS } from '../../services/geminiService';
-import { useAppStore } from '../../hooks/useAppStore';
-import { useToast } from '../../hooks/useToast';
-import BuyCreditsModal from './BuyCreditsModal';
-import { Job } from '../../types';
+import Modal from '../ui/Modal.tsx';
+import Button from '../ui/Button.tsx';
+import { SparklesIcon, RefreshCwIcon, SendIcon } from '../icons/Icon.tsx';
+import { generateProposalText, refineProposalText, AI_CREDIT_COSTS } from '../../services/geminiService.ts';
+import { useAppStore } from '../../hooks/useAppStore.tsx';
+import { useToast } from '../../hooks/useToast.ts';
+import BuyCreditsModal from './BuyCreditsModal.tsx';
+import { Job } from '../../types.ts';
 
 
 interface ProposalGeneratorModalProps {
@@ -39,7 +42,7 @@ const ProposalGeneratorModal: React.FC<ProposalGeneratorModalProps> = ({ isOpen,
             consumeCredits(AI_CREDIT_COSTS.generateProposal);
             addToast('Propuesta generada con IA', 'success');
         } catch (error) {
-            addToast(`Error al generar la propuesta: ${(error as Error).message}`, 'error');
+            addToast('Error al generar la propuesta', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -58,7 +61,7 @@ const ProposalGeneratorModal: React.FC<ProposalGeneratorModalProps> = ({ isOpen,
             consumeCredits(AI_CREDIT_COSTS.refineProposal);
             addToast(`Propuesta refinada a un tono más ${refinementType}`, 'success');
         } catch (error) {
-            addToast(`Error al refinar la propuesta: ${(error as Error).message}`, 'error');
+            addToast('Error al refinar la propuesta', 'error');
         } finally {
             setIsRefining(false);
         }
@@ -75,31 +78,24 @@ const ProposalGeneratorModal: React.FC<ProposalGeneratorModalProps> = ({ isOpen,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, job]);
 
-    const handleSendApplication = async () => {
+    const handleSendApplication = () => {
         if (!profile) return;
-        setIsLoading(true);
-        try {
-            await applyForJob(job.id, profile.id, proposalText);
-            addToast(`Postulación para "${job.titulo}" enviada con éxito.`, 'success');
-            onClose();
-        } catch (error) {
-            addToast(`Error al enviar la postulación: ${(error as Error).message}`, 'error');
-        } finally {
-            setIsLoading(false);
-        }
+        applyForJob(job.id, profile.id, proposalText);
+        addToast(`Postulación para "${job.titulo}" enviada con éxito.`, 'success');
+        onClose();
     };
 
     return (
         <>
             <Modal isOpen={isOpen} onClose={onClose} title={`Aplicar a: ${job.titulo}`}>
                 <div className="space-y-4">
-                    {isLoading && !proposalText && (
+                    {isLoading && (
                         <div className="text-center p-8">
                             <RefreshCwIcon className="w-10 h-10 text-primary-400 mx-auto animate-spin mb-4" />
                             <p className="text-white">Analizando la oferta y generando tu propuesta...</p>
                         </div>
                     )}
-                    {!isLoading || proposalText ? (
+                    {!isLoading && proposalText && (
                         <div>
                             <h3 className="font-semibold text-white mb-2">Borrador de Propuesta (puedes editarlo):</h3>
                             <textarea
@@ -118,17 +114,17 @@ const ProposalGeneratorModal: React.FC<ProposalGeneratorModalProps> = ({ isOpen,
                             </div>
                              {isRefining && <p className="text-xs text-primary-400 text-center mt-2">Refinando propuesta...</p>}
                             <div className="flex justify-end gap-2 pt-4 border-t border-gray-700 mt-4">
-                                <Button variant="secondary" onClick={handleGenerate} disabled={isLoading}>
+                                <Button variant="secondary" onClick={handleGenerate}>
                                     <SparklesIcon className="w-4 h-4 mr-2" />
                                     Volver a Generar
                                 </Button>
-                                <Button onClick={handleSendApplication} disabled={isLoading}>
-                                    {isLoading ? <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin"/> : <SendIcon className="w-4 h-4 mr-2" />}
+                                <Button onClick={handleSendApplication}>
+                                    <SendIcon className="w-4 h-4 mr-2" />
                                     Enviar Postulación
                                 </Button>
                             </div>
                         </div>
-                    ) : null}
+                    )}
                 </div>
             </Modal>
             <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />

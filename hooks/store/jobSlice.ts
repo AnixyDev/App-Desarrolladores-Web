@@ -1,84 +1,81 @@
-import { supabase } from '../../lib/supabaseClient';
-import type { StateCreator } from 'zustand';
-import type { AppStore } from '../useAppStore';
-import { Job, JobApplication } from '../../types';
+// hooks/store/jobSlice.ts
+import { StateCreator } from 'zustand';
+import { Job, JobApplication } from '../../types.ts';
+import { AppState } from '../useAppStore.tsx';
 
 export interface JobSlice {
-    jobs: Job[];
-    applications: JobApplication[];
-    savedJobIds: string[];
-
-    // Marketplace
-    fetchJobs: () => Promise<void>;
-    fetchApplications: () => Promise<void>;
-    addJob: (newJob: Partial<Job>) => Promise<void>;
-    saveJob: (jobId: string) => void;
-    applyForJob: (jobId: string, userId: string, proposalText: string) => Promise<void>;
-    viewApplication: (appId: string) => Promise<void>;
+  jobs: Job[];
+  applications: JobApplication[];
+  savedJobIds: string[];
+  notifiedJobIds: string[];
+  getJobById: (id: string) => Job | undefined;
+  getApplicationsByUserId: (userId: string) => JobApplication[];
+  getApplicationsByJobId: (jobId: string) => JobApplication[];
+  getSavedJobs: () => Job[];
+  addJob: (job: Omit<Job, 'id'>) => void;
+  applyForJob: (jobId: string, userId: string, proposalText: string) => void;
+  viewApplication: (applicationId: string) => void;
+  saveJob: (jobId: string) => void;
+  markJobAsNotified: (jobId: string) => void;
 }
 
-export const createJobSlice: StateCreator<AppStore, [], [], JobSlice> = (set, get) => ({
+export const createJobSlice: StateCreator<AppState, [], [], JobSlice> = (set, get) => ({
     jobs: [],
     applications: [],
     savedJobIds: [],
-
-    fetchJobs: async () => {
-        const { data, error } = await supabase.from('jobs').select('*');
-        if (error) throw error;
-        set({ jobs: data || [] });
+    notifiedJobIds: [],
+    getJobById: (id) => get().jobs.find(j => j.id === id),
+    getApplicationsByUserId: (userId) => get().applications.filter(app => app.userId === userId),
+    getApplicationsByJobId: (jobId) => get().applications.filter(app => app.jobId === jobId),
+    getSavedJobs: () => {
+        const { jobs, savedJobIds } = get();
+        return jobs.filter(job => savedJobIds.includes(job.id));
     },
-
-    fetchApplications: async () => {
-        const { data, error } = await supabase.from('job_applications').select('*');
-        if (error) throw error;
-        set({ applications: data || [] });
+    addJob: (job) => {
+        const newJob: Job = {
+            ...job,
+            id: `job-${Date.now()}`,
+        };
+        set(state => ({ jobs: [newJob, ...state.jobs] }));
     },
+    applyForJob: (jobId, userId, proposalText) => {
+        const job = get().getJobById(jobId);
+        const profile = get().profile;
 
-    addJob: async (newJob) => {
-        const userId = get().profile?.id;
-        if (!userId) throw new Error("User not authenticated");
+        if (!job || !profile) return;
 
-        const jobToInsert = { ...newJob, postedByUserId: userId };
-
-        const { data, error } = await supabase.from('jobs').insert(jobToInsert).select().single();
-        if (error) throw error;
-        set(state => ({ jobs: [...state.jobs, data] }));
+        const newApplication: JobApplication = {
+            id: `app-${Date.now()}`,
+            jobId,
+            userId,
+            applicantName: profile.full_name,
+            jobTitle: job.titulo,
+            proposalText,
+            status: 'sent',
+            appliedAt: new Date().toISOString(),
+        };
+        set(state => ({ applications: [newApplication, ...state.applications] }));
     },
-
-    saveJob: (jobId) => {
-        // This remains a client-side preference, persisted via zustand/persist middleware
+    viewApplication: (applicationId: string) => {
         set(state => ({
-            savedJobIds: state.savedJobIds.includes(jobId)
-                ? state.savedJobIds.filter(id => id !== jobId)
-                : [...state.savedJobIds, jobId],
+            applications: state.applications.map(app => 
+                app.id === applicationId && app.status === 'sent' 
+                ? { ...app, status: 'viewed' } 
+                : app
+            )
         }));
     },
-    
-    applyForJob: async (jobId, userId, proposalText) => {
-        const job = get().jobs.find(j => j.id === jobId);
-        if (job) {
-            const newApplication: Omit<JobApplication, 'id' | 'appliedAt'> = {
-                jobId,
-                userId,
-                applicantName: get().profile!.full_name,
-                jobTitle: job.titulo,
-                proposalText,
-                status: 'sent',
-            };
-            const { data, error } = await supabase.from('job_applications').insert(newApplication).select().single();
-            if (error) throw error;
-            set(state => ({ applications: [...state.applications, data] }));
+    saveJob: (jobId) => {
+        const { savedJobIds } = get();
+        if (savedJobIds.includes(jobId)) {
+            set({ savedJobIds: savedJobIds.filter(id => id !== jobId) });
+        } else {
+            set({ savedJobIds: [...savedJobIds, jobId] });
         }
     },
-
-    viewApplication: async (appId) => {
-        const application = get().applications.find(a => a.id === appId);
-        if (application && application.status === 'sent') {
-            const { data, error } = await supabase.from('job_applications').update({ status: 'viewed' }).eq('id', appId).select().single();
-            if (error) throw error;
-            set(state => ({
-                applications: state.applications.map(app => app.id === appId ? data : app)
-            }));
-        }
-    },
+    markJobAsNotified: (jobId) => {
+        set(state => ({
+            notifiedJobIds: [...new Set([...state.notifiedJobIds, jobId])]
+        }));
+    }
 });

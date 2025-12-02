@@ -3,7 +3,6 @@ import { useAppStore } from '../hooks/useAppStore';
 import { Users as UsersIcon, UserIcon, ShieldIcon, BriefcaseIcon, EditIcon, SaveIcon, TrashIcon, DollarSignIcon } from '../components/icons/Icon';
 import { UserData } from '../types';
 import { formatCurrency } from '../lib/utils';
-import { Link } from 'react-router-dom';
 
 const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal'));
 
@@ -67,11 +66,7 @@ const UserRow: React.FC<UserRowProps> = ({ user, onUpdateRole, onUpdateStatus, o
 
     return (
         <div className="grid grid-cols-12 gap-4 items-center p-4 border-b border-gray-700 hover:bg-gray-800 transition">
-            <div className="col-span-4 text-white">
-                <span className="font-semibold">
-                    {user.name.split('(')[0].trim()}
-                </span>
-                <p className="text-xs text-gray-400">{user.email}</p></div>
+            <div className="col-span-4 text-white"><p className="font-semibold">{user.name.split('(')[0].trim()}</p><p className="text-xs text-gray-400">{user.email}</p></div>
             <div className="col-span-2">
                 {isEditing && !isCurrentUser ? (
                     <select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value as Role['id'])} className="w-full p-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-fuchsia-500 outline-none text-sm">

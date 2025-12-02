@@ -1,56 +1,22 @@
 // pages/ProjectDetailPage.tsx
-import React, { useState, useMemo, lazy, Suspense, useRef, useEffect } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+// FIX: Remove .tsx and .ts extensions from imports to resolve module resolution errors.
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import Select from '../components/ui/Select';
-import Textarea from '../components/ui/Textarea';
-import { formatCurrency, generateICSFile } from '../lib/utils';
-import { Project, Task, InvoiceItem, ProjectFile, ProjectChangeLog } from '../types';
-import { PlusIcon, TrashIcon, ClockIcon, FileTextIcon, MessageSquareIcon, DollarSignIcon, Paperclip, Upload, Trash2, EditIcon, CalendarPlus, DownloadIcon, RefreshCwIcon, LinkIcon, AlertTriangleIcon, CheckCircleIcon, SparklesIcon } from '../components/icons/Icon';
+import { formatCurrency } from '../lib/utils';
+import { Project, Task, InvoiceItem } from '../types';
+import { PlusIcon, TrashIcon, ClockIcon, FileTextIcon, MessageSquareIcon, DollarSignIcon } from '../components/icons/Icon';
 import EmptyState from '../components/ui/EmptyState';
-import { useToast } from '../hooks/useToast';
-import Modal from '../components/ui/Modal';
-import { generateProjectBudgetPdf } from '../services/pdfService';
-import { analyzeProjectRisk, AI_CREDIT_COSTS } from '../services/geminiService';
 
 const ProjectChat = lazy(() => import('../components/ProjectChat'));
 const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal'));
-const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal'));
-
-const HistoryFeed: React.FC<{ logs: ProjectChangeLog[] }> = ({ logs }) => {
-    if (logs.length === 0) return <p className="text-sm text-gray-500">No hay cambios registrados.</p>;
-
-    const sortedLogs = [...logs].sort((a, b) => new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime());
-
-    return (
-        <div className="relative pl-4 border-l border-gray-700 space-y-6">
-            {sortedLogs.map((log) => (
-                <div key={log.id} className="relative">
-                    <div className="absolute -left-[21px] top-1 h-3 w-3 rounded-full border-2 border-gray-900 bg-gray-500"></div>
-                    <p className="text-sm text-gray-300">
-                        <span className="font-semibold text-white">{log.field}</span>
-                        {log.field === 'created' ? (
-                            <span> {log.new_value}</span>
-                        ) : (
-                            <span> cambió de <span className="text-red-300 line-through">{log.old_value || '(vacío)'}</span> a <span className="text-green-400">{log.new_value}</span></span>
-                        )}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                        Por {log.changed_by} • {new Date(log.changed_at).toLocaleString()}
-                    </p>
-                </div>
-            ))}
-        </div>
-    );
-};
 
 const ProjectDetailPage: React.FC = () => {
     const { projectId } = useParams<{ projectId: string }>();
     const navigate = useNavigate();
-    const { addToast } = useToast();
 
     const {
         getProjectById,
@@ -60,101 +26,25 @@ const ProjectDetailPage: React.FC = () => {
         expenses,
         profile,
         addTask,
-        updateTaskStatus,
+        toggleTask,
         deleteTask,
-        updateProject,
-        updateProjectStatus,
-        updateProjectBudget,
-        projectFiles,
-        addProjectFile,
-        deleteProjectFile,
-        projectLogs,
-        fetchProjectLogs,
-        consumeCredits
+        updateProjectStatus
     } = useAppStore();
 
     const [newTaskDescription, setNewTaskDescription] = useState('');
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
-    const [isDeleteFileModalOpen, setIsDeleteFileModalOpen] = useState(false);
-    const [fileToDelete, setFileToDelete] = useState<ProjectFile | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [currentProjectForEdit, setCurrentProjectForEdit] = useState<Project | null>(null);
-    const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
-    const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
-    const [linkInput, setLinkInput] = useState('');
-    const [riskAnalysis, setRiskAnalysis] = useState<{ riskLevel: string, analysis: string, actions: string[] } | null>(null);
-    const [isAnalyzingRisk, setIsAnalyzingRisk] = useState(false);
-    const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
 
     const project = projectId ? getProjectById(projectId) : undefined;
     const client = project ? getClientById(project.client_id) : undefined;
     const tasks = projectId ? getTasksByProjectId(projectId) : [];
     
-    const [isEditingBudget, setIsEditingBudget] = useState(false);
-    const [budgetInput, setBudgetInput] = useState(0);
-
-    useEffect(() => {
-        if (project) {
-            setBudgetInput((project.budget_cents || 0) / 100);
-        }
-    }, [project]);
-
-    useEffect(() => {
-        if (projectId) {
-            fetchProjectLogs(projectId);
-        }
-    }, [projectId, fetchProjectLogs]);
-
-    const handleBudgetSave = async () => {
-        if (project) {
-            if (budgetInput < 0 || isNaN(budgetInput)) {
-                addToast('El presupuesto debe ser un número válido y positivo.', 'error');
-                return;
-            }
-
-            try {
-                await updateProjectBudget(project.id, Math.round(budgetInput * 100));
-                addToast('Presupuesto actualizado.', 'success');
-                setIsEditingBudget(false);
-            } catch (error) {
-                addToast(`Error al actualizar el presupuesto: ${(error as Error).message}`, 'error');
-            }
-        }
-    };
-
-    const handleLinkSave = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (project) {
-            try {
-                await updateProject({ id: project.id, external_link: linkInput });
-                addToast('Enlace externo añadido.', 'success');
-                setIsLinkModalOpen(false);
-            } catch (error) {
-                addToast(`Error al añadir el enlace: ${(error as Error).message}`, 'error');
-            }
-        }
-    };
-
     const projectTimeEntries = useMemo(() => {
         return timeEntries.filter(entry => entry.project_id === projectId);
     }, [timeEntries, projectId]);
 
-    const unbilledTimeEntries = useMemo(() => {
-        return projectTimeEntries.filter(entry => !entry.invoice_id);
-    }, [projectTimeEntries]);
-
-    const projectFilesForProject = useMemo(() => {
-        return projectFiles.filter(file => file.project_id === projectId);
-    }, [projectFiles, projectId]);
-
-    const projectHistoryLogs = useMemo(() => {
-        return projectLogs.filter(log => log.project_id === projectId);
-    }, [projectLogs, projectId]);
-
     const projectStats = useMemo(() => {
-        const completedTasks = tasks.filter(t => t.status === 'completed').length;
+        const completedTasks = tasks.filter(t => t.completed).length;
         const progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
         const totalSeconds = projectTimeEntries.reduce((sum, entry) => sum + entry.duration_seconds, 0);
         const hoursTracked = totalSeconds / 3600;
@@ -195,28 +85,11 @@ const ProjectDetailPage: React.FC = () => {
         return <div className="text-center text-red-500 mt-8">Proyecto o cliente no encontrado.</div>;
     }
 
-    const handleAddTask = async (e: React.FormEvent) => {
+    const handleAddTask = (e: React.FormEvent) => {
         e.preventDefault();
         if (newTaskDescription.trim() && projectId) {
-            try {
-                await addTask({ project_id: projectId, description: newTaskDescription });
-                addToast('Tarea añadida.', 'success');
-                setNewTaskDescription('');
-            } catch (error) {
-                addToast(`Error al añadir la tarea: ${(error as Error).message}`, 'error');
-            }
-        }
-    };
-
-    const handleToggleTask = async (task: Task) => {
-        const newStatus = task.status === 'completed' ? 'in-progress' : 'completed';
-        try {
-            await updateTaskStatus(task.id, newStatus);
-            if (newStatus === 'completed') {
-                addToast(`Tarea completada: "${task.description}"`, 'success');
-            }
-        } catch (error) {
-            addToast(`Error al actualizar la tarea: ${(error as Error).message}`, 'error');
+            addTask({ project_id: projectId, description: newTaskDescription });
+            setNewTaskDescription('');
         }
     };
 
@@ -246,191 +119,33 @@ const ProjectDetailPage: React.FC = () => {
         }
     };
 
-    const handleCreateInvoiceFromHours = () => {
-        if (unbilledTimeEntries.length === 0) {
-             addToast('No hay horas pendientes de facturar.', 'info');
-             return;
-        }
-        navigate('/invoices/create', {
-            state: {
-                projectId: project.id,
-                clientId: client.id,
-                timeEntryIds: unbilledTimeEntries.map(e => e.id)
-            }
-        });
-    };
-
-    const handleDownloadBudget = async () => {
-        if (project && client && profile) {
-            try {
-                await generateProjectBudgetPdf(project, client, profile);
-                addToast('PDF del presupuesto descargado.', 'success');
-            } catch (error) {
-                addToast('Error al generar el PDF.', 'error');
-                console.error(error);
-            }
-        }
-    };
-
     const handleDeleteClick = (task: Task) => {
         setTaskToDelete(task);
         setIsConfirmModalOpen(true);
     };
 
-    const confirmDelete = async () => {
+    const confirmDelete = () => {
         if (taskToDelete) {
-            try {
-                await deleteTask(taskToDelete.id);
-                addToast('Tarea eliminada.', 'info');
-            } catch (error) {
-                addToast(`Error al eliminar la tarea: ${(error as Error).message}`, 'error');
-            } finally {
-                setIsConfirmModalOpen(false);
-                setTaskToDelete(null);
-            }
+            deleteTask(taskToDelete.id);
+            setIsConfirmModalOpen(false);
+            setTaskToDelete(null);
         }
     };
-    
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            addProjectFile({
-                project_id: project.id,
-                fileName: file.name,
-                fileType: file.type,
-                url: '#', // En una app real, esta sería la URL de un servicio de almacenamiento
-            });
-            addToast(`Archivo "${file.name}" subido con éxito.`, 'success');
-        }
-    };
-
-    const handleDeleteFileClick = (file: ProjectFile) => {
-        setFileToDelete(file);
-        setIsDeleteFileModalOpen(true);
-    };
-
-    const confirmDeleteFile = async () => {
-        if (fileToDelete) {
-            try {
-                await deleteProjectFile(fileToDelete.id);
-                addToast('Archivo eliminado.', 'info');
-            } catch (error) {
-                addToast(`Error al eliminar el archivo: ${(error as Error).message}`, 'error');
-            } finally {
-                setIsDeleteFileModalOpen(false);
-                setFileToDelete(null);
-            }
-        }
-    };
-    
-    const handleProjectAddToCalendar = () => {
-        if (project && client) {
-            const title = `Entrega Proyecto: ${project.name}`;
-            const description = `Fecha de entrega final para el proyecto con el cliente ${client.name}.`;
-            const eventDate = new Date(project.due_date);
-            const filename = `entrega-proyecto-${project.name.replace(/\s+/g, '-')}`;
-            generateICSFile(title, description, eventDate, filename);
-            addToast('Evento de calendario del proyecto generado.', 'success');
-        }
-    };
-
-    const openEditModal = () => {
-        if (project) {
-            setCurrentProjectForEdit({ ...project });
-            setIsEditModalOpen(true);
-        }
-    };
-    
-    const handleUpdateProject = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (currentProjectForEdit) {
-            try {
-                await updateProject(currentProjectForEdit as Project & { id: string });
-                addToast('Proyecto actualizado con éxito.', 'success');
-                setIsEditModalOpen(false);
-            } catch (error) {
-                addToast(`Error al actualizar: ${(error as Error).message}`, 'error');
-            }
-        }
-    };
-
-    const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setCurrentProjectForEdit(prev => prev ? { ...prev, [name]: value } : null);
-    };
-
-    const handleAnalyzeRisk = async () => {
-        if (!profile || profile.ai_credits < AI_CREDIT_COSTS.analyzeProjectRisk) {
-            setIsBuyCreditsModalOpen(true);
-            return;
-        }
-        
-        setIsAnalyzingRisk(true);
-        try {
-            const analysisData = {
-                projectName: project.name,
-                status: project.status,
-                startDate: project.start_date,
-                dueDate: project.due_date,
-                budget: project.budget_cents / 100,
-                tasksTotal: tasks.length,
-                tasksCompleted: projectStats.completedTasks,
-                hoursTracked: projectStats.hoursTracked,
-                currentDate: new Date().toISOString().split('T')[0]
-            };
-
-            const result = await analyzeProjectRisk(analysisData);
-            setRiskAnalysis(result);
-            consumeCredits(AI_CREDIT_COSTS.analyzeProjectRisk);
-            addToast('Análisis de riesgo completado.', 'success');
-        } catch (error) {
-            addToast(`Error en el análisis: ${(error as Error).message}`, 'error');
-        } finally {
-            setIsAnalyzingRisk(false);
-        }
-    };
-
-    const hoursTotalAmount = unbilledTimeEntries.reduce((sum, e) => sum + e.duration_seconds, 0) / 3600 * profile.hourly_rate_cents;
-
-    const getRiskColor = (level: string) => {
-        switch(level) {
-            case 'Bajo': return 'text-green-400 bg-green-500/10 border-green-500/30';
-            case 'Medio': return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
-            case 'Alto': return 'text-red-400 bg-red-500/10 border-red-500/30';
-            default: return 'text-gray-400';
-        }
-    };
-
 
     return (
         <div className="space-y-6">
-             <nav className="flex items-center text-sm text-gray-400">
-                <Link to="/projects" className="hover:text-white transition-colors">Proyectos</Link>
-                <span className="mx-2">/</span>
-                <span className="text-white truncate max-w-[200px] sm:max-w-md">{project.name}</span>
-            </nav>
-
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-white">{project.name}</h1>
                     <Link to={`/clients/${client.id}`} className="text-lg text-primary-400 hover:underline">{client.name}</Link>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                     <Button onClick={() => setIsInvoiceModalOpen(true)}>
-                        <FileTextIcon className="w-4 h-4 mr-2"/> Generar Factura
+                    <Button variant="secondary" onClick={handleCreateInvoice}>
+                        <FileTextIcon className="w-4 h-4 mr-2"/> Crear Factura
                     </Button>
                     {project.budget_cents > 0 && (
-                         <Button variant="secondary" onClick={handleDownloadBudget} title="Descargar PDF del presupuesto">
-                            <DownloadIcon className="w-4 h-4"/> PDF Presupuesto
-                        </Button>
-                    )}
-                    {project.external_link ? (
-                        <Button variant="secondary" as="a" href={project.external_link} target="_blank" rel="noopener noreferrer">
-                            <LinkIcon className="w-4 h-4 mr-2"/> Ver Recurso
-                        </Button>
-                    ) : (
-                        <Button variant="secondary" onClick={() => setIsLinkModalOpen(true)}>
-                            <LinkIcon className="w-4 h-4 mr-2"/> Añadir Enlace
+                        <Button onClick={handleCreateInvoiceFromBudget}>
+                            <DollarSignIcon className="w-4 h-4 mr-2"/> Facturar Presupuesto
                         </Button>
                     )}
                 </div>
@@ -439,23 +154,22 @@ const ProjectDetailPage: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1 space-y-6">
                     <Card>
-                        <CardHeader className="flex justify-between items-center">
+                        <CardHeader>
                             <h2 className="text-lg font-semibold text-white">Detalles del Proyecto</h2>
-                             <Button variant="secondary" size="sm" onClick={openEditModal}><EditIcon className="w-4 h-4" /></Button>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
                                 <label className="text-sm font-medium text-gray-400 block">Estado</label>
-                                <Select 
+                                <select 
                                     value={project.status} 
                                     onChange={(e) => updateProjectStatus(project.id, e.target.value as Project['status'])}
-                                    className="mt-1"
+                                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-600 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md bg-gray-800 text-white"
                                 >
                                     <option value="planning">Planificación</option>
                                     <option value="in-progress">En Progreso</option>
                                     <option value="completed">Completado</option>
                                     <option value="on-hold">En Pausa</option>
-                                </Select>
+                                </select>
                             </div>
                              <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -474,40 +188,15 @@ const ProjectDetailPage: React.FC = () => {
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-gray-400">Fecha de Entrega</p>
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-white">{project.due_date}</p>
-                                        <button onClick={handleProjectAddToCalendar} title="Añadir al Calendario" className="text-gray-400 hover:text-primary-400">
-                                            <CalendarPlus className="w-4 h-4" />
-                                        </button>
-                                    </div>
+                                    <p className="text-white">{project.due_date}</p>
                                 </div>
                             </div>
-                            <div>
-                                <label className="text-sm font-medium text-gray-400 block">Presupuesto</label>
-                                {isEditingBudget ? (
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <Input
-                                            type="number"
-                                            value={budgetInput}
-                                            onChange={(e) => setBudgetInput(Number(e.target.value))}
-                                            className="w-32 py-1"
-                                            step="0.01"
-                                            min={0}
-                                            autoFocus
-                                        />
-                                        <Button size="sm" onClick={handleBudgetSave}>Guardar</Button>
-                                        <Button size="sm" variant="secondary" onClick={() => {
-                                            setIsEditingBudget(false);
-                                            setBudgetInput(project ? (project.budget_cents || 0) / 100 : 0);
-                                        }}>Cancelar</Button>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-2 mt-1 group cursor-pointer" onClick={() => setIsEditingBudget(true)}>
-                                        <p className="text-white font-semibold">{formatCurrency(project.budget_cents)}</p>
-                                        <EditIcon className="w-4 h-4 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    </div>
-                                )}
-                            </div>
+                            {project.budget_cents > 0 && (
+                                <div>
+                                    <p className="text-sm font-medium text-gray-400">Presupuesto</p>
+                                    <p className="text-white font-semibold">{formatCurrency(project.budget_cents)}</p>
+                                </div>
+                            )}
                              <div>
                                 <p className="text-sm font-medium text-gray-400">Progreso de Tareas</p>
                                 <div className="w-full bg-gray-700 rounded-full h-2.5 mt-1">
@@ -519,48 +208,6 @@ const ProjectDetailPage: React.FC = () => {
                                 <p className="text-sm font-medium text-gray-400 flex items-center gap-2"><ClockIcon className="w-4 h-4"/> Horas Registradas</p>
                                 <p className="text-2xl font-bold text-white mt-1">{projectStats.hoursTracked.toFixed(2)}h</p>
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* AI Risk Analysis Widget */}
-                    <Card className="border-l-4 border-l-purple-500">
-                        <CardHeader>
-                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                                <SparklesIcon className="w-5 h-5 text-purple-400"/> Analista de Riesgos IA
-                            </h2>
-                        </CardHeader>
-                        <CardContent>
-                            {!riskAnalysis ? (
-                                <div className="text-center py-4">
-                                    <p className="text-sm text-gray-400 mb-4">Obtén una evaluación de riesgos y recomendaciones estratégicas para este proyecto.</p>
-                                    <Button variant="secondary" onClick={handleAnalyzeRisk} disabled={isAnalyzingRisk}>
-                                        {isAnalyzingRisk ? <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin"/> : <AlertTriangleIcon className="w-4 h-4 mr-2"/>}
-                                        {isAnalyzingRisk ? 'Analizando...' : `Analizar Riesgo (${AI_CREDIT_COSTS.analyzeProjectRisk} créditos)`}
-                                    </Button>
-                                </div>
-                            ) : (
-                                <div className="space-y-4 animate-fade-in-down">
-                                    <div className={`p-3 rounded-lg border flex items-center justify-between ${getRiskColor(riskAnalysis.riskLevel)}`}>
-                                        <span className="font-bold">Nivel de Riesgo: {riskAnalysis.riskLevel}</span>
-                                        <Button size="sm" variant="ghost" onClick={() => setRiskAnalysis(null)}><RefreshCwIcon className="w-3 h-3"/></Button>
-                                    </div>
-                                    <div className="text-sm text-gray-300">
-                                        <p className="font-semibold mb-1 text-white">Análisis:</p>
-                                        <p>{riskAnalysis.analysis}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Acciones Recomendadas:</p>
-                                        <ul className="space-y-2">
-                                            {riskAnalysis.actions.map((action, idx) => (
-                                                <li key={idx} className="flex items-start gap-2 text-sm text-gray-300 bg-white/5 p-2 rounded">
-                                                    <CheckCircleIcon className="w-4 h-4 text-green-400 shrink-0 mt-0.5"/>
-                                                    <span>{action}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </div>
-                            )}
                         </CardContent>
                     </Card>
 
@@ -597,17 +244,6 @@ const ProjectDetailPage: React.FC = () => {
                             </CardContent>
                         </Card>
                     )}
-
-                    <Card>
-                        <CardHeader>
-                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                                <RefreshCwIcon className="w-5 h-5"/> Historial de Cambios
-                            </h2>
-                        </CardHeader>
-                        <CardContent className="max-h-64 overflow-y-auto pr-2">
-                            <HistoryFeed logs={projectHistoryLogs} />
-                        </CardContent>
-                    </Card>
                 </div>
 
                 <Card className="lg:col-span-2">
@@ -629,12 +265,12 @@ const ProjectDetailPage: React.FC = () => {
                                 {tasks.map(task => (
                                     <li key={task.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
                                         <div className="flex items-center gap-3">
-                                            <button onClick={() => handleToggleTask(task)} aria-label={task.status === 'completed' ? `Marcar tarea '${task.description}' como incompleta` : `Marcar tarea '${task.description}' como completada`}>
-                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${task.status === 'completed' ? 'border-primary-500 bg-primary-500' : 'border-gray-500'}`}>
-                                                    {task.status === 'completed' && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                                            <button onClick={() => toggleTask(task.id)} aria-label={task.completed ? `Marcar tarea '${task.description}' como incompleta` : `Marcar tarea '${task.description}' como completada`}>
+                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${task.completed ? 'border-primary-500 bg-primary-500' : 'border-gray-500'}`}>
+                                                    {task.completed && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                                                 </div>
                                             </button>
-                                            <span className={` ${task.status === 'completed' ? 'line-through text-gray-500' : 'text-white'}`}>{task.description}</span>
+                                            <span className={` ${task.completed ? 'line-through text-gray-500' : 'text-white'}`}>{task.description}</span>
                                         </div>
                                         <Button size="sm" variant="danger" onClick={() => handleDeleteClick(task)} aria-label={`Eliminar tarea '${task.description}'`}>
                                             <TrashIcon className="w-4 h-4"/>
@@ -654,41 +290,6 @@ const ProjectDetailPage: React.FC = () => {
             </div>
 
             <Card>
-                <CardHeader className="flex justify-between items-center">
-                    <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                        <Paperclip className="w-5 h-5"/> Archivos del Proyecto
-                    </h2>
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-                    <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
-                        <Upload className="w-4 h-4 mr-2" /> Subir Archivo
-                    </Button>
-                </CardHeader>
-                <CardContent>
-                    {projectFilesForProject.length > 0 ? (
-                        <ul className="space-y-2">
-                            {projectFilesForProject.map(file => (
-                                <li key={file.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800">
-                                    <div>
-                                        <p className="font-medium text-white">{file.fileName}</p>
-                                        <p className="text-xs text-gray-400">Subido el {new Date(file.uploadedAt).toLocaleDateString()}</p>
-                                    </div>
-                                    <Button size="sm" variant="danger" onClick={() => handleDeleteFileClick(file)} aria-label={`Eliminar archivo ${file.fileName}`}>
-                                        <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <EmptyState 
-                            icon={Paperclip}
-                            title="Sin archivos adjuntos"
-                            message="Sube documentos, maquetas o cualquier archivo relevante para el proyecto."
-                        />
-                    )}
-                </CardContent>
-            </Card>
-
-            <Card>
                 <CardHeader>
                     <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                         <MessageSquareIcon className="w-5 h-5"/> Canal del Proyecto
@@ -701,142 +302,6 @@ const ProjectDetailPage: React.FC = () => {
                 </CardContent>
             </Card>
 
-            <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Editar Detalles del Proyecto">
-                {currentProjectForEdit && (
-                    <form onSubmit={handleUpdateProject} className="space-y-4">
-                        <Input 
-                            label="Nombre del Proyecto"
-                            name="name" 
-                            value={currentProjectForEdit.name} 
-                            onChange={handleEditInputChange}
-                            required 
-                        />
-                        <div>
-                            <label className="block text-sm font-medium text-slate-400 mb-1">Descripción</label>
-                            <Textarea 
-                                name="description"
-                                rows={4} 
-                                value={currentProjectForEdit.description || ''}
-                                onChange={handleEditInputChange}
-                            />
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-4">
-                            <Input
-                                label="Fecha de Inicio"
-                                name="start_date"
-                                type="date"
-                                value={currentProjectForEdit.start_date}
-                                onChange={handleEditInputChange}
-                            />
-                            <Input
-                                label="Fecha de Entrega"
-                                name="due_date"
-                                type="date"
-                                value={currentProjectForEdit.due_date}
-                                onChange={handleEditInputChange}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-slate-400 mb-1">Estado</label>
-                            <Select
-                                name="status"
-                                value={currentProjectForEdit.status}
-                                onChange={handleEditInputChange}
-                            >
-                                <option value="planning">Planificación</option>
-                                <option value="in-progress">En Progreso</option>
-                                <option value="completed">Completado</option>
-                                <option value="on-hold">En Pausa</option>
-                            </Select>
-                        </div>
-
-                         <div className="grid grid-cols-2 gap-4">
-                            <Input 
-                                label="Categoría"
-                                name="category"
-                                value={currentProjectForEdit.category || ''} 
-                                onChange={handleEditInputChange}
-                                placeholder="Ej: Web, Móvil..."
-                            />
-                            <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-1">Prioridad</label>
-                                <Select
-                                    name="priority"
-                                    value={currentProjectForEdit.priority || 'Medium'}
-                                    onChange={handleEditInputChange}
-                                >
-                                    <option value="Low">Baja</option>
-                                    <option value="Medium">Media</option>
-                                    <option value="High">Alta</option>
-                                </Select>
-                            </div>
-                        </div>
-
-                        <Input 
-                            label="Enlace Externo (Repositorio, Figma...)"
-                            name="external_link"
-                            type="url"
-                            value={currentProjectForEdit.external_link || ''} 
-                            onChange={handleEditInputChange}
-                            placeholder="https://..."
-                        />
-
-                        <div className="flex justify-end pt-4">
-                            <Button type="submit">Guardar Cambios</Button>
-                        </div>
-                    </form>
-                )}
-            </Modal>
-            
-            <Modal isOpen={isInvoiceModalOpen} onClose={() => setIsInvoiceModalOpen(false)} title="Generar Factura">
-                <div className="space-y-3">
-                    {project.budget_cents > 0 && (
-                        <Button variant="secondary" className="w-full justify-start" onClick={handleCreateInvoiceFromBudget}>
-                            <DollarSignIcon className="w-5 h-5 mr-3 text-green-400"/>
-                            <div className="text-left">
-                                <span className="block font-medium">Facturar Presupuesto</span>
-                                <span className="text-xs text-gray-400">Importe: {formatCurrency(project.budget_cents)}</span>
-                            </div>
-                        </Button>
-                    )}
-                    {unbilledTimeEntries.length > 0 && (
-                        <Button variant="secondary" className="w-full justify-start" onClick={handleCreateInvoiceFromHours}>
-                            <ClockIcon className="w-5 h-5 mr-3 text-purple-400"/>
-                            <div className="text-left">
-                                <span className="block font-medium">Facturar Horas Pendientes</span>
-                                <span className="text-xs text-gray-400">Total: {(projectStats.hoursTracked).toFixed(2)}h (~{formatCurrency(hoursTotalAmount)})</span>
-                            </div>
-                        </Button>
-                    )}
-                    <Button variant="secondary" className="w-full justify-start" onClick={handleCreateInvoice}>
-                        <FileTextIcon className="w-5 h-5 mr-3 text-blue-400"/>
-                        <div className="text-left">
-                            <span className="block font-medium">Factura en Blanco</span>
-                            <span className="text-xs text-gray-400">Crear una factura desde cero</span>
-                        </div>
-                    </Button>
-                </div>
-            </Modal>
-
-            <Modal isOpen={isLinkModalOpen} onClose={() => setIsLinkModalOpen(false)} title="Añadir Enlace Externo">
-                <form onSubmit={handleLinkSave} className="space-y-4">
-                     <Input 
-                        label="URL del recurso"
-                        value={linkInput}
-                        type="url"
-                        onChange={(e) => setLinkInput(e.target.value)}
-                        placeholder="https://github.com/..."
-                        required
-                        autoFocus
-                    />
-                     <div className="flex justify-end pt-4">
-                        <Button type="submit">Guardar Enlace</Button>
-                    </div>
-                </form>
-            </Modal>
-
             <Suspense fallback={null}>
                 {isConfirmModalOpen && (
                     <ConfirmationModal 
@@ -846,18 +311,6 @@ const ProjectDetailPage: React.FC = () => {
                         title="¿Eliminar Tarea?"
                         message={`¿Estás seguro de que quieres eliminar la tarea: "${taskToDelete?.description}"?`}
                     />
-                )}
-                {isDeleteFileModalOpen && (
-                    <ConfirmationModal 
-                        isOpen={isDeleteFileModalOpen}
-                        onClose={() => setIsDeleteFileModalOpen(false)}
-                        onConfirm={confirmDeleteFile}
-                        title="¿Eliminar Archivo?"
-                        message={`¿Estás seguro de que quieres eliminar el archivo: "${fileToDelete?.fileName}"?`}
-                    />
-                )}
-                {isBuyCreditsModalOpen && (
-                    <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />
                 )}
             </Suspense>
         </div>

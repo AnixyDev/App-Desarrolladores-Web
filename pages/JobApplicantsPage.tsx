@@ -1,18 +1,18 @@
 // pages/JobApplicantsPage.tsx
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useAppStore } from '../hooks/useAppStore';
-import Card, { CardContent, CardHeader } from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import Modal from '../components/ui/Modal';
+import { useAppStore } from '../hooks/useAppStore.tsx';
+import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
+import Button from '../components/ui/Button.tsx';
+import Modal from '../components/ui/Modal.tsx';
 import { Users, SparklesIcon, RefreshCwIcon, CheckCircle, AlertTriangle } from 'lucide-react';
-import { JobApplication } from '../types';
-import EmptyState from '../components/ui/EmptyState';
-import { summarizeApplicant, AI_CREDIT_COSTS } from '../services/geminiService';
-import { useToast } from '../hooks/useToast';
+import { JobApplication } from '../types.ts';
+import EmptyState from '../components/ui/EmptyState.tsx';
+import { summarizeApplicant, AI_CREDIT_COSTS } from '../services/geminiService.ts';
+import { useToast } from '../hooks/useToast.ts';
 
-const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal'));
-const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal'));
+const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal.tsx'));
+const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal.tsx'));
 
 interface ApplicantSummary {
     summary: string;
@@ -36,8 +36,8 @@ const JobApplicantsPage: React.FC = () => {
     const applications = jobId ? getApplicationsByJobId(jobId) : [];
 
     useEffect(() => {
-        if (selectedApplication && selectedApplication.status === 'sent') {
-            viewApplication(selectedApplication.id).catch(err => console.error("Failed to mark application as viewed", err));
+        if (selectedApplication) {
+            viewApplication(selectedApplication.id);
         }
     }, [selectedApplication, viewApplication]);
 

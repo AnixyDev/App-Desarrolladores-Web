@@ -1,35 +1,23 @@
+
+
+
 import React, { useState, useMemo } from 'react';
-import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card';
+import Card, { CardContent, CardHeader } from '../components/ui/Card';
+// FIX: Remove .tsx extensions from imports to fix module resolution errors.
 import { useAppStore } from '../hooks/useAppStore';
 import { formatCurrency } from '../lib/utils';
-import { BookIcon, TrashIcon } from '../components/icons/Icon';
+import { BookIcon } from '../components/icons/Icon';
 import Input from '../components/ui/Input';
-import Button from '../components/ui/Button';
 
 const TaxLedgerPage: React.FC = () => {
-    const { 
-        invoices, 
-        expenses, 
-        shadowIncome, 
-        addShadowIncome, 
-        deleteShadowIncome 
-    } = useAppStore();
+    const { invoices, expenses } = useAppStore();
     const [year, setYear] = useState(new Date().getFullYear());
     const [quarter, setQuarter] = useState(Math.floor(new Date().getMonth() / 3) + 1);
     const [irpfPercentage, setIrpfPercentage] = useState(20);
-    const [newShadowEntry, setNewShadowEntry] = useState({
-        description: '',
-        amount: '',
-        date: new Date().toISOString().split('T')[0],
-    });
-
 
     const availableYears = useMemo(() => {
         const allDates = [...invoices.map(i => i.issue_date), ...expenses.map(e => e.date)];
         const years = new Set(allDates.map(d => new Date(d).getFullYear()));
-        const currentYear = new Date().getFullYear();
-        years.add(currentYear); // Ensure current year is always an option
-        years.add(currentYear - 1); // Add last year as well
         return Array.from(years).sort((a, b) => b - a);
     }, [invoices, expenses]);
 
@@ -69,48 +57,20 @@ const TaxLedgerPage: React.FC = () => {
 
     }, [filteredData, irpfPercentage]);
 
-    const totalShadowIncome = useMemo(() => {
-        return shadowIncome.reduce((sum, entry) => sum + entry.amount_cents, 0);
-    }, [shadowIncome]);
-
-    const handleShadowInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setNewShadowEntry(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleAddShadowIncome = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newShadowEntry.description || !newShadowEntry.amount) return;
-        
-        addShadowIncome({
-            description: newShadowEntry.description,
-            amount_cents: Math.round(Number(newShadowEntry.amount) * 100),
-            date: newShadowEntry.date,
-        });
-        setNewShadowEntry({ description: '', amount: '', date: new Date().toISOString().split('T')[0] });
-    };
-
-
   return (
     <div className='space-y-6'>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <h1 className="text-2xl font-semibold text-white">Libro Fiscal</h1>
-            <div className='flex flex-wrap gap-4 items-end bg-gray-900 p-3 rounded-lg'>
-                <div>
-                    <label htmlFor="quarter-select" className="block text-sm font-medium text-gray-300 mb-1">Trimestre</label>
-                    <select id="quarter-select" value={quarter} onChange={e => setQuarter(Number(e.target.value))} className="px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
-                        <option value={1}>Trimestre 1 (Ene-Mar)</option>
-                        <option value={2}>Trimestre 2 (Abr-Jun)</option>
-                        <option value={3}>Trimestre 3 (Jul-Sep)</option>
-                        <option value={4}>Trimestre 4 (Oct-Dic)</option>
-                    </select>
-                </div>
-                <div>
-                    <label htmlFor="year-select" className="block text-sm font-medium text-gray-300 mb-1">Año</label>
-                    <select id="year-select" value={year} onChange={e => setYear(Number(e.target.value))} className="px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
-                        {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
-                    </select>
-                </div>
+            <div className='flex gap-2 items-center bg-gray-900 p-2 rounded-lg'>
+                <select value={quarter} onChange={e => setQuarter(Number(e.target.value))} className="px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
+                    <option value={1}>Trimestre 1</option>
+                    <option value={2}>Trimestre 2</option>
+                    <option value={3}>Trimestre 3</option>
+                    <option value={4}>Trimestre 4</option>
+                </select>
+                 <select value={year} onChange={e => setYear(Number(e.target.value))} className="px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white">
+                    {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
                 <div className="w-40">
                      <Input 
                         label="IRPF Est. (%)" 
@@ -149,49 +109,6 @@ const TaxLedgerPage: React.FC = () => {
             </div>
         </CardContent>
       </Card>
-      
-        <Card>
-            <CardHeader>
-                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                    <BookIcon className='w-5 h-5'/> Contabilidad "B" (Ingresos sin IVA)
-                </h2>
-            </CardHeader>
-            <CardContent>
-                {shadowIncome.length > 0 ? (
-                    <ul className="divide-y divide-gray-800 mb-4 max-h-64 overflow-y-auto pr-2">
-                        {shadowIncome.map(entry => (
-                            <li key={entry.id} className="py-2 flex justify-between items-center">
-                                <div>
-                                    <p className="text-white">{entry.description}</p>
-                                    <p className="text-xs text-gray-400">{entry.date}</p>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <span className="font-semibold text-white">{formatCurrency(entry.amount_cents)}</span>
-                                    <Button size="sm" variant="danger" onClick={() => deleteShadowIncome(entry.id)}>
-                                        <TrashIcon className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                ) : (
-                    <p className="text-gray-500 text-center text-sm py-4">No hay entradas registradas.</p>
-                )}
-
-                <div className="border-t border-gray-700 pt-4 flex justify-between items-center font-bold">
-                    <span className="text-white">Total "B"</span>
-                    <span className="text-xl text-yellow-400">{formatCurrency(totalShadowIncome)}</span>
-                </div>
-            </CardContent>
-            <CardFooter>
-                <form onSubmit={handleAddShadowIncome} className="flex flex-col sm:flex-row gap-2 items-end">
-                    <Input wrapperClassName="flex-1" name="description" placeholder="Descripción" value={newShadowEntry.description} onChange={handleShadowInputChange} required />
-                    <Input wrapperClassName="w-full sm:w-32" name="amount" type="number" step="0.01" placeholder="Importe (€)" value={newShadowEntry.amount} onChange={handleShadowInputChange} required />
-                    <Input wrapperClassName="w-full sm:w-40" name="date" type="date" value={newShadowEntry.date} onChange={handleShadowInputChange} required />
-                    <Button type="submit" className="w-full sm:w-auto">Añadir</Button>
-                </form>
-            </CardFooter>
-        </Card>
 
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
         <Card>

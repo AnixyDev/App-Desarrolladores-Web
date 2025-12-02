@@ -1,28 +1,22 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useAppStore } from '../hooks/useAppStore';
-import { useToast } from '../hooks/useToast';
-import { SendIcon, SparklesIcon, UserIcon } from './icons/Icon';
-import { ProjectMessage } from '../types';
-import Input from './ui/Input';
-import Button from './ui/Button';
-import { summarizeChatHistory, AI_CREDIT_COSTS } from '../services/geminiService';
-import BuyCreditsModal from './modals/BuyCreditsModal';
+
+import React, { useState, useRef, useEffect } from 'react';
+import { useAppStore } from '../hooks/useAppStore.tsx';
+import { SendIcon, SparklesIcon, UserIcon } from './icons/Icon.tsx';
+import { ProjectMessage } from '../types.ts';
+import Input from './ui/Input.tsx';
+import Button from './ui/Button.tsx';
 
 interface ProjectChatProps {
     projectId: string;
 }
 
 const ProjectChat: React.FC<ProjectChatProps> = ({ projectId }) => {
-    const { profile, projectComments, addProjectComment, consumeCredits } = useAppStore();
-    const { addToast } = useToast();
+    const { profile } = useAppStore();
+    // In a real app, you would fetch messages for the projectId
+    const [messages, setMessages] = useState<ProjectMessage[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-
-    const messages = useMemo(() => {
-        return projectComments.filter(c => c.project_id === projectId);
-    }, [projectComments, projectId]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -30,53 +24,37 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId }) => {
 
     useEffect(scrollToBottom, [messages]);
 
-    const handleSend = async (e: React.FormEvent) => {
+    const handleSend = (e: React.FormEvent) => {
         e.preventDefault();
         if (input.trim() === '' || !profile) return;
 
-        setIsLoading(true);
-        try {
-            const messageData = {
-                project_id: projectId,
-                user_id: profile.id,
-                user_name: profile.full_name,
-                text: input,
-            };
-
-            const emailMessage = await addProjectComment(messageData);
-            if (emailMessage) {
-                addToast(emailMessage, 'info');
-            }
-            setInput('');
-        } catch (error) {
-            addToast(`Error al enviar mensaje: ${(error as Error).message}`, 'error');
-        } finally {
-            setIsLoading(false);
-        }
+        const newMessage: ProjectMessage = {
+            id: `msg-${Date.now()}`,
+            project_id: projectId,
+            user_id: profile.id,
+            user_name: profile.full_name,
+            text: input,
+            timestamp: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, newMessage]);
+        setInput('');
     };
 
-    const handleSummarize = async () => {
-        if (!profile || profile.ai_credits < AI_CREDIT_COSTS.summarizeChat) {
-            setIsBuyCreditsModalOpen(true);
-            return;
-        }
+    const handleSummarize = () => {
         setIsLoading(true);
-        try {
-            const chatHistory = messages.map(m => `${m.user_name}: ${m.text}`).join('\n');
-            const summary = await summarizeChatHistory(chatHistory);
-            const aiMessageData = {
+        setTimeout(() => { // Simulate AI call
+            const summary = "Resumen de la IA: Se discutieron los requisitos de la API y se acordó una próxima reunión para revisar el esquema de la base de datos.";
+             const aiMessage: ProjectMessage = {
+                id: `msg-${Date.now()}`,
                 project_id: projectId,
                 user_id: 'ai',
                 user_name: 'Asistente IA',
                 text: summary,
+                timestamp: new Date().toISOString()
             };
-            await addProjectComment(aiMessageData);
-            consumeCredits(AI_CREDIT_COSTS.summarizeChat);
-        } catch(e) {
-            addToast((e as Error).message, 'error');
-        } finally {
+            setMessages(prev => [...prev, aiMessage]);
             setIsLoading(false);
-        }
+        }, 1500);
     };
 
     return (
@@ -108,12 +86,10 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId }) => {
                         placeholder="Escribe tu mensaje..."
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        disabled={isLoading}
                     />
-                    <Button type="submit" disabled={isLoading}><SendIcon className="w-5 h-5" /></Button>
+                    <Button type="submit"><SendIcon className="w-5 h-5" /></Button>
                 </form>
             </div>
-            <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />
         </div>
     );
 };

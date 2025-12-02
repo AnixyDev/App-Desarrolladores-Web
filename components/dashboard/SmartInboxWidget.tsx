@@ -1,7 +1,7 @@
 // components/dashboard/SmartInboxWidget.tsx
 import React from 'react';
 import { useAppStore } from '../../hooks/useAppStore';
-import { InboxIcon, MailIcon, FileTextIcon, MessageSquareIcon } from '../icons/Icon';
+import { InboxIcon, MailIcon, FileTextIcon, MessageSquareIcon } from '../icons/Icon.tsx';
 import { Link } from 'react-router-dom';
 
 const getCategoryIcon = (category: string) => {

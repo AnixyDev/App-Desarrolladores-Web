@@ -1,3 +1,4 @@
+// components/icons/Icon.tsx
 export {
   LayoutDashboard,
   Users,
@@ -45,7 +46,6 @@ export {
   Book,
   Inbox as InboxIcon,
   Link as LinkIcon,
-  ListTodo,
   UserPlus,
   Trash2,
   X,
@@ -53,13 +53,4 @@ export {
   GitBranch,
   ShoppingBag,
   CreditCard,
-  Filter as FilterIcon,
-  Camera,
-  Paperclip,
-  Upload,
-  CalendarPlus,
-  Lock,
-  Eye,
-  EyeOff,
-  Github,
 } from 'lucide-react';

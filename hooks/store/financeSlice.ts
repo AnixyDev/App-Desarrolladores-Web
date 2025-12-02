@@ -1,420 +1,176 @@
-import { supabase } from '../../lib/supabaseClient';
-import type { StateCreator } from 'zustand';
-import type { AppStore } from '../useAppStore';
-import { Invoice, RecurringInvoice, Expense, RecurringExpense, TimeEntry, Budget, Proposal, Contract, NewTimeEntry, ShadowIncomeEntry, InvoiceTemplate, ProposalTemplate, ContractTemplate } from '../../types';
-import { formatCurrency } from '../../lib/utils';
-import { useToast } from '../useToast';
+import { StateCreator } from 'zustand';
+import { Invoice, Expense, RecurringExpense, Budget, Proposal, Contract, RecurringInvoice } from '../../types.ts';
+import { AppState } from '../useAppStore.tsx';
 
 export interface FinanceSlice {
-    invoices: Invoice[];
-    recurringInvoices: RecurringInvoice[];
-    expenses: Expense[];
-    recurringExpenses: RecurringExpense[];
-    timeEntries: TimeEntry[];
-    budgets: Budget[];
-    proposals: Proposal[];
-    contracts: Contract[];
-    shadowIncome: ShadowIncomeEntry[];
-    monthlyGoalCents: number;
-    invoiceTemplates: InvoiceTemplate[];
-    proposalTemplates: ProposalTemplate[];
-    contractTemplates: ContractTemplate[];
-    
-    isInvoicesLoading: boolean;
-    isExpensesLoading: boolean;
-    isTimeEntriesLoading: boolean;
-
-    fetchInvoices: () => Promise<void>;
-    fetchExpenses: () => Promise<void>;
-    fetchTimeEntries: () => Promise<void>;
-    fetchBudgets: () => Promise<void>;
-    fetchProposals: () => Promise<void>;
-    fetchContracts: () => Promise<void>;
-    fetchRecurringInvoices: () => Promise<void>;
-    fetchRecurringExpenses: () => Promise<void>;
-    fetchTemplates: () => Promise<void>;
-
-    addInvoice: (newInvoice: Partial<Invoice>, timeEntryIdsToBill?: string[]) => Promise<void>;
-    deleteInvoice: (id: string) => Promise<void>;
-    markInvoiceAsPaid: (id: string) => Promise<void>;
-    addExpense: (newExpense: Partial<Expense>) => Promise<void>;
-    deleteExpense: (id: string) => Promise<void>;
-    addTimeEntry: (newEntry: Omit<NewTimeEntry, 'user_id'>) => Promise<void>;
-    addBudget: (newBudget: Partial<Budget>) => Promise<void>;
-    updateBudgetStatus: (id: string, status: Budget['status']) => Promise<void>;
-    addProposal: (newProposal: Partial<Proposal>) => Promise<void>;
-    updateProposalStatus: (id: string, status: Proposal['status']) => Promise<string | undefined>;
-    addContract: (newContract: Partial<Contract>) => Promise<void>;
-    sendContract: (id: string) => Promise<void>;
-    signContract: (id: string, signedBy: string, signature: string) => Promise<string | undefined>;
-    setContractExpiration: (id: string, date: string) => Promise<void>;
-    addShadowIncome: (newEntry: Omit<ShadowIncomeEntry, 'id'>) => Promise<void>;
-    deleteShadowIncome: (id: string) => Promise<void>;
-
-    addRecurringInvoice: (newInvoice: Partial<RecurringInvoice>) => Promise<void>;
-    deleteRecurringInvoice: (id: string) => Promise<void>;
-    addRecurringExpense: (newExpense: Partial<RecurringExpense>) => Promise<void>;
-    deleteRecurringExpense: (id: string) => Promise<void>;
-    addInvoiceTemplate: (template: Omit<InvoiceTemplate, 'id'>) => Promise<void>;
-    deleteInvoiceTemplate: (id: string) => Promise<void>;
-    addProposalTemplate: (template: Omit<ProposalTemplate, 'id'>) => Promise<void>;
-    deleteProposalTemplate: (id: string) => Promise<void>;
-    addContractTemplate: (template: Omit<ContractTemplate, 'id'>) => Promise<void>;
-    deleteContractTemplate: (id: string) => Promise<void>;
+  invoices: Invoice[];
+  recurringInvoices: RecurringInvoice[];
+  expenses: Expense[];
+  recurringExpenses: RecurringExpense[];
+  budgets: Budget[];
+  proposals: Proposal[];
+  contracts: Contract[];
+  monthlyGoalCents: number;
+  addInvoice: (invoiceData: any, timeEntryIdsToBill?: string[]) => void;
+  deleteInvoice: (id: string) => void;
+  markInvoiceAsPaid: (id: string) => void;
+  addRecurringInvoice: (recurringData: any) => void;
+  deleteRecurringInvoice: (id: string) => void;
+  checkAndGenerateRecurringInvoices: () => void;
+  addExpense: (expense: Omit<Expense, 'id'|'user_id'|'created_at'>) => void;
+  deleteExpense: (id: string) => void;
+  addRecurringExpense: (expense: Omit<RecurringExpense, 'id'|'user_id'|'created_at'|'next_due_date'>) => void;
+  deleteRecurringExpense: (id: string) => void;
+  addBudget: (budget: any) => void;
+  updateBudgetStatus: (id: string, status: Budget['status']) => void;
+  addProposal: (proposal: any) => void;
+  addContract: (contract: any) => void;
+  sendContract: (id: string) => void;
+  signContract: (id: string, signerName: string) => void;
+  setMonthlyGoal: (goal: number) => void;
 }
 
-export const createFinanceSlice: StateCreator<AppStore, [], [], FinanceSlice> = (set, get) => ({
+export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = (set, get) => ({
     invoices: [],
     recurringInvoices: [],
     expenses: [],
     recurringExpenses: [],
-    timeEntries: [],
     budgets: [],
     proposals: [],
     contracts: [],
-    shadowIncome: [],
-    monthlyGoalCents: 500000,
-    invoiceTemplates: [],
-    proposalTemplates: [],
-    contractTemplates: [],
-    isInvoicesLoading: true,
-    isExpensesLoading: true,
-    isTimeEntriesLoading: true,
-
-    fetchInvoices: async () => {
-        set({ isInvoicesLoading: true });
-        try {
-            const { data, error } = await supabase.from('invoices').select('*');
-            if (error) throw error;
-            set({ invoices: data || [] });
-        } catch (error) {
-            console.error("Error fetching invoices:", error);
-        } finally {
-            set({ isInvoicesLoading: false });
-        }
-    },
-    fetchExpenses: async () => {
-        set({ isExpensesLoading: true });
-        try {
-            const { data, error } = await supabase.from('expenses').select('*');
-            if (error) throw error;
-            set({ expenses: data || [] });
-        } catch (error) {
-            console.error("Error fetching expenses:", error);
-        } finally {
-            set({ isExpensesLoading: false });
-        }
-    },
-    fetchTimeEntries: async () => {
-        set({ isTimeEntriesLoading: true });
-        try {
-            const { data, error } = await supabase.from('time_entries').select('*');
-            if (error) throw error;
-            set({ timeEntries: data || [] });
-        } catch (error) {
-            console.error("Error fetching time entries:", error);
-        } finally {
-            set({ isTimeEntriesLoading: false });
-        }
-    },
-     fetchBudgets: async () => {
-        const { data, error } = await supabase.from('budgets').select('*');
-        if (error) throw error;
-        set({ budgets: data || [] });
-    },
-    fetchProposals: async () => {
-        const { data, error } = await supabase.from('proposals').select('*');
-        if (error) throw error;
-        set({ proposals: data || [] });
-    },
-    fetchContracts: async () => {
-        const { data, error } = await supabase.from('contracts').select('*');
-        if (error) throw error;
-        set({ contracts: data || [] });
-    },
-    fetchRecurringInvoices: async () => {
-        const { data, error } = await supabase.from('recurring_invoices').select('*');
-        if (error) throw error;
-        set({ recurringInvoices: data || [] });
-    },
-    fetchRecurringExpenses: async () => {
-        const { data, error } = await supabase.from('recurring_expenses').select('*');
-        if (error) throw error;
-        set({ recurringExpenses: data || [] });
-    },
-    fetchTemplates: async () => {
-        const [
-            { data: invoiceData, error: invoiceError },
-            { data: proposalData, error: proposalError },
-            { data: contractData, error: contractError },
-        ] = await Promise.all([
-            supabase.from('invoice_templates').select('*'),
-            supabase.from('proposal_templates').select('*'),
-            supabase.from('contract_templates').select('*'),
-        ]);
-        if (invoiceError || proposalError || contractError) {
-            console.error("Error fetching templates", { invoiceError, proposalError, contractError });
-            throw new Error("Failed to fetch templates.");
-        }
-        set({ 
-            invoiceTemplates: invoiceData || [], 
-            proposalTemplates: proposalData || [],
-            contractTemplates: contractData || [],
-        });
-    },
-
-    addInvoice: async (newInvoice, timeEntryIdsToBill) => {
-        const state = get();
-        const userId = state.profile?.id;
-        if (!userId) throw new Error("User not authenticated");
-
-        const nextInvoiceNumber = `INV-${new Date().getFullYear()}-${String(state.invoices.length + 1).padStart(3, '0')}`;
-        const subtotal_cents = newInvoice.items!.reduce((sum, item) => sum + item.price_cents * item.quantity, 0);
-        const total_cents = subtotal_cents * (1 + (newInvoice.tax_percent || 0) / 100);
-
-        const invoiceToInsert = {
-            ...newInvoice,
-            user_id: userId,
-            invoice_number: nextInvoiceNumber,
-            subtotal_cents,
-            total_cents,
+    monthlyGoalCents: 0,
+    addInvoice: (invoiceData, timeEntryIdsToBill) => {
+        const subtotal = invoiceData.items.reduce((sum: number, item: any) => sum + item.price_cents * item.quantity, 0);
+        const total = subtotal * (1 + (invoiceData.tax_percent || 0) / 100);
+        const newInvoice = {
+            ...invoiceData,
+            id: `inv-${Date.now()}`,
+            user_id: 'u-1',
+            invoice_number: `INV-${String(get().invoices.length + 1).padStart(4, '0')}`,
+            subtotal_cents: subtotal,
+            total_cents: total,
             paid: false,
+            payment_date: null,
+            created_at: new Date().toISOString(),
         };
-
-        const { data, error } = await supabase.from('invoices').insert(invoiceToInsert).select().single();
-        if (error) throw error;
-
-        set({ invoices: [...state.invoices, data] });
+        set(state => ({ invoices: [newInvoice, ...state.invoices] }));
+        
+        get().addNotification(`Nueva factura #${newInvoice.invoice_number} creada.`, '/invoices');
 
         if (timeEntryIdsToBill && timeEntryIdsToBill.length > 0) {
-            const { error: timeError } = await supabase.from('time_entries').update({ invoice_id: data.id }).in('id', timeEntryIdsToBill);
-            if (timeError) throw timeError;
-            await state.fetchTimeEntries();
+            const updatedTimeEntries = get().timeEntries.map(entry => 
+                timeEntryIdsToBill.includes(entry.id) ? { ...entry, invoice_id: newInvoice.id } : entry
+            );
+            set({ timeEntries: updatedTimeEntries });
         }
     },
-
-    deleteInvoice: async (id) => {
-        const { error } = await supabase.from('invoices').delete().eq('id', id);
-        if (error) throw error;
-        set(state => ({ invoices: state.invoices.filter(i => i.id !== id) }));
+    deleteInvoice: (id) => set(state => ({ invoices: state.invoices.filter(i => i.id !== id) })),
+    markInvoiceAsPaid: (id) => {
+        const invoice = get().invoices.find(i => i.id === id);
+        if(invoice) {
+             get().addNotification(`La factura #${invoice.invoice_number} ha sido pagada.`, '/invoices');
+        }
+        set(state => ({ invoices: state.invoices.map(i => i.id === id ? { ...i, paid: true, payment_date: new Date().toISOString().split('T')[0] } : i) }));
     },
-    
-    markInvoiceAsPaid: async (id) => {
-        const { data, error } = await supabase
-            .from('invoices')
-            .update({ paid: true, payment_date: new Date().toISOString() })
-            .eq('id', id)
-            .select()
-            .single();
-
-        if (error) throw error;
-        
-        set(state => ({
-            invoices: state.invoices.map(i => i.id === id ? data : i)
-        }));
-
-        try {
-            const { profile, getClientById } = get();
-            const client = getClientById(data.client_id);
-
-            if (profile && client) {
-                const subject = `Confirmación de pago para la factura #${data.invoice_number}`;
-                const html = `...`; // Email HTML as before
-
-                await fetch('/api/send-email', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ to: client.email, subject, html }),
-                });
+    addRecurringInvoice: (recurringData) => {
+        const newRecurring: RecurringInvoice = {
+            ...recurringData,
+            id: `rec-inv-${Date.now()}`,
+            user_id: 'u-1',
+            next_due_date: recurringData.start_date,
+            created_at: new Date().toISOString(),
+        };
+        set(state => ({ recurringInvoices: [...state.recurringInvoices, newRecurring] }));
+        get().checkAndGenerateRecurringInvoices(); // Check immediately to create the first one
+    },
+    deleteRecurringInvoice: (id) => set(state => ({ recurringInvoices: state.recurringInvoices.filter(ri => ri.id !== id) })),
+    checkAndGenerateRecurringInvoices: () => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const recurringInvoices = get().recurringInvoices;
+        const newInvoices: Invoice[] = [];
+        const updatedRecurringInvoices = recurringInvoices.map(rec => {
+            const nextDueDate = new Date(rec.next_due_date);
+            if (nextDueDate <= today) {
+                // Generate a new invoice
+                const newInvoiceData = {
+                    client_id: rec.client_id,
+                    project_id: rec.project_id,
+                    issue_date: new Date().toISOString().split('T')[0],
+                    due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    items: rec.items,
+                    tax_percent: rec.tax_percent,
+                };
+                get().addInvoice(newInvoiceData);
+                
+                // Calculate next due date
+                let newNextDueDate = new Date(rec.next_due_date);
+                if (rec.frequency === 'monthly') {
+                    newNextDueDate.setMonth(newNextDueDate.getMonth() + 1);
+                } else { // yearly
+                    newNextDueDate.setFullYear(newNextDueDate.getFullYear() + 1);
+                }
+                return { ...rec, next_due_date: newNextDueDate.toISOString().split('T')[0] };
             }
-        } catch (emailError) {
-            console.error("Failed to send payment confirmation email:", emailError);
-            useToast.getState().addToast('Factura marcada como pagada, pero falló el envío del email de confirmación.', 'error');
-        }
-    },
-    
-    addExpense: async (newExpense) => {
-        const userId = get().profile?.id;
-        if (!userId) throw new Error("User not authenticated");
+            return rec;
+        });
 
-        const { data, error } = await supabase.from('expenses').insert({ ...newExpense, user_id: userId }).select().single();
-        if (error) throw error;
-        set(state => ({ expenses: [...state.expenses, data] }));
+        set({ recurringInvoices: updatedRecurringInvoices });
     },
-
-    deleteExpense: async (id) => {
-        const { error } = await supabase.from('expenses').delete().eq('id', id);
-        if (error) throw error;
-        set(state => ({ expenses: state.expenses.filter(e => e.id !== id) }));
+    addExpense: (expense) => set(state => ({ expenses: [{ ...expense, id: `e-${Date.now()}`, user_id: 'u-1', created_at: new Date().toISOString() }, ...state.expenses] })),
+    deleteExpense: (id) => set(state => ({ expenses: state.expenses.filter(e => e.id !== id) })),
+    addRecurringExpense: (expense) => {
+          const startDate = new Date(expense.start_date);
+          let nextDueDate = new Date(startDate);
+          if (expense.frequency === 'monthly') {
+            nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+          } else {
+            nextDueDate.setFullYear(nextDueDate.getFullYear() + 1);
+          }
+          const newRecExpense = {
+              ...expense,
+              id: `re-${Date.now()}`,
+              user_id: 'u-1',
+              next_due_date: nextDueDate.toISOString().split('T')[0],
+              created_at: new Date().toISOString(),
+          }
+          set(state => ({ recurringExpenses: [newRecExpense, ...state.recurringExpenses] }));
     },
-
-    addTimeEntry: async (newEntry) => {
-        const userId = get().profile?.id;
-        if (!userId) throw new Error("User not authenticated");
-        
-        const entryWithUser = { ...newEntry, user_id: userId };
-        const { data, error } = await supabase.from('time_entries').insert(entryWithUser).select().single();
-        if (error) throw error;
-        set(state => ({ timeEntries: [...state.timeEntries, data] }));
+    deleteRecurringExpense: (id) => set(state => ({ recurringExpenses: state.recurringExpenses.filter(re => re.id !== id) })),
+    addBudget: (budgetData) => {
+        const amount_cents = budgetData.items.reduce((sum: number, item: any) => sum + item.price_cents * item.quantity, 0);
+        const newBudget = {
+            ...budgetData,
+            id: `b-${Date.now()}`,
+            user_id: 'u-1',
+            amount_cents,
+            status: 'pending',
+            created_at: new Date().toLocaleDateString(),
+        };
+        set(state => ({ budgets: [newBudget, ...state.budgets] }));
     },
-    
-    addBudget: async (newBudget) => {
-        const userId = get().profile?.id;
-        if (!userId) throw new Error("User not authenticated");
-        
-        const amount_cents = newBudget.items!.reduce((sum, item) => sum + item.price_cents * item.quantity, 0);
-        
-        const { data, error } = await supabase.from('budgets').insert({
-             ...newBudget,
-             user_id: userId,
-             status: 'pending',
-             amount_cents
-        }).select().single();
-        if(error) throw error;
-        set(state => ({ budgets: [...state.budgets, data] }));
+    updateBudgetStatus: (id, status) => set(state => ({ budgets: state.budgets.map(b => b.id === id ? {...b, status} : b) })),
+    addProposal: (proposalData) => {
+        const newProposal = {
+            ...proposalData,
+            id: `prop-${Date.now()}`,
+            user_id: 'u-1',
+            status: 'sent',
+            created_at: new Date().toLocaleDateString(),
+        };
+        set(state => ({ proposals: [newProposal, ...state.proposals] }));
     },
-
-    updateBudgetStatus: async (id, status) => {
-        const { data, error } = await supabase.from('budgets').update({ status }).eq('id', id).select().single();
-        if (error) throw error;
-        set(state => ({ budgets: state.budgets.map(b => b.id === id ? data : b)}));
+    addContract: (contractData) => {
+        const newContract = {
+            ...contractData,
+            id: `cont-${Date.now()}`,
+            user_id: 'u-1',
+            status: 'draft',
+            created_at: new Date().toISOString(),
+        };
+        set(state => ({ contracts: [newContract, ...state.contracts] }));
     },
-    
-    addProposal: async (newProposal) => {
-        const userId = get().profile?.id;
-        if (!userId) throw new Error("User not authenticated");
-        
-        const { data, error } = await supabase.from('proposals').insert({
-             ...newProposal,
-             user_id: userId,
-             status: 'sent'
-        }).select().single();
-        if(error) throw error;
-        set(state => ({ proposals: [...state.proposals, data] }));
-    },
-    
-    updateProposalStatus: async (id, status) => {
-        const proposal = get().proposals.find(p => p.id === id);
-        if (proposal?.status !== 'sent') {
-            return `Esta propuesta ya ha sido ${proposal?.status === 'accepted' ? 'aceptada' : 'rechazada'}.`;
-        }
-        const { data, error } = await supabase.from('proposals').update({ status }).eq('id', id).select().single();
-        if(error) throw error;
-        set(state => ({ proposals: state.proposals.map(p => p.id === id ? data : p) }));
-        return undefined;
-    },
-
-    addContract: async (newContract) => {
-        const userId = get().profile?.id;
-        if (!userId) throw new Error("User not authenticated");
-        
-        const { data, error } = await supabase.from('contracts').insert({
-            ...newContract,
-            user_id: userId,
-            status: 'draft'
-        }).select().single();
-        if(error) throw error;
-        set(state => ({ contracts: [...state.contracts, data] }));
-    },
-    
-    sendContract: async (id) => {
-        const { data, error } = await supabase.from('contracts').update({ status: 'sent' }).eq('id', id).select().single();
-        if(error) throw error;
-        set(state => ({ contracts: state.contracts.map(c => c.id === id ? data : c) }));
-    },
-
-    signContract: async (id, signedBy, signature) => {
-        const contract = get().contracts.find(c => c.id === id);
-        if (contract?.status === 'signed') return "Este contrato ya ha sido firmado.";
-
-        const { data, error } = await supabase.from('contracts').update({
-            status: 'signed',
-            signed_by: signedBy,
-            signed_at: new Date().toISOString(),
-            signature
-        }).eq('id', id).select().single();
-
-        if(error) throw error;
-        set(state => ({ contracts: state.contracts.map(c => c.id === id ? data : c) }));
-        return undefined;
-    },
-
-    addShadowIncome: async (newEntry) => {
-        const userId = get().profile?.id;
-        if (!userId) throw new Error("User not authenticated");
-        const { data, error } = await supabase.from('shadow_income').insert({ ...newEntry, user_id: userId }).select().single();
-        if (error) throw error;
-        set(state => ({ shadowIncome: [...state.shadowIncome, data] }));
-    },
-    deleteShadowIncome: async (id) => {
-        const { error } = await supabase.from('shadow_income').delete().eq('id', id);
-        if (error) throw error;
-        set(state => ({ shadowIncome: state.shadowIncome.filter(s => s.id !== id) }));
-    },
-    
-    addRecurringInvoice: async (newInvoice) => {
-        const userId = get().profile?.id;
-        if (!userId) throw new Error("User not authenticated");
-        const { data, error } = await supabase.from('recurring_invoices').insert({ ...newInvoice, user_id: userId }).select().single();
-        if (error) throw error;
-        set(state => ({ recurringInvoices: [...state.recurringInvoices, data] }));
-    },
-    deleteRecurringInvoice: async (id) => {
-        const { error } = await supabase.from('recurring_invoices').delete().eq('id', id);
-        if (error) throw error;
-        set(state => ({ recurringInvoices: state.recurringInvoices.filter(i => i.id !== id) }));
-    },
-    addRecurringExpense: async (newExpense) => {
-        const userId = get().profile?.id;
-        if (!userId) throw new Error("User not authenticated");
-        const { data, error } = await supabase.from('recurring_expenses').insert({ ...newExpense, user_id: userId }).select().single();
-        if (error) throw error;
-        set(state => ({ recurringExpenses: [...state.recurringExpenses, data] }));
-    },
-    deleteRecurringExpense: async (id) => {
-        const { error } = await supabase.from('recurring_expenses').delete().eq('id', id);
-        if (error) throw error;
-        set(state => ({ recurringExpenses: state.recurringExpenses.filter(e => e.id !== id) }));
-    },
-    setContractExpiration: async (id, date) => {
-        const { data, error } = await supabase.from('contracts').update({ expires_at: date }).eq('id', id).select().single();
-        if (error) throw error;
-        set(state => ({ contracts: state.contracts.map(c => c.id === id ? data : c) }));
-    },
-    addInvoiceTemplate: async (template) => {
-        const userId = get().profile?.id;
-        if (!userId) throw new Error("User not authenticated");
-        const { data, error } = await supabase.from('invoice_templates').insert({ ...template, user_id: userId }).select().single();
-        if (error) throw error;
-        set(state => ({ invoiceTemplates: [...state.invoiceTemplates, data] }));
-    },
-    deleteInvoiceTemplate: async (id) => {
-        const { error } = await supabase.from('invoice_templates').delete().eq('id', id);
-        if (error) throw error;
-        set(state => ({ invoiceTemplates: state.invoiceTemplates.filter(t => t.id !== id) }));
-    },
-    addProposalTemplate: async (template) => {
-        const userId = get().profile?.id;
-        if (!userId) throw new Error("User not authenticated");
-        const { data, error } = await supabase.from('proposal_templates').insert({ ...template, user_id: userId }).select().single();
-        if (error) throw error;
-        set(state => ({ proposalTemplates: [...state.proposalTemplates, data] }));
-    },
-    deleteProposalTemplate: async (id) => {
-        const { error } = await supabase.from('proposal_templates').delete().eq('id', id);
-        if (error) throw error;
-        set(state => ({ proposalTemplates: state.proposalTemplates.filter(t => t.id !== id) }));
-    },
-    addContractTemplate: async (template) => {
-        const userId = get().profile?.id;
-        if (!userId) throw new Error("User not authenticated");
-        const { data, error } = await supabase.from('contract_templates').insert({ ...template, user_id: userId }).select().single();
-        if (error) throw error;
-        set(state => ({ contractTemplates: [...state.contractTemplates, data] }));
-    },
-    deleteContractTemplate: async (id) => {
-        const { error } = await supabase.from('contract_templates').delete().eq('id', id);
-        if (error) throw error;
-        set(state => ({ contractTemplates: state.contractTemplates.filter(t => t.id !== id) }));
-    },
+    sendContract: (id) => set(state => ({ contracts: state.contracts.map(c => c.id === id ? { ...c, status: 'sent' } : c) })),
+    signContract: (id, signerName) => set(state => ({ contracts: state.contracts.map(c => c.id === id ? { ...c, status: 'signed', signed_by: signerName, signed_at: new Date().toISOString() } : c) })),
+    setMonthlyGoal: (goal) => set({ monthlyGoalCents: goal }),
 });

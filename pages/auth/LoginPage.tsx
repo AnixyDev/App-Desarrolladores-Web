@@ -1,122 +1,119 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import AuthCard from '../../components/auth/AuthCard';
-import AuthInput from '../../components/auth/AuthInput';
-import { useAppStore } from '../../hooks/useAppStore';
-import { useToast } from '../../hooks/useToast';
-import { MailIcon, Github, RefreshCwIcon, Lock } from '../../components/icons/Icon';
-import { GoogleIcon } from '../../components/icons/GoogleIcon';
-
+import { Link, useNavigate } from 'react-router-dom';
+import AuthCard from '../../components/auth/AuthCard.tsx';
+import Input from '../../components/ui/Input.tsx';
+import Button from '../../components/ui/Button.tsx';
+import { useAppStore } from '../../hooks/useAppStore.tsx';
+import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
+import { GoogleJwtPayload } from '../../types.ts';
+import { AlertTriangleIcon } from '../../components/icons/Icon.tsx';
+import { jwtDecode } from '../../lib/utils.ts';
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
-    const location = useLocation();
-    const { login, loginWithGoogle, loginWithGithub } = useAppStore();
-    const { addToast } = useToast();
+    const login = useAppStore(state => state.login);
+    const loginWithGoogle = useAppStore(state => state.loginWithGoogle);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    const [showGoogleConfigError, setShowGoogleConfigError] = useState(false);
 
-    const from = (location.state as any)?.from?.pathname || '/';
-
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        setIsLoading(true);
-        try {
-            await login(email, password);
-            addToast('Inicio de sesión correcto. ¡Bienvenido de nuevo!', 'success');
-            navigate(from, { replace: true });
-        } catch (err) {
-            setError((err as Error).message || 'Credenciales incorrectas.');
-        } finally {
-            setIsLoading(false);
+        const success = login(email, password);
+        if (success) {
+            navigate('/');
+        } else {
+            setError('Email no encontrado o incorrecto. Por favor, regístrate o usa Google.');
         }
     };
-    
-    const handleSocialSignIn = async (provider: 'google' | 'github') => {
-        setIsLoading(true);
-        setError('');
-        try {
-            if (provider === 'google') {
-                await loginWithGoogle();
-            } else if (provider === 'github') {
-                await loginWithGithub();
+
+    const handleGoogleSuccess = (credentialResponse: CredentialResponse) => {
+        setShowGoogleConfigError(false);
+        if (credentialResponse.credential) {
+            const decoded: GoogleJwtPayload | null = jwtDecode(credentialResponse.credential);
+            if (decoded) {
+                loginWithGoogle(decoded);
+                navigate('/');
+            } else {
+                setError('No se pudo verificar la información de Google.');
             }
-            // La redirección ocurrirá aquí, por lo que el código siguiente puede no ejecutarse.
-        } catch (err) {
-            console.error('Social Sign-In Error:', err);
-            const errorMessage = (err as Error).message || 'No se pudo iniciar la sesión social. Revisa la consola o la configuración.';
-            setError(errorMessage);
-            setIsLoading(false);
         }
+    };
+
+    const handleGoogleError = () => {
+        setError('');
+        setShowGoogleConfigError(true);
+        console.error('Login Failed');
     };
 
     return (
         <AuthCard>
-            <h1 className="text-3xl font-bold text-center mb-2 text-white">Iniciar Sesión</h1>
-            <p className="text-center text-sm mb-8 text-gray-400">Bienvenido de nuevo a DevFreelancer</p>
+            <h2 className="text-2xl font-bold text-center text-white mb-6">Iniciar Sesión</h2>
             
-            <form onSubmit={handleSubmit}>
-                <AuthInput
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="Correo Electrónico"
-                  icon={MailIcon}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                <AuthInput
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="Contraseña"
-                  icon={Lock}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+            {showGoogleConfigError && (
+                 <div className="bg-red-900/50 border border-red-500/50 text-red-300 p-4 rounded-lg mb-6 text-sm">
+                    <div className="flex items-start">
+                        <AlertTriangleIcon className="w-5 h-5 mr-3 shrink-0" />
+                        <div>
+                            <h3 className="font-bold mb-1">Error de Configuración (origin_mismatch)</h3>
+                            <p className="mb-2">Este error ocurre porque la URL de esta aplicación no está autorizada en tu Google Cloud Console.</p>
+                            <p className="font-semibold">Solución:</p>
+                            <ol className="list-decimal list-inside space-y-1 mt-1">
+                                <li>Copia esta URL de origen: <br/><code className="bg-gray-800 text-white p-1 rounded text-xs select-all">{window.location.origin}</code></li>
+                                <li>Añádela a "Orígenes de JavaScript autorizados" en tu configuración de cliente de OAuth.</li>
+                            </ol>
+                            <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="inline-block mt-3 px-3 py-1 bg-red-600 text-white font-semibold rounded hover:bg-red-700">
+                                Ir a Google Cloud Console
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-                {error && <p className="text-sm text-red-500 text-center mb-4">{error}</p>}
-                
-                <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full mt-4 py-3 font-semibold rounded-full shadow-lg transition-all duration-200 flex items-center justify-center bg-primary-500 text-black disabled:bg-gray-500 disabled:cursor-not-allowed"
-                >
-                    {isLoading ? <RefreshCwIcon className="w-5 h-5 animate-spin" /> : 'Iniciar Sesión'}
-                </button>
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <Input 
+                    label="Email" 
+                    type="email" 
+                    placeholder="tu@email.com" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                />
+                <Input 
+                    label="Contraseña" 
+                    type="password" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                />
+                {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                <Button type="submit" className="w-full">Entrar</Button>
             </form>
-            
-            <div className="flex items-center my-6">
-                <hr className="flex-grow border-t border-gray-700" />
-                <span className="px-4 text-xs text-gray-500">O continúa con</span>
-                <hr className="flex-grow border-t border-gray-700" />
+
+            <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-700" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-gray-900 text-gray-500">O continúa con</span>
+                </div>
             </div>
 
-            <div className="flex justify-center gap-4">
-                <button
-                    onClick={() => handleSocialSignIn('google')}
-                    disabled={isLoading}
-                    className="p-3 bg-white rounded-full border border-white transition-colors duration-200"
-                    title="Iniciar sesión con Google"
-                >
-                    <GoogleIcon />
-                </button>
-                <button
-                    onClick={() => handleSocialSignIn('github')}
-                    disabled={isLoading}
-                    className="p-3 bg-white rounded-full border border-white transition-colors duration-200"
-                    title="Iniciar sesión con GitHub"
-                >
-                    <Github className="w-5 h-5 text-black" />
-                </button>
+            <div className='flex justify-center'>
+                 <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                    theme="filled_black"
+                    text="continue_with"
+                    shape="pill"
+                />
             </div>
-            
-            <p className="text-center text-sm mt-8 text-gray-500">
-                ¿No tienes cuenta?
-                <Link to="/auth/register" className="font-semibold ml-1 text-primary-500 transition-colors hover:underline">
+
+            <p className="mt-6 text-center text-sm text-gray-400">
+                ¿No tienes cuenta?{' '}
+                <Link to="/auth/register" className="font-medium text-primary-400 hover:text-primary-300">
                     Regístrate
                 </Link>
             </p>

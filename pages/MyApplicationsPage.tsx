@@ -1,13 +1,13 @@
 // pages/MyApplicationsPage.tsx
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { useAppStore } from '../hooks/useAppStore';
-import Card, { CardContent, CardHeader } from '../components/ui/Card';
+import { useAppStore } from '../hooks/useAppStore.tsx';
+import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 import { Send, Briefcase } from 'lucide-react';
-import { JobApplication } from '../types';
+import { JobApplication } from '../types.ts';
 import { Link, useNavigate } from 'react-router-dom';
-import EmptyState from '../components/ui/EmptyState';
+import EmptyState from '../components/ui/EmptyState.tsx';
 
-const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal'));
+const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal.tsx'));
 
 const applicationStatusConfig = {
     sent: { label: 'Enviada', className: 'bg-blue-500/20 text-blue-400' },

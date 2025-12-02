@@ -1,6 +1,8 @@
-import React from 'react';
 
-const PortalLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+import React from 'react';
+import { Outlet } from 'react-router-dom';
+
+const PortalLayout: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-900 text-gray-100">
             <header className="bg-black border-b border-gray-800">
@@ -10,7 +12,7 @@ const PortalLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
                 </div>
             </header>
             <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                {children}
+                <Outlet />
             </main>
         </div>
     );

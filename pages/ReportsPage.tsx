@@ -1,8 +1,10 @@
 import React, { useState, useMemo, lazy, Suspense } from 'react';
+// FIX: Remove .tsx extensions from imports to fix module resolution errors.
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { formatCurrency } from '../lib/utils';
+// FIX: Aliased Users to UsersIcon to match usage.
 import { DownloadIcon, DollarSignIcon, TrendingUpIcon, Users as UsersIcon, ClockIcon, SparklesIcon, RefreshCwIcon } from '../components/icons/Icon';
 import { analyzeProfitability, AI_CREDIT_COSTS } from '../services/geminiService';
 import { useToast } from '../hooks/useToast';
@@ -152,10 +154,10 @@ const ReportsPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard icon={DollarSignIcon} title="Ingresos Totales" value={formatCurrency(reportKpis.totalIncome)} iconColor="text-green-400" />
-          <StatCard icon={TrendingUpIcon} title="Gastos Totales" value={formatCurrency(reportKpis.totalExpenses)} iconColor="text-red-400" />
-          <StatCard icon={DollarSignIcon} title="Beneficio Neto" value={formatCurrency(reportKpis.netProfit)} iconColor="text-primary-400" />
-          <StatCard icon={ClockIcon} title="Horas Registradas" value={`${reportKpis.totalHoursTracked.toFixed(2)}h`} iconColor="text-blue-400" />
+          <StatCard icon={DollarSignIcon} title="Ingresos Totales" value={formatCurrency(reportKpis.totalIncome)} />
+          <StatCard icon={TrendingUpIcon} title="Gastos Totales" value={formatCurrency(reportKpis.totalExpenses)} color="text-red-400" />
+          <StatCard icon={DollarSignIcon} title="Beneficio Neto" value={formatCurrency(reportKpis.netProfit)} color="text-green-400" />
+          <StatCard icon={ClockIcon} title="Horas Registradas" value={`${reportKpis.totalHoursTracked.toFixed(2)}h`} />
       </div>
 
       {analysis && (
@@ -202,13 +204,17 @@ const ReportsPage: React.FC = () => {
   );
 };
 
-const StatCard: React.FC<{ icon: React.ElementType; title: string; value: string | number; iconColor?: string }> = ({ icon: Icon, title, value, iconColor = 'text-primary-400' }) => (
+const StatCard = ({ icon: Icon, title, value, color = 'text-white' }: { icon: React.ElementType, title: string, value: string | number, color?: string }) => (
     <Card>
-        <CardContent className="flex items-center p-4">
-            <Icon className={`w-7 h-7 mr-4 ${iconColor}`} />
-            <div>
-                <p className="text-sm text-gray-400">{title}</p>
-                <p className="text-2xl font-bold text-white">{value}</p>
+        <CardContent className="p-4">
+             <div className="flex items-center">
+                 <div className="p-3 rounded-full bg-primary-600/20 text-primary-400 mr-4">
+                     <Icon className="w-6 h-6" />
+                 </div>
+                <div>
+                    <p className="text-sm text-gray-400">{title}</p>
+                    <p className={`text-2xl font-bold ${color}`}>{value}</p>
+                </div>
             </div>
         </CardContent>
     </Card>

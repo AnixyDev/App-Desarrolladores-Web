@@ -1,4 +1,5 @@
 import React, { useState, useMemo, lazy, Suspense } from 'react';
+// FIX: Remove .tsx and .ts extensions from imports to fix module resolution errors.
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -138,7 +139,7 @@ const BudgetsPage: React.FC = () => {
                             </thead>
                             <tbody>
                                 {budgets.map(budget => (
-                                    <tr key={budget.id} className="border-b border-gray-800 hover:bg-gray-800 hover:shadow-lg transition-all duration-200 ease-in-out">
+                                    <tr key={budget.id} className="border-b border-gray-800 hover:bg-gray-800/50">
                                         <td className="p-4 text-white font-semibold">{budget.description}</td>
                                         <td className="p-4 text-primary-400">{getClientById(budget.client_id)?.name}</td>
                                         <td className="p-4 text-gray-300">{budget.created_at}</td>

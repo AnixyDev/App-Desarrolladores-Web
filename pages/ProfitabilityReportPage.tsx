@@ -1,11 +1,11 @@
 // pages/ProfitabilityReportPage.tsx
 import React, { useMemo, useState } from 'react';
-import { useAppStore } from '../hooks/useAppStore';
-import Card, { CardContent, CardHeader } from '../components/ui/Card';
-import { formatCurrency } from '../lib/utils';
+import { useAppStore } from '../hooks/useAppStore.tsx';
+import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
+import { formatCurrency } from '../lib/utils.ts';
 import { Link } from 'react-router-dom';
-import { ArrowUpCircleIcon, ArrowDownCircleIcon, DollarSignIcon, TrendingUpIcon, ChevronDownIcon, ChevronUpIcon, BriefcaseIcon } from '../components/icons/Icon';
-import EmptyState from '../components/ui/EmptyState';
+import { ArrowUpCircleIcon, ArrowDownCircleIcon, DollarSignIcon, TrendingUpIcon, ChevronDownIcon, ChevronUpIcon, BriefcaseIcon } from '../components/icons/Icon.tsx';
+import EmptyState from '../components/ui/EmptyState.tsx';
 
 interface ProfitabilityData {
     projectId: string;

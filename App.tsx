@@ -1,203 +1,223 @@
-
-import React, { useEffect, Suspense } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { HashRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAppStore } from './hooks/useAppStore';
-import { supabase } from './lib/supabaseClient';
-
-import ToastContainer from './components/ui/Toast';
-import PageLoader from './components/layout/PageLoader';
 import { useToast } from './hooks/useToast';
+// FIX: Remove .ts extension from import to fix module resolution error.
+import { STRIPE_ITEMS } from './services/stripeService';
+import Sidebar from './components/layout/Sidebar';
+import Header from './components/layout/Header';
+import ToastContainer from './components/ui/Toast';
 
-// Layouts & Guards
-import MainLayout from './components/layout/MainLayout';
-import { ProtectedRoute, PublicRoute } from './components/auth/RouteGuards';
+// Layouts
+import AuthLayout from './pages/auth/AuthLayout';
+import PortalLayout from './pages/portal/PortalLayout';
 
-// Static imports for critical Auth pages
+// Auth Pages
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
-import AuthLayout from './pages/auth/AuthLayout';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 
-// Lazy Pages
-import * as Pages from './lib/lazyPages';
+// Main App Pages
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const ClientsPage = lazy(() => import('./pages/ClientsPage'));
+const ClientDetailPage = lazy(() => import('./pages/ClientDetailPage'));
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
+const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'));
+const InvoicesPage = lazy(() => import('./pages/InvoicesPage'));
+const CreateInvoicePage = lazy(() => import('./pages/CreateInvoicePage'));
+const ExpensesPage = lazy(() => import('./pages/ExpensesPage'));
+const BudgetsPage = lazy(() => import('./pages/BudgetsPage'));
+const ProposalsPage = lazy(() => import('./pages/ProposalsPage'));
+const ContractsPage = lazy(() => import('./pages/ContractsPage'));
+const TimeTrackingPage = lazy(() => import('./pages/TimeTrackingPage'));
+const ReportsPage = lazy(() => import('./pages/ReportsPage'));
+const ProfitabilityReportPage = lazy(() => import('./pages/ProfitabilityReportPage'));
+const TaxLedgerPage = lazy(() => import('./pages/TaxLedgerPage'));
+const AIAssistantPage = lazy(() => import('./pages/AIAssistantPage'));
+const JobMarketDashboard = lazy(() => import('./pages/JobMarketDashboard'));
+const JobDetailPage = lazy(() => import('./pages/JobDetailPage'));
+const JobPostForm = lazy(() => import('./pages/JobPostForm'));
+const MyJobPostsPage = lazy(() => import('./pages/MyJobPostsPage'));
+const JobApplicantsPage = lazy(() => import('./pages/JobApplicantsPage'));
+const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
+const MyApplicationsPage = lazy(() => import('./pages/MyApplicationsPage'));
+const SavedJobsPage = lazy(() => import('./pages/SavedJobsPage'));
+const TeamManagementDashboard = lazy(() => import('./pages/TeamManagementDashboard'));
+const MyTeamTimesheet = lazy(() => import('./pages/MyTeamTimesheet'));
+const KnowledgeBase = lazy(() => import('./pages/KnowledgeBase'));
+const RoleManagement = lazy(() => import('./pages/RoleManagement'));
+const IntegrationsManager = lazy(() => import('./pages/IntegrationsManager'));
+const ForecastingPage = lazy(() => import('./pages/ForecastingPage'));
+const AffiliateProgramPage = lazy(() => import('./pages/AffiliateProgramPage'));
+// FIX: Remove .tsx extension from import to fix module resolution error.
+const BillingPage = lazy(() => import('./pages/BillingPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+
+// Portal Pages
+const PortalLoginPage = lazy(() => import('./pages/portal/PortalLoginPage'));
+const PortalDashboardPage = lazy(() => import('./pages/portal/PortalDashboardPage'));
+const PortalInvoiceViewPage = lazy(() => import('./pages/portal/PortalInvoiceViewPage'));
+const PortalBudgetViewPage = lazy(() => import('./pages/portal/PortalBudgetViewPage'));
+const PortalProposalViewPage = lazy(() => import('./pages/portal/PortalProposalViewPage'));
+const PortalContractViewPage = lazy(() => import('./pages/portal/PortalContractViewPage'));
+
+
+const GOOGLE_CLIENT_ID = "102738470388-s392h3093q9j7q3j9q3j9q3j9q3j9q3j.apps.googleusercontent.com"; // Placeholder Client ID
+
+// FIX: Refactored PrivateRoute to be a self-contained layout route element, resolving a 'children' prop error.
+const PrivateRoute = () => {
+    const isAuthenticated = useAppStore(state => state.isAuthenticated);
+    return isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" />;
+};
+
+const MainLayout = () => {
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    return (
+        <div className="flex h-screen bg-gray-950 text-gray-100">
+            <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <Header setSidebarOpen={setSidebarOpen} />
+                <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 lg:p-8">
+                    <Suspense fallback={<div className="text-center p-8">Cargando página...</div>}>
+                        <Outlet />
+                    </Suspense>
+                </main>
+            </div>
+        </div>
+    );
+};
+
+const PaymentHandler = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const { addToast } = useToast();
+    const { upgradePlan, purchaseCredits, markInvoiceAsPaid } = useAppStore();
+
+    useEffect(() => {
+        const paymentStatus = searchParams.get('payment');
+        const itemKey = searchParams.get('item') as keyof typeof STRIPE_ITEMS | null;
+        const invoiceId = searchParams.get('invoice_id');
+
+        if (paymentStatus === 'success') {
+            if (itemKey) {
+                const item = STRIPE_ITEMS[itemKey];
+                if (item) {
+                    if (item.mode === 'subscription') {
+                        if (itemKey === 'proPlan') {
+                            upgradePlan('Pro');
+                            addToast('¡Felicidades! Has actualizado al Plan Pro.', 'success');
+// FIX: Property 'includes' does not exist on type 'string | number | symbol'. Type guard added to ensure itemKey is a string.
+                        } else if (typeof itemKey === 'string' && itemKey.includes('teams')) {
+                            upgradePlan('Teams');
+                            addToast('¡Bienvenido a Teams! Ya puedes invitar a tu equipo.', 'success');
+                        }
+                    } else if (item.mode === 'payment' && 'credits' in item) {
+                        purchaseCredits(item.credits);
+                        addToast(`¡Has comprado ${item.credits} créditos de IA!`, 'success');
+                    } else if (itemKey === 'featuredJobPost') {
+                        addToast('¡Tu oferta ha sido destacada y publicada con éxito!', 'success');
+                    }
+                }
+                searchParams.delete('item');
+            } else if (invoiceId) {
+                markInvoiceAsPaid(invoiceId);
+                addToast('¡Pago recibido! La factura ha sido marcada como pagada.', 'success');
+                searchParams.delete('invoice_id');
+            }
+             searchParams.delete('payment');
+             setSearchParams(searchParams, { replace: true });
+
+        } else if (paymentStatus === 'cancelled') {
+            addToast('El proceso de pago fue cancelado.', 'info');
+            // Clean up all payment-related URL params
+            searchParams.delete('payment');
+            searchParams.delete('invoice_id');
+            searchParams.delete('item');
+            setSearchParams(searchParams, { replace: true });
+        }
+        // This effect should only run once on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    return null;
+}
+
 
 function App() {
-  const { setSession, fetchInitialData, clearUserData, isLoading } = useAppStore();
-  const navigate = useNavigate();
-  const { addToast } = useToast();
+    const { isAuthenticated, checkInvoiceStatuses } = useAppStore();
 
-  useEffect(() => {
-    // Initial Session Check
-    const initAuth = async () => {
-        try {
-            useAppStore.setState({ isLoading: true });
-            
-            // Check session - this is fast
-            const { data: { session }, error } = await supabase.auth.getSession();
-            if (error) throw error;
-
-            if (session?.user) {
-                setSession(session); // Update Zustand store
-                
-                // Clean up OAuth URL hash if present
-                if (window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('type=recovery'))) {
-                     window.history.replaceState(null, '', window.location.pathname);
-                     navigate('/', { replace: true });
-                }
-
-                // CRITICAL OPTIMIZATION:
-                // Release the loading state *IMMEDIATELY* so the Dashboard structure renders.
-                useAppStore.setState({ isLoading: false });
-
-                // Fetch app data in background (Hydration)
-                fetchInitialData(session.user).catch(console.error);
-            } else {
-                // No session, stop loading immediately to show Login page
-                useAppStore.setState({ isLoading: false });
-            }
-
-        } catch (error) {
-            console.error("Auth initialization error:", error);
-            clearUserData();
-            useAppStore.setState({ isLoading: false });
+    useEffect(() => {
+        if (isAuthenticated) {
+            checkInvoiceStatuses();
         }
-    };
+    }, [isAuthenticated, checkInvoiceStatuses]);
 
-    initAuth();
-
-    // Auth State Listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-            setSession(session);
-            useAppStore.setState({ isLoading: false });
-            
-            if (!useAppStore.getState().profile) {
-                 await fetchInitialData(session.user);
-            }
-        } else if (event === 'SIGNED_OUT') {
-            clearUserData();
-            navigate('/auth/login', { replace: true });
-        }
-    });
-
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, [setSession, fetchInitialData, clearUserData, navigate, addToast]);
-  
-  if (isLoading) {
-      return <div className="h-screen w-screen bg-[#020617] flex items-center justify-center"><PageLoader /></div>;
-  }
-
-  return (
-    <>
-      <Routes>
-        {/* --- PUBLIC ROUTES (Auth) --- */}
-        <Route path="/auth/*" element={
-          <PublicRoute>
-            <AuthLayout>
+    return (
+        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+            <HashRouter>
+                <ToastContainer />
+                <PaymentHandler />
                 <Routes>
-                    <Route path="login" element={<LoginPage />} />
-                    <Route path="register" element={<RegisterPage />} />
-                    <Route path="*" element={<Navigate to="login" replace />} />
+                    <Route path="/auth" element={<AuthLayout />}>
+                        <Route path="login" element={<LoginPage />} />
+                        <Route path="register" element={<RegisterPage />} />
+                    </Route>
+                    
+                    <Route path="/portal" element={<PortalLayout />}>
+                        <Route path="login" element={<PortalLoginPage />} />
+                        <Route path="dashboard/:clientId" element={<PortalDashboardPage />} />
+                        <Route path="invoice/:invoiceId" element={<PortalInvoiceViewPage />} />
+                        <Route path="budget/:budgetId" element={<PortalBudgetViewPage />} />
+                        <Route path="proposal/:proposalId" element={<PortalProposalViewPage />} />
+                        <Route path="contract/:contractId" element={<PortalContractViewPage />} />
+                    </Route>
+                    
+                    <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                    
+                    <Route path="/" element={<PrivateRoute />}>
+                        <Route index element={<DashboardPage />} />
+                        <Route path="clients" element={<ClientsPage />} />
+                        <Route path="clients/:clientId" element={<ClientDetailPage />} />
+                        <Route path="projects" element={<ProjectsPage />} />
+                        <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+                        <Route path="invoices" element={<InvoicesPage />} />
+                        <Route path="invoices/create" element={<CreateInvoicePage />} />
+                        <Route path="expenses" element={<ExpensesPage />} />
+                        <Route path="budgets" element={<BudgetsPage />} />
+                        <Route path="proposals" element={<ProposalsPage />} />
+                        <Route path="contracts" element={<ContractsPage />} />
+                        <Route path="time-tracking" element={<TimeTrackingPage />} />
+                        <Route path="reports" element={<ReportsPage />} />
+                        <Route path="reports/profitability" element={<ProfitabilityReportPage />} />
+                        <Route path="tax-ledger" element={<TaxLedgerPage />} />
+                        <Route path="ai-assistant" element={<AIAssistantPage />} />
+
+                        <Route path="job-market" element={<JobMarketDashboard />} />
+                        <Route path="job-market/:jobId" element={<JobDetailPage />} />
+                        <Route path="post-job" element={<JobPostForm />} />
+                        <Route path="my-job-posts" element={<MyJobPostsPage />} />
+                        <Route path="my-job-posts/:jobId/applicants" element={<JobApplicantsPage />} />
+                        <Route path="public-profile" element={<PublicProfilePage />} />
+                        <Route path="my-applications" element={<MyApplicationsPage />} />
+                        <Route path="saved-jobs" element={<SavedJobsPage />} />
+
+                        <Route path="team" element={<TeamManagementDashboard />} />
+                        <Route path="my-timesheet" element={<MyTeamTimesheet />} />
+                        <Route path="knowledge-base" element={<KnowledgeBase />} />
+                        <Route path="roles" element={<RoleManagement />} />
+                        
+                        <Route path="integrations" element={<IntegrationsManager />} />
+                        <Route path="forecasting" element={<ForecastingPage />} />
+                        <Route path="affiliate" element={<AffiliateProgramPage />} />
+                        <Route path="billing" element={<BillingPage />} />
+                        <Route path="settings" element={<SettingsPage />} />
+                        
+                        <Route path="*" element={<Navigate to="/" />} />
+                    </Route>
                 </Routes>
-            </AuthLayout>
-          </PublicRoute>
-        } />
-
-        {/* --- PORTAL ROUTES (Public/Semi-private) --- */}
-        <Route path="/portal/*" element={
-          <Suspense fallback={<div className="h-screen w-screen bg-slate-900 flex items-center justify-center text-gray-500">Cargando portal...</div>}>
-            <Pages.PortalLayout>
-              <Routes>
-                <Route path="login" element={<Pages.PortalLoginPage />} />
-                <Route path="dashboard/:clientId" element={<Pages.PortalDashboardPage />} />
-                <Route path="invoice/:invoiceId" element={<Pages.PortalInvoiceViewPage />} />
-                <Route path="budget/:budgetId" element={<Pages.PortalBudgetViewPage />} />
-                <Route path="proposal/:proposalId" element={<Pages.PortalProposalViewPage />} />
-                <Route path="contract/:contractId" element={<Pages.PortalContractViewPage />} />
-                <Route path="project/:projectId/files" element={<Pages.PortalProjectFilesPage />} />
-                <Route path="*" element={<Navigate to="login" replace />} />
-              </Routes>
-            </Pages.PortalLayout>
-          </Suspense>
-        } />
-        
-        <Route path="/privacy-policy" element={
-          <Suspense fallback={<div className="h-screen w-screen bg-slate-950" />}>
-            <Pages.PrivacyPolicyPage />
-          </Suspense>
-        }/>
-
-        {/* --- PROTECTED ROUTES (Main App) --- */}
-        <Route element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-        }>
-            <Route path="/" element={<Pages.DashboardPage />} />
-            
-            <Route path="clients">
-                <Route index element={<Pages.ClientsPage />} />
-                <Route path=":clientId" element={<Pages.ClientDetailPage />} />
-            </Route>
-
-            <Route path="projects">
-                <Route index element={<Pages.ProjectsPage />} />
-                <Route path=":projectId" element={<Pages.ProjectDetailPage />} />
-            </Route>
-
-            <Route path="time-tracking" element={<Pages.TimeTrackingPage />} />
-            <Route path="budgets" element={<Pages.BudgetsPage />} />
-            <Route path="proposals" element={<Pages.ProposalsPage />} />
-            <Route path="contracts" element={<Pages.ContractsPage />} />
-            
-            <Route path="invoices">
-                <Route index element={<Pages.InvoicesPage />} />
-                <Route path="create" element={<Pages.CreateInvoicePage />} />
-            </Route>
-
-            <Route path="expenses" element={<Pages.ExpensesPage />} />
-            <Route path="tax-ledger" element={<Pages.TaxLedgerPage />} />
-            
-            <Route path="reports">
-                <Route index element={<Pages.ReportsPage />} />
-                <Route path="profitability" element={<Pages.ProfitabilityReportPage />} />
-            </Route>
-
-            <Route path="forecasting" element={<Pages.ForecastingPage />} />
-            <Route path="ai-assistant" element={<Pages.AIAssistantPage />} />
-            <Route path="team" element={<Pages.TeamManagementDashboard />} />
-            <Route path="my-timesheet" element={<Pages.MyTeamTimesheet />} />
-            <Route path="roles" element={<Pages.RoleManagement />} />
-            <Route path="knowledge-base" element={<Pages.KnowledgeBase />} />
-            <Route path="integrations" element={<Pages.IntegrationsManager />} />
-            
-            <Route path="job-market">
-                <Route index element={<Pages.JobMarketDashboard />} />
-                <Route path=":jobId" element={<Pages.JobDetailPage />} />
-            </Route>
-
-            <Route path="saved-jobs" element={<Pages.SavedJobsPage />} />
-            <Route path="my-applications" element={<Pages.MyApplicationsPage />} />
-            <Route path="post-job" element={<Pages.PostJobForm />} />
-            
-            <Route path="my-job-posts">
-                <Route index element={<Pages.MyJobPostsPage />} />
-                <Route path=":jobId/applicants" element={<Pages.JobApplicantsPage />} />
-            </Route>
-
-            <Route path="settings" element={<Pages.SettingsPage />} />
-            <Route path="public-profile" element={<Pages.PublicProfilePage />} />
-            <Route path="billing" element={<Pages.BillingPage />} />
-            <Route path="templates" element={<Pages.TemplatesPage />} />
-            <Route path="affiliate" element={<Pages.AffiliateProgramPage />} />
-
-            <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
-      <ToastContainer />
-    </>
-  );
+            </HashRouter>
+        </GoogleOAuthProvider>
+    );
 }
 
 export default App;

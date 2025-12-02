@@ -1,17 +1,14 @@
 
-
-import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
-import { useAppStore } from '../hooks/useAppStore';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useAppStore } from '../hooks/useAppStore.tsx';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import Card, { CardContent, CardHeader } from '../components/ui/Card';
-import { formatCurrency } from '../lib/utils';
-import { TrendingUpIcon, SparklesIcon, AlertTriangleIcon, CheckCircleIcon, RefreshCwIcon } from '../components/icons/Icon';
-import { Invoice, RecurringExpense } from '../types';
-import { generateFinancialForecast, AI_CREDIT_COSTS } from '../services/geminiService'; 
-import Button from '../components/ui/Button';
-
-const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal'));
-
+import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
+import { formatCurrency } from '../lib/utils.ts';
+import { TrendingUpIcon, SparklesIcon, AlertTriangleIcon, CheckCircleIcon, RefreshCwIcon } from '../components/icons/Icon.tsx';
+import { Invoice, RecurringExpense } from '../types.ts';
+import { generateFinancialForecast, AI_CREDIT_COSTS } from '../services/geminiService.ts'; 
+import BuyCreditsModal from '../components/modals/BuyCreditsModal.tsx';
+import Button from '../components/ui/Button.tsx';
 
 interface ForecastData {
   month: string;
@@ -161,11 +158,10 @@ const ForecastingPage: React.FC = () => {
                 </Card>
             )}
             
-            <Suspense fallback={null}>
-              <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />
-            </Suspense>
+            <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />
         </div>
     );
 };
 
+// FIX: Add default export for lazy loading.
 export default ForecastingPage;

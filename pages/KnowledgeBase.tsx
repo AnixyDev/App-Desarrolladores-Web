@@ -1,16 +1,16 @@
 import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
-import { BookIcon, PlusIcon, SearchIcon, EditIcon, TrashIcon, SparklesIcon, FileSignatureIcon, BrainCircuitIcon } from '../components/icons/Icon';
-import Card, { CardContent, CardHeader } from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
-import Modal from '../components/ui/Modal';
-import { KnowledgeArticle } from '../types';
-import { useAppStore } from '../hooks/useAppStore';
-import { AI_CREDIT_COSTS, rankArticlesByRelevance, generateDocumentContent, generateQuizFromContent } from '../services/geminiService';
-import { useToast } from '../hooks/useToast';
+import { BookIcon, PlusIcon, SearchIcon, EditIcon, TrashIcon, SparklesIcon, FileSignatureIcon, BrainCircuitIcon } from '../components/icons/Icon.tsx';
+import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
+import Button from '../components/ui/Button.tsx';
+import Input from '../components/ui/Input.tsx';
+import Modal from '../components/ui/Modal.tsx';
+import { KnowledgeArticle } from '../types.ts';
+import { useAppStore } from '../hooks/useAppStore.tsx';
+import { AI_CREDIT_COSTS, rankArticlesByRelevance } from '../services/geminiService.ts';
+import { useToast } from '../hooks/useToast.ts';
 
-const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal'));
-const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal'));
+const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal.tsx'));
+const ConfirmationModal = lazy(() => import('../components/modals/ConfirmationModal.tsx'));
 
 const useDebounce = (value: string, delay: number) => {
     const [debouncedValue, setDebouncedValue] = useState(value);
@@ -27,9 +27,10 @@ const useDebounce = (value: string, delay: number) => {
 
 
 const KnowledgeBase: React.FC = () => {
-    const { profile, consumeCredits, articles, addArticle, updateArticle, deleteArticle } = useAppStore();
+    const { profile, consumeCredits } = useAppStore();
     const { addToast } = useToast();
 
+    const [articles, setArticles] = useState<KnowledgeArticle[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
     const [rankedArticleIds, setRankedArticleIds] = useState<string[]>([]);
@@ -73,9 +74,7 @@ const KnowledgeBase: React.FC = () => {
 
     const displayedArticles = useMemo(() => {
         if (debouncedSearchTerm.trim() && rankedArticleIds.length > 0) {
-            const ranked = rankedArticleIds.map(id => articles.find(a => a.id === id)).filter(Boolean) as KnowledgeArticle[];
-            const unranked = articles.filter(a => !rankedArticleIds.includes(a.id));
-            return [...ranked, ...unranked];
+            return [...articles].sort((a, b) => rankedArticleIds.indexOf(a.id) - rankedArticleIds.indexOf(b.id));
         }
         return articles;
     }, [articles, rankedArticleIds, debouncedSearchTerm]);
@@ -85,24 +84,16 @@ const KnowledgeBase: React.FC = () => {
         setIsModalOpen(true);
     };
     
-    const handleSave = async () => {
+    const handleSave = () => {
         if (!currentArticle?.title || !currentArticle?.content) return;
         
-        setIsLoading(true);
-        try {
-            if (currentArticle.id) {
-                await updateArticle(currentArticle);
-                addToast('Artículo actualizado.', 'success');
-            } else {
-                await addArticle(currentArticle);
-                addToast('Artículo creado.', 'success');
-            }
-            setIsModalOpen(false);
-        } catch(error) {
-            addToast(`Error al guardar: ${(error as Error).message}`, 'error');
-        } finally {
-            setIsLoading(false);
+        if (currentArticle.id) {
+            setArticles(articles.map(a => a.id === currentArticle.id ? { ...a, ...currentArticle, updated_at: new Date().toISOString().slice(0, 10) } : a));
+        } else {
+            const newArticle = { ...currentArticle, id: `kb-${Date.now()}`, created_at: new Date().toISOString().slice(0, 10), updated_at: new Date().toISOString().slice(0, 10) };
+            setArticles([...articles, newArticle as KnowledgeArticle]);
         }
+        setIsModalOpen(false);
     };
     
     const handleDelete = (article: KnowledgeArticle) => {
@@ -110,58 +101,47 @@ const KnowledgeBase: React.FC = () => {
         setIsConfirmModalOpen(true);
     };
 
-    const confirmDelete = async () => {
+    const confirmDelete = () => {
         if (articleToDelete) {
-            try {
-                await deleteArticle(articleToDelete.id);
-                addToast('Artículo eliminado.', 'info');
-            } catch (error) {
-                addToast(`Error al eliminar: ${(error as Error).message}`, 'error');
-            } finally {
-                setIsConfirmModalOpen(false);
-                setArticleToDelete(null);
-            }
+            setArticles(articles.filter(a => a.id !== articleToDelete.id));
+            setIsConfirmModalOpen(false);
+            setArticleToDelete(null);
         }
     };
     
-    const handleGenerateDocument = async () => {
+    const handleGenerateDocument = () => {
         if (profile?.ai_credits === undefined || profile.ai_credits < AI_CREDIT_COSTS.generateDocument) {
             setIsBuyCreditsModalOpen(true);
             return;
         }
         setIsLoading(true);
-        try {
-            const generatedContent = await generateDocumentContent(generatorTopic);
+        // Simulate AI call
+        setTimeout(() => {
+            const generatedContent = `Este es un documento generado por IA sobre "${generatorTopic}".\n\nSección 1: ...\nSección 2: ...`;
             setCurrentArticle({ title: generatorTopic, content: generatedContent, tags: [generatorTopic.toLowerCase()] });
             setIsGeneratorModalOpen(false);
             setIsModalOpen(true);
+            setIsLoading(false);
             consumeCredits(AI_CREDIT_COSTS.generateDocument);
             addToast('Documento generado con IA', 'success');
-        } catch(e) {
-            addToast((e as Error).message, 'error');
-        } finally {
-            setIsLoading(false);
-        }
+        }, 2000);
     };
 
-    const handleGenerateQuiz = async () => {
+    const handleGenerateQuiz = () => {
         if (!currentArticle?.content) return;
         if (profile?.ai_credits === undefined || profile.ai_credits < AI_CREDIT_COSTS.generateQuiz) {
             setIsBuyCreditsModalOpen(true);
             return;
         }
         setIsLoading(true);
-        try {
-            const quiz = await generateQuizFromContent(currentArticle.content);
+        setTimeout(() => {
+            const quiz = `Cuestionario sobre "${currentArticle.title}":\n\n1. ¿Cuál es el primer paso del despliegue?\n2. ...`;
             setQuizResult(quiz);
             setIsQuizModalOpen(true);
+            setIsLoading(false);
             consumeCredits(AI_CREDIT_COSTS.generateQuiz);
             addToast('Cuestionario generado', 'success');
-        } catch(e) {
-            addToast((e as Error).message, 'error');
-        } finally {
-            setIsLoading(false);
-        }
+        }, 2000);
     };
 
     return (
@@ -193,7 +173,7 @@ const KnowledgeBase: React.FC = () => {
                             </div>
                         </CardContent>
                         <div className="p-4 border-t border-gray-800 flex justify-between items-center text-xs text-gray-500">
-                            <span>Actualizado: {new Date(article.updated_at).toLocaleDateString()}</span>
+                            <span>Actualizado: {article.updated_at}</span>
                             <div className="flex gap-2">
                                 <Button size="sm" variant="secondary" onClick={() => openModal(article)}><EditIcon className="w-4 h-4"/></Button>
                                 <Button size="sm" variant="danger" onClick={() => handleDelete(article)}><TrashIcon className="w-4 h-4"/></Button>
@@ -207,12 +187,12 @@ const KnowledgeBase: React.FC = () => {
             {isModalOpen && currentArticle && (
                 <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={currentArticle.id ? "Editar Artículo" : "Nuevo Artículo"}>
                     <div className="space-y-4">
-                        <Input label="Título" value={currentArticle.title} onChange={(e) => setCurrentArticle(prev => prev ? ({...prev, title: e.target.value}) : null)} />
-                        <textarea value={currentArticle.content} onChange={(e) => setCurrentArticle(prev => prev ? ({...prev, content: e.target.value}) : null)} rows={10} className="w-full p-2 bg-gray-800 text-gray-300 border border-gray-700 rounded-md" placeholder="Contenido del artículo (soporta Markdown)..." />
-                        <Input label="Tags (separados por comas)" value={Array.isArray(currentArticle.tags) ? currentArticle.tags.join(', ') : ''} onChange={(e) => setCurrentArticle(prev => prev ? ({...prev, tags: e.target.value.split(',').map(t => t.trim())}) : null)} />
+                        <Input label="Título" value={currentArticle.title} onChange={(e) => setCurrentArticle(prev => ({...prev, title: e.target.value}))} />
+                        <textarea value={currentArticle.content} onChange={(e) => setCurrentArticle(prev => ({...prev, content: e.target.value}))} rows={10} className="w-full p-2 bg-gray-800 text-gray-300 border border-gray-700 rounded-md" placeholder="Contenido del artículo (soporta Markdown)..." />
+                        <Input label="Tags (separados por comas)" value={Array.isArray(currentArticle.tags) ? currentArticle.tags.join(', ') : ''} onChange={(e) => setCurrentArticle(prev => ({...prev, tags: e.target.value.split(',').map(t => t.trim())}))} />
                         <div className="flex justify-between pt-4">
                              <Button variant="secondary" onClick={handleGenerateQuiz} disabled={!currentArticle.content || isLoading}><BrainCircuitIcon className="w-4 h-4 mr-2"/>Crear Cuestionario</Button>
-                             <Button onClick={handleSave} disabled={isLoading}>{isLoading ? 'Guardando...' : 'Guardar Artículo'}</Button>
+                             <Button onClick={handleSave}>Guardar Artículo</Button>
                         </div>
                     </div>
                 </Modal>
