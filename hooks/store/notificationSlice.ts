@@ -4,19 +4,19 @@ import { AppState } from '../useAppStore.tsx';
 
 export interface NotificationSlice {
   notifications: Notification[];
-  notifiedInvoiceIds: string[];
+  notifiedEvents: string[];
   addNotification: (message: string, link: string) => void;
+  markAsRead: (id: string) => void;
   markAllAsRead: () => void;
-  markInvoiceAsNotified: (invoiceId: string) => void;
   checkInvoiceStatuses: () => void;
 }
 
 export const createNotificationSlice: StateCreator<AppState, [], [], NotificationSlice> = (set, get) => ({
     notifications: [],
-    notifiedInvoiceIds: [],
+    notifiedEvents: [],
     addNotification: (message, link) => {
         const newNotification: Notification = {
-            id: `notif-${Date.now()}`,
+            id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             message,
             link,
             isRead: false,
@@ -24,23 +24,25 @@ export const createNotificationSlice: StateCreator<AppState, [], [], Notificatio
         };
         set(state => ({ notifications: [newNotification, ...state.notifications] }));
     },
+    markAsRead: (id) => {
+        set(state => ({
+            notifications: state.notifications.map(n => n.id === id ? { ...n, isRead: true } : n)
+        }));
+    },
     markAllAsRead: () => {
         set(state => ({
             notifications: state.notifications.map(n => ({ ...n, isRead: true })),
         }));
     },
-    markInvoiceAsNotified: (invoiceId) => {
-        set(state => ({
-            notifiedInvoiceIds: [...new Set([...state.notifiedInvoiceIds, invoiceId])]
-        }));
-    },
     checkInvoiceStatuses: () => {
-        const { invoices, notifiedInvoiceIds, addNotification, markInvoiceAsNotified, getClientById } = get();
+        const { invoices, notifiedEvents, addNotification, getClientById } = get();
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
+        const newEvents: string[] = [];
+
         invoices.forEach(invoice => {
-            if (invoice.paid || notifiedInvoiceIds.includes(invoice.id)) {
+            if (invoice.paid) {
                 return;
             }
 
@@ -49,13 +51,27 @@ export const createNotificationSlice: StateCreator<AppState, [], [], Notificatio
             const diffTime = dueDate.getTime() - today.getTime();
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
+            // Claves únicas para evitar notificaciones duplicadas del mismo tipo
+            const upcomingKey = `${invoice.id}-upcoming`;
+            const overdueKey = `${invoice.id}-overdue`;
+
             if (diffDays < 0) {
-                addNotification(`¡Alerta! La factura #${invoice.invoice_number} para ${clientName} ha vencido.`, '/invoices');
-                markInvoiceAsNotified(invoice.id);
+                // Factura vencida
+                if (!notifiedEvents.includes(overdueKey)) {
+                    addNotification(`¡Atención! La factura #${invoice.invoice_number} de ${clientName} ha vencido.`, `/invoices`);
+                    newEvents.push(overdueKey);
+                }
             } else if (diffDays <= 3) {
-                addNotification(`La factura #${invoice.invoice_number} para ${clientName} vence en ${diffDays === 0 ? 'hoy' : `${diffDays} día(s)`}.`, '/invoices');
-                markInvoiceAsNotified(invoice.id);
+                // Factura próxima a vencer (3 días o menos)
+                if (!notifiedEvents.includes(upcomingKey)) {
+                    addNotification(`La factura #${invoice.invoice_number} de ${clientName} vence en ${diffDays === 0 ? 'hoy' : `${diffDays} día(s)`}.`, `/invoices`);
+                    newEvents.push(upcomingKey);
+                }
             }
         });
+
+        if (newEvents.length > 0) {
+            set(state => ({ notifiedEvents: [...state.notifiedEvents, ...newEvents] }));
+        }
     },
 });

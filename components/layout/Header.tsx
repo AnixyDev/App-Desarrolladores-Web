@@ -13,7 +13,7 @@ const getNotificationIcon = (link: string) => {
 
 
 const Header: React.FC<{ setSidebarOpen: (isOpen: boolean) => void; }> = ({ setSidebarOpen }) => {
-    const { profile, logout, notifications, markAllAsRead } = useAppStore();
+    const { profile, logout, notifications, markAllAsRead, markAsRead } = useAppStore();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const notificationRef = useRef<HTMLDivElement>(null);
@@ -77,7 +77,10 @@ const Header: React.FC<{ setSidebarOpen: (isOpen: boolean) => void; }> = ({ setS
                                              <Link 
                                                 key={notification.id} 
                                                 to={notification.link} 
-                                                onClick={() => setIsDropdownOpen(false)}
+                                                onClick={() => {
+                                                    markAsRead(notification.id);
+                                                    setIsDropdownOpen(false);
+                                                }}
                                                 className={`flex items-start gap-3 p-3 hover:bg-gray-700/50 ${!notification.isRead ? 'bg-primary-600/10' : ''}`}
                                              >
                                                 <div className="shrink-0 mt-1">{getNotificationIcon(notification.link)}</div>
