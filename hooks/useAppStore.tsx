@@ -11,9 +11,10 @@ import { TeamSlice, createTeamSlice } from './store/teamSlice';
 import { NotificationSlice, createNotificationSlice } from './store/notificationSlice';
 import { JobSlice, createJobSlice } from './store/jobSlice';
 import { PortalSlice, createPortalSlice } from './store/portalSlice';
+import { InboxSlice, createInboxSlice } from './store/inboxSlice';
 
 // Combine all slices into one AppState
-export type AppState = AuthSlice & ClientSlice & ProjectSlice & FinanceSlice & TeamSlice & NotificationSlice & JobSlice & PortalSlice;
+export type AppState = AuthSlice & ClientSlice & ProjectSlice & FinanceSlice & TeamSlice & NotificationSlice & JobSlice & PortalSlice & InboxSlice;
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -27,6 +28,7 @@ export const useAppStore = create<AppState>()(
       ...createNotificationSlice(...a),
       ...createJobSlice(...a),
       ...createPortalSlice(...a),
+      ...createInboxSlice(...a),
     }),
     {
       name: 'devfreelancer-storage',

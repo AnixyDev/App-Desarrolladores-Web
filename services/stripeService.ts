@@ -1,35 +1,47 @@
-
 import { supabase } from '../lib/supabaseClient';
 
-// Definición de ítems mapeados a IDs de precios reales en Stripe
+// Definición de ítems mapeados a IDs de precios reales en Stripe (del CSV proporcionado)
 export const STRIPE_ITEMS = {
     proPlan: {
-        priceId: 'price_1Q...', // ID real de Stripe Dashboard
+        priceId: 'price_1SOgUF8oC5awQy15dOEM5jGS', // Pro Plan - 3,95 EUR
         mode: 'subscription' as const,
         name: 'Plan Pro',
     },
     teamsPlan: {
-        priceId: 'price_1Q...', 
+        priceId: 'price_1SOggV8oC5awQy15YW1wAgcg', // Plan de equipos Mensual - 35,95 EUR
         mode: 'subscription' as const,
         name: 'Plan Teams',
     },
+    teamsPlanYearly: {
+        priceId: 'price_1SOggV8oC5awQy15Ppz7bUj0', // Plan de equipos Anual - 295,00 EUR
+        mode: 'subscription' as const,
+        name: 'Plan Teams (Anual)',
+    },
+    aiCredits100: {
+        priceId: 'price_1SOgpy8oC5awQy15TW22fBot', // Credito 100 - 1,95 EUR
+        mode: 'payment' as const,
+        name: '100 Créditos de IA',
+        credits: 100 // Propiedad usada por App.tsx para sumar créditos
+    },
     aiCredits500: {
-        priceId: 'price_1Q...',
+        priceId: 'price_1SOgr18oC5awQy15o1gTM2VM', // Credito 500 - 3,95 EUR
         mode: 'payment' as const,
         name: '500 Créditos de IA',
+        credits: 500
     },
-    aiCredits1500: {
-        priceId: 'price_1Q...',
+    aiCredits1000: {
+        priceId: 'price_1SOguC8oC5awQy15LGchpkVG', // Crédito 1000 - 5,95 EUR
         mode: 'payment' as const,
-        name: '1500 Créditos de IA',
+        name: '1000 Créditos de IA',
+        credits: 1000
     },
     featuredJobPost: {
-        priceId: 'price_1Q...',
+        priceId: 'price_1SOlOv8oC5awQy15Q2aXoEg7', // Oferta de empleo destacada - 5,95 EUR
         mode: 'payment' as const,
         name: 'Oferta Destacada',
     },
     invoicePayment: {
-        priceId: 'price_placeholder_invoice',
+        priceId: 'price_placeholder_invoice', // Esto normalmente se genera dinámicamente en el backend
         mode: 'payment' as const,
         name: 'Pago de Factura',
     }

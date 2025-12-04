@@ -1,10 +1,11 @@
 import { StateCreator } from 'zustand';
-import { UserData, Referral } from '../../types.ts';
-import { AppState } from '../useAppStore.tsx';
+import { UserData, Referral, KnowledgeArticle } from '../../types';
+import { AppState } from '../useAppStore';
 
 export interface TeamSlice {
   users: UserData[];
   referrals: Referral[];
+  articles: KnowledgeArticle[];
   inviteUser: (name: string, email: string, role: UserData['role']) => void;
   updateUserRole: (id: string, role: UserData['role']) => void;
   updateUserStatus: (id: string, status: UserData['status']) => void;
@@ -15,6 +16,7 @@ export interface TeamSlice {
 export const createTeamSlice: StateCreator<AppState, [], [], TeamSlice> = (set) => ({
     users: [],
     referrals: [],
+    articles: [],
     inviteUser: (name, email, role) => {
         const newUser: UserData = {
             id: `u-${Date.now()}`,
