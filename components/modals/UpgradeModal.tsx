@@ -15,7 +15,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) => {
         <div className="text-center p-4 bg-gray-800 rounded-lg">
           <ZapIcon className="w-10 h-10 text-yellow-400 mx-auto mb-2" />
           <p className="text-2xl font-bold text-white">¡Desbloquea el poder del trabajo en equipo!</p>
-          <p className="text-gray-400">Pasa a Teams por solo 35,95€ por persona/mes.</p>
+          <p className="text-gray-400">Pasa a Teams por solo <span className="text-white font-bold">35,95€</span> al mes.</p>
         </div>
         
         <div className="space-y-2">
@@ -26,7 +26,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) => {
 
         <div className="pt-4 flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Quizás más tarde</Button>
-          <Button onClick={() => alert("¡Gracias por actualizar! (Simulación)")}>Confirmar y Pagar</Button>
+          <Button onClick={() => alert("¡Redirigiendo a pago! (Simulación)")}>Confirmar y Pagar</Button>
         </div>
       </div>
     </Modal>
