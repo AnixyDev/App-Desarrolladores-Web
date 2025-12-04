@@ -1,11 +1,10 @@
+
 import React, { useState, useMemo, lazy, Suspense } from 'react';
-// FIX: Remove .tsx extensions from imports to fix module resolution errors.
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { formatCurrency } from '../lib/utils';
-// FIX: Aliased Users to UsersIcon to match usage.
-import { DownloadIcon, DollarSignIcon, TrendingUpIcon, Users as UsersIcon, ClockIcon, SparklesIcon, RefreshCwIcon } from '../components/icons/Icon';
+import { DownloadIcon, DollarSignIcon, TrendingUpIcon, Users as UsersIcon, ClockIcon, SparklesIcon, RefreshCwIcon, ArrowUpCircleIcon, AlertTriangleIcon } from '../components/icons/Icon';
 import { analyzeProfitability, AI_CREDIT_COSTS } from '../services/geminiService';
 import { useToast } from '../hooks/useToast';
 
@@ -132,7 +131,24 @@ const ReportsPage: React.FC = () => {
         setIsAiLoading(true);
         setAnalysis(null);
         try {
-            const result = await analyzeProfitability(reportKpis);
+            // Estructurar mejor los datos para que la IA entienda el contexto de "Ingresos vs Gastos de Proyecto"
+            const aiPayload = {
+                periodo: `${startDate} a ${endDate}`,
+                resumen_global: {
+                    ingresos_totales: formatCurrency(reportKpis.totalIncome),
+                    gastos_totales: formatCurrency(reportKpis.totalExpenses),
+                    beneficio_neto: formatCurrency(reportKpis.netProfit)
+                },
+                rentabilidad_por_cliente: reportKpis.clientProfitability.map(c => ({
+                    cliente: c.name,
+                    ingresos_facturados: formatCurrency(c.income),
+                    gastos_asociados_proyecto: formatCurrency(c.expenses),
+                    beneficio: formatCurrency(c.profit),
+                    margen_beneficio: c.income > 0 ? ((c.income - c.expenses) / c.income * 100).toFixed(1) + '%' : '0%'
+                }))
+            };
+
+            const result = await analyzeProfitability(aiPayload);
             if (result) {
                 setAnalysis(result);
                 consumeCredits(AI_CREDIT_COSTS.analyzeProfitability);
@@ -155,9 +171,9 @@ const ReportsPage: React.FC = () => {
               <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="px-3 py-2 border border-gray-600 rounded-md bg-gray-800 text-white" />
               <span className="text-gray-400">a</span>
               <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="px-3 py-2 border border-gray-600 rounded-md bg-gray-800 text-white" />
-              <Button onClick={handleAiAnalysis} disabled={isAiLoading}>
+              <Button onClick={handleAiAnalysis} disabled={isAiLoading} className="bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 border-none">
                   {isAiLoading ? <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin"/> : <SparklesIcon className="w-4 h-4 mr-2" />}
-                  {isAiLoading ? 'Analizando...' : 'Analizar Rentabilidad Cliente'}
+                  {isAiLoading ? 'Analizando...' : 'Analizar Rentabilidad con IA'}
               </Button>
               <Button onClick={handleExportPdf} variant="secondary"><DownloadIcon className="w-4 h-4 mr-2" /> Exportar PDF</Button>
           </div>
@@ -171,24 +187,45 @@ const ReportsPage: React.FC = () => {
       </div>
 
       {analysis && (
-            <Card>
-                <CardHeader><h2 className="text-lg font-semibold text-white">Análisis de Rentabilidad por IA</h2></CardHeader>
-                <CardContent className="space-y-4">
+            <Card className="border-fuchsia-600/50 shadow-lg shadow-fuchsia-900/20 bg-gray-900">
+                <CardHeader className="bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-700">
+                    <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <div className="p-1.5 bg-fuchsia-600 rounded-full"><SparklesIcon className="w-4 h-4 text-white" /></div>
+                        Diagnóstico de Inteligencia Artificial (CFO Virtual)
+                    </h2>
+                </CardHeader>
+                <CardContent className="space-y-6 pt-6">
                     <div>
-                        <h3 className="font-semibold text-primary-400 mb-2">Resumen Estratégico</h3>
-                        <p className="text-gray-300">{analysis.summary}</p>
+                        <h3 className="font-semibold text-gray-200 mb-2 flex items-center uppercase text-xs tracking-wider">
+                            <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>Resumen Ejecutivo
+                        </h3>
+                        <p className="text-gray-300 leading-relaxed bg-gray-800/50 p-4 rounded-lg border border-gray-700">{analysis.summary}</p>
                     </div>
-                     <div>
-                        <h3 className="font-semibold text-green-400 mb-2">Mejores Clientes (Mayor Margen)</h3>
-                        <ul className="list-disc list-inside space-y-1 text-gray-300">
-                            {analysis.topPerformers.map((item, i) => <li key={i}>{item}</li>)}
-                        </ul>
-                    </div>
-                     <div>
-                        <h3 className="font-semibold text-yellow-400 mb-2">Oportunidades de Mejora</h3>
-                        <ul className="list-disc list-inside space-y-1 text-gray-300">
-                            {analysis.areasForImprovement.map((item, i) => <li key={i}>{item}</li>)}
-                        </ul>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-green-900/10 border border-green-900/30 p-4 rounded-lg">
+                            <h3 className="font-bold text-green-400 mb-3 flex items-center">
+                                <ArrowUpCircleIcon className="w-5 h-5 mr-2"/> Top Rendimiento
+                            </h3>
+                            <ul className="space-y-2">
+                                {analysis.topPerformers.map((item, i) => (
+                                    <li key={i} className="flex items-start text-sm text-gray-300">
+                                        <span className="text-green-500 mr-2">•</span>{item}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div className="bg-yellow-900/10 border border-yellow-900/30 p-4 rounded-lg">
+                            <h3 className="font-bold text-yellow-400 mb-3 flex items-center">
+                                <AlertTriangleIcon className="w-5 h-5 mr-2"/> Acciones Recomendadas
+                            </h3>
+                            <ul className="space-y-2">
+                                {analysis.areasForImprovement.map((item, i) => (
+                                    <li key={i} className="flex items-start text-sm text-gray-300">
+                                        <span className="text-yellow-500 mr-2">•</span>{item}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
                     </div>
                 </CardContent>
             </Card>

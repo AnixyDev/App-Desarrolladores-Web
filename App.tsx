@@ -3,11 +3,11 @@ import { HashRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 're
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAppStore } from './hooks/useAppStore';
 import { useToast } from './hooks/useToast';
-// FIX: Remove .ts extension from import to fix module resolution error.
 import { STRIPE_ITEMS } from './services/stripeService';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import ToastContainer from './components/ui/Toast';
+import { RefreshCwIcon } from './components/icons/Icon';
 
 // Layouts
 import AuthLayout from './pages/auth/AuthLayout';
@@ -50,7 +50,6 @@ const RoleManagement = lazy(() => import('./pages/RoleManagement'));
 const IntegrationsManager = lazy(() => import('./pages/IntegrationsManager'));
 const ForecastingPage = lazy(() => import('./pages/ForecastingPage'));
 const AffiliateProgramPage = lazy(() => import('./pages/AffiliateProgramPage'));
-// FIX: Remove .tsx extension from import to fix module resolution error.
 const BillingPage = lazy(() => import('./pages/BillingPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
@@ -65,7 +64,6 @@ const PortalContractViewPage = lazy(() => import('./pages/portal/PortalContractV
 
 const GOOGLE_CLIENT_ID = "457438236235-n2s8q6nvcjm32u0o3ut2lksd8po8gfqf.apps.googleusercontent.com";
 
-// FIX: Refactored PrivateRoute to be a self-contained layout route element, resolving a 'children' prop error.
 const PrivateRoute = () => {
     const isAuthenticated = useAppStore(state => state.isAuthenticated);
     return isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" />;
@@ -79,7 +77,15 @@ const MainLayout = () => {
             <div className="flex-1 flex flex-col overflow-hidden">
                 <Header setSidebarOpen={setSidebarOpen} />
                 <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 lg:p-8">
-                    <Suspense fallback={<div className="text-center p-8">Cargando página...</div>}>
+                    <Suspense fallback={
+                        <div className="flex flex-col items-center justify-center h-full min-h-[50vh]">
+                            <div className="relative">
+                                <div className="w-12 h-12 rounded-full border-4 border-gray-800"></div>
+                                <div className="w-12 h-12 rounded-full border-4 border-primary-500 border-t-transparent animate-spin absolute top-0 left-0"></div>
+                            </div>
+                            <p className="mt-4 text-gray-400 font-medium animate-pulse">Cargando...</p>
+                        </div>
+                    }>
                         <Outlet />
                     </Suspense>
                 </main>
@@ -106,7 +112,6 @@ const PaymentHandler = () => {
                         if (itemKey === 'proPlan') {
                             upgradePlan('Pro');
                             addToast('¡Felicidades! Has actualizado al Plan Pro.', 'success');
-// FIX: Property 'includes' does not exist on type 'string | number | symbol'. Type guard added to ensure itemKey is a string.
                         } else if (typeof itemKey === 'string' && itemKey.includes('teams')) {
                             upgradePlan('Teams');
                             addToast('¡Bienvenido a Teams! Ya puedes invitar a tu equipo.', 'success');

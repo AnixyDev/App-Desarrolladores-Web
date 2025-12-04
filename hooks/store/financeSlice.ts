@@ -1,3 +1,4 @@
+
 import { StateCreator } from 'zustand';
 import { Invoice, Expense, RecurringExpense, Budget, Proposal, Contract, RecurringInvoice } from '../../types.ts';
 import { AppState } from '../useAppStore.tsx';
@@ -25,6 +26,8 @@ export interface FinanceSlice {
   updateBudgetStatus: (id: string, status: Budget['status']) => void;
   addProposal: (proposal: any) => void;
   addContract: (contract: any) => void;
+  updateContract: (id: string, updates: Partial<Contract>) => void;
+  deleteContract: (id: string) => void;
   sendContract: (id: string) => void;
   signContract: (id: string, signerName: string) => void;
   setMonthlyGoal: (goal: number) => void;
@@ -170,6 +173,8 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
         };
         set(state => ({ contracts: [newContract, ...state.contracts] }));
     },
+    updateContract: (id, updates) => set(state => ({ contracts: state.contracts.map(c => c.id === id ? { ...c, ...updates } : c) })),
+    deleteContract: (id) => set(state => ({ contracts: state.contracts.filter(c => c.id !== id) })),
     sendContract: (id) => set(state => ({ contracts: state.contracts.map(c => c.id === id ? { ...c, status: 'sent' } : c) })),
     signContract: (id, signerName) => set(state => ({ contracts: state.contracts.map(c => c.id === id ? { ...c, status: 'signed', signed_by: signerName, signed_at: new Date().toISOString() } : c) })),
     setMonthlyGoal: (goal) => set({ monthlyGoalCents: goal }),

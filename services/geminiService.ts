@@ -316,10 +316,14 @@ export const rankArticlesByRelevance = async (query: string, articles: { id: str
 };
 
 export const analyzeProfitability = async (data: any) => {
-    const prompt = `Analiza los siguientes datos de rentabilidad de un freelancer (puede contener un desglose por cliente o por proyecto).
-    Identifica qué elementos ofrecen el mejor margen/beneficio y cuáles tienen costes excesivos o márgenes bajos.
+    const prompt = `Actúa como un CFO experto. Analiza los siguientes datos de rentabilidad (Ingresos vs Gastos).
     
     Datos: ${JSON.stringify(data)}
+
+    Genera un informe estratégico en JSON:
+    1. summary: Diagnóstico ejecutivo de la salud financiera y márgenes. Se conciso y directo.
+    2. topPerformers: Identifica los 2-3 Clientes/Proyectos con mejor rendimiento (mayor margen) y explica brevemente por qué son valiosos.
+    3. areasForImprovement: Detecta ineficiencias concretas (ej. clientes con muchos gastos de proyecto y bajo margen) y sugiere acciones correctivas.
     `;
 
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
@@ -330,16 +334,16 @@ export const analyzeProfitability = async (data: any) => {
             responseSchema: {
                 type: Type.OBJECT,
                 properties: {
-                    summary: { type: Type.STRING, description: "Un resumen de 2-3 frases de la situación financiera y márgenes." },
+                    summary: { type: Type.STRING, description: "Diagnóstico ejecutivo de la situación." },
                     topPerformers: { 
                         type: Type.ARRAY, 
                         items: { type: Type.STRING },
-                        description: "Lista de los 2-3 clientes o proyectos más rentables con un breve porqué."
+                        description: "Clientes/Proyectos más rentables con justificación."
                     },
                     areasForImprovement: { 
                         type: Type.ARRAY, 
                         items: { type: Type.STRING },
-                        description: "Sugerencias sobre clientes/proyectos con gastos altos o márgenes bajos."
+                        description: "Acciones correctivas para mejorar márgenes."
                     },
                 },
                  required: ["summary", "topPerformers", "areasForImprovement"],

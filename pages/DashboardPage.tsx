@@ -1,3 +1,4 @@
+
 // pages/DashboardPage.tsx
 import React, { lazy, Suspense } from 'react';
 // FIX: Remove .tsx extensions from imports to resolve module resolution errors.
@@ -29,7 +30,7 @@ const StatCard: React.FC<{ icon: React.ElementType; title: string; value: string
 };
 
 const DashboardPage: React.FC = () => {
-    const { invoices, expenses, projects, timeEntries, profile, getClientById, monthlyGoalCents } = useAppStore();
+    const { invoices, expenses, projects, tasks, timeEntries, profile, getClientById, monthlyGoalCents } = useAppStore();
 
     const stats = {
         pendingInvoices: invoices.filter(i => !i.paid).reduce((sum, i) => sum + i.total_cents, 0),
@@ -39,6 +40,16 @@ const DashboardPage: React.FC = () => {
     };
     
     const goalProgress = monthlyGoalCents > 0 ? (stats.monthlyIncome / monthlyGoalCents) * 100 : 0;
+
+    const activeProjectsList = projects.filter(p => p.status === 'in-progress').slice(0, 5);
+    const pendingInvoicesList = invoices.filter(i => !i.paid).slice(0, 5);
+
+    const getProjectProgress = (projectId: string) => {
+        const projectTasks = tasks.filter(t => t.project_id === projectId);
+        if (projectTasks.length === 0) return 0;
+        const completed = projectTasks.filter(t => t.completed).length;
+        return Math.round((completed / projectTasks.length) * 100);
+    };
 
     return (
         <div className="space-y-6">
@@ -64,8 +75,8 @@ const DashboardPage: React.FC = () => {
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                 <Card>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                 <Card className="lg:col-span-2">
                     <CardHeader>
                         <h2 className="text-lg font-semibold text-white">Ingresos vs. Gastos (Últimos meses)</h2>
                     </CardHeader>
@@ -76,29 +87,57 @@ const DashboardPage: React.FC = () => {
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <h2 className="text-lg font-semibold text-white">Facturas Recientes</h2>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                         <ul className="divide-y divide-gray-800">
-                            {invoices.slice(0, 5).map(invoice => (
-                                <li key={invoice.id} className="p-4 flex justify-between items-center hover:bg-gray-800/50">
-                                    <div>
-                                        <p className="font-semibold text-white font-mono">{invoice.invoice_number}</p>
-                                        <Link to={`/clients/${invoice.client_id}`} className="text-sm text-primary-400 hover:underline">{getClientById(invoice.client_id)?.name}</Link>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="font-semibold text-white">{formatCurrency(invoice.total_cents)}</p>
-                                        <span className={`px-2 py-0.5 rounded-full text-xs ${invoice.paid ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                                            {invoice.paid ? 'Pagada' : 'Pendiente'}
-                                        </span>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    </CardContent>
-                </Card>
+                <div className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <BriefcaseIcon className="w-5 h-5 text-purple-400"/> Proyectos Activos
+                            </h2>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <ul className="divide-y divide-gray-800">
+                                {activeProjectsList.length > 0 ? activeProjectsList.map(project => {
+                                    const progress = getProjectProgress(project.id);
+                                    return (
+                                        <li key={project.id} className="p-4 hover:bg-gray-800/50">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <Link to={`/projects/${project.id}`} className="font-semibold text-white hover:underline text-sm truncate max-w-[150px]">{project.name}</Link>
+                                                <span className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded border border-gray-700">{progress}%</span>
+                                            </div>
+                                            <div className="w-full bg-gray-700 rounded-full h-1.5">
+                                                <div className="bg-primary-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                                            </div>
+                                        </li>
+                                    );
+                                }) : <p className="p-4 text-gray-500 text-sm text-center">No hay proyectos activos.</p>}
+                            </ul>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <FileTextIcon className="w-5 h-5 text-yellow-400"/> Facturas Pendientes
+                            </h2>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                             <ul className="divide-y divide-gray-800">
+                                {pendingInvoicesList.length > 0 ? pendingInvoicesList.map(invoice => (
+                                    <li key={invoice.id} className="p-4 flex justify-between items-center hover:bg-gray-800/50">
+                                        <div>
+                                            <p className="font-semibold text-white font-mono text-sm">{invoice.invoice_number}</p>
+                                            <Link to={`/clients/${invoice.client_id}`} className="text-xs text-gray-400 hover:underline">{getClientById(invoice.client_id)?.name}</Link>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-semibold text-white text-sm">{formatCurrency(invoice.total_cents)}</p>
+                                            <span className="text-[10px] text-yellow-500 border border-yellow-500/30 bg-yellow-500/10 px-1.5 py-0.5 rounded">Pendiente</span>
+                                        </div>
+                                    </li>
+                                )) : <p className="p-4 text-gray-500 text-sm text-center">No hay facturas pendientes.</p>}
+                            </ul>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );
