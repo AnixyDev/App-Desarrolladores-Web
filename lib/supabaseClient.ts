@@ -3,15 +3,15 @@ import { createClient } from '@supabase/supabase-js';
 
 // Helper function to safely get environment variables across different environments (Vite, Webpack, Node)
 const getEnv = (key: string): string => {
-  // Check import.meta.env (Vite)
-  if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
-    return (import.meta as any).env[key] || '';
-  }
-  // Check process.env (Node/Next.js/Webpack)
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env[key] || '';
-  }
-  return '';
+    // Check import.meta.env (Vite)
+    if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
+        return (import.meta as any).env[key] || '';
+    }
+    // Check process.env (Node/Next.js/Webpack)
+    if (typeof process !== 'undefined' && process.env) {
+        return process.env[key] || '';
+    }
+    return '';
 };
 
 // Try getting the variables using both VITE_ and NEXT_PUBLIC_ prefixes for compatibility
@@ -24,8 +24,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 // Fallback values prevent immediate crash during initialization, though requests will fail if keys are missing.
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder'
+    supabaseUrl || 'https://placeholder.supabase.co', 
+    supabaseAnonKey || 'placeholder'
 );
 
 /*
@@ -37,7 +37,7 @@ export const supabase = createClient(
 create extension if not exists "uuid-ossp";
 
 -- 2. Tabla de Perfiles (Extiende auth.users)
-create table public.profiles (
+create table if not exists public.profiles (
   id uuid references auth.users on delete cascade not null primary key,
   email text,
   full_name text,
@@ -72,11 +72,17 @@ create table public.profiles (
 
 -- RLS: Seguridad Perfiles
 alter table public.profiles enable row level security;
+
+do $$ begin
+  drop policy if exists "Users can view own profile" on public.profiles;
+  drop policy if exists "Users can update own profile" on public.profiles;
+end $$;
+
 create policy "Users can view own profile" on public.profiles for select using (auth.uid() = id);
 create policy "Users can update own profile" on public.profiles for update using (auth.uid() = id);
 
 -- 3. Tabla de Clientes
-create table public.clients (
+create table if not exists public.clients (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
   name text not null,
@@ -88,10 +94,12 @@ create table public.clients (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 alter table public.clients enable row level security;
+
+do $$ begin drop policy if exists "Users can crud own clients" on public.clients; end $$;
 create policy "Users can crud own clients" on public.clients for all using (auth.uid() = user_id);
 
 -- 4. Tabla de Proyectos
-create table public.projects (
+create table if not exists public.projects (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
   client_id uuid references public.clients(id) on delete set null,
@@ -106,10 +114,12 @@ create table public.projects (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 alter table public.projects enable row level security;
+
+do $$ begin drop policy if exists "Users can crud own projects" on public.projects; end $$;
 create policy "Users can crud own projects" on public.projects for all using (auth.uid() = user_id);
 
 -- 5. Tabla de Tareas
-create table public.tasks (
+create table if not exists public.tasks (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
   project_id uuid references public.projects(id) on delete cascade not null,
@@ -119,10 +129,12 @@ create table public.tasks (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 alter table public.tasks enable row level security;
+
+do $$ begin drop policy if exists "Users can crud own tasks" on public.tasks; end $$;
 create policy "Users can crud own tasks" on public.tasks for all using (auth.uid() = user_id);
 
 -- 6. Tabla de Facturas (AEAT Compliance)
-create table public.invoices (
+create table if not exists public.invoices (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
   client_id uuid references public.clients(id) on delete set null,
@@ -140,10 +152,12 @@ create table public.invoices (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 alter table public.invoices enable row level security;
+
+do $$ begin drop policy if exists "Users can crud own invoices" on public.invoices; end $$;
 create policy "Users can crud own invoices" on public.invoices for all using (auth.uid() = user_id);
 
 -- 7. Tabla de Gastos
-create table public.expenses (
+create table if not exists public.expenses (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
   project_id uuid references public.projects(id) on delete set null,
@@ -155,10 +169,12 @@ create table public.expenses (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 alter table public.expenses enable row level security;
+
+do $$ begin drop policy if exists "Users can crud own expenses" on public.expenses; end $$;
 create policy "Users can crud own expenses" on public.expenses for all using (auth.uid() = user_id);
 
 -- 8. Tabla de Registros de Tiempo (Time Entries)
-create table public.time_entries (
+create table if not exists public.time_entries (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
   project_id uuid references public.projects(id) on delete cascade not null,
@@ -170,10 +186,12 @@ create table public.time_entries (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 alter table public.time_entries enable row level security;
+
+do $$ begin drop policy if exists "Users can crud own time entries" on public.time_entries; end $$;
 create policy "Users can crud own time entries" on public.time_entries for all using (auth.uid() = user_id);
 
 -- 9. Ofertas de Trabajo (Job Marketplace)
-create table public.jobs (
+create table if not exists public.jobs (
   id uuid default uuid_generate_v4() primary key,
   posted_by_user_id uuid references public.profiles(id) on delete cascade not null,
   title text not null,
@@ -187,12 +205,19 @@ create table public.jobs (
 );
 -- RLS para Jobs: Todos pueden ver, solo el creador puede editar/borrar
 alter table public.jobs enable row level security;
+
+do $$ begin 
+  drop policy if exists "Anyone can view jobs" on public.jobs; 
+  drop policy if exists "Users can insert jobs" on public.jobs; 
+  drop policy if exists "Users can update own jobs" on public.jobs; 
+end $$;
+
 create policy "Anyone can view jobs" on public.jobs for select using (true);
 create policy "Users can insert jobs" on public.jobs for insert with check (auth.uid() = posted_by_user_id);
 create policy "Users can update own jobs" on public.jobs for update using (auth.uid() = posted_by_user_id);
 
 -- 10. Aplicaciones a Ofertas
-create table public.job_applications (
+create table if not exists public.job_applications (
   id uuid default uuid_generate_v4() primary key,
   job_id uuid references public.jobs(id) on delete cascade not null,
   applicant_user_id uuid references public.profiles(id) on delete cascade not null,
@@ -201,6 +226,13 @@ create table public.job_applications (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 alter table public.job_applications enable row level security;
+
+do $$ begin 
+  drop policy if exists "Users can apply" on public.job_applications; 
+  drop policy if exists "Applicants view own" on public.job_applications; 
+  drop policy if exists "Posters view applications" on public.job_applications; 
+end $$;
+
 create policy "Users can apply" on public.job_applications for insert with check (auth.uid() = applicant_user_id);
 create policy "Applicants view own" on public.job_applications for select using (auth.uid() = applicant_user_id);
 create policy "Posters view applications" on public.job_applications for select using (
@@ -217,11 +249,13 @@ begin
     new.email, 
     new.raw_user_meta_data->>'full_name',
     substring(md5(random()::text) from 0 for 8) -- Código aleatorio simple
-  );
+  )
+  on conflict (id) do nothing; -- Evita errores si ya existe
   return new;
 end;
 $$ language plpgsql security definer;
 
+drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();

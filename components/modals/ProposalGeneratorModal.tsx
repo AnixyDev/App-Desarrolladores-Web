@@ -1,15 +1,13 @@
 
-
-
 import React, { useState, useEffect } from 'react';
-import Modal from '../ui/Modal.tsx';
-import Button from '../ui/Button.tsx';
-import { SparklesIcon, RefreshCwIcon, SendIcon } from '../icons/Icon.tsx';
-import { generateProposalText, refineProposalText, AI_CREDIT_COSTS } from '../../services/geminiService.ts';
-import { useAppStore } from '../../hooks/useAppStore.tsx';
-import { useToast } from '../../hooks/useToast.ts';
-import BuyCreditsModal from './BuyCreditsModal.tsx';
-import { Job } from '../../types.ts';
+import Modal from '../ui/Modal';
+import Button from '../ui/Button';
+import { SparklesIcon, RefreshCwIcon, SendIcon } from '../icons/Icon';
+import { generateProposalText, refineProposalText, AI_CREDIT_COSTS } from '../../services/geminiService';
+import { useAppStore } from '../../hooks/useAppStore';
+import { useToast } from '../../hooks/useToast';
+import BuyCreditsModal from './BuyCreditsModal';
+import { Job } from '../../types';
 
 
 interface ProposalGeneratorModalProps {

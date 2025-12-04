@@ -39,13 +39,30 @@ export type StripeItemKey = keyof typeof STRIPE_ITEMS;
 
 /**
  * Llama a la Edge Function de Supabase para crear una sesión de Checkout.
- * Esto es seguro porque la lógica de Stripe ocurre en el servidor (Edge Function).
+ * Incluye un fallback para usuarios mock/demo.
  */
 export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Record<string, any> = {}) => {
     const item = STRIPE_ITEMS[itemKey];
 
     if (!item) {
         throw new Error('El artículo de compra no es válido.');
+    }
+
+    // Check for real session
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+        console.warn('Modo Demo: No hay sesión activa de Supabase. Simulando redirección de pago.');
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Construct mock success URL to trigger the PaymentHandler in App.tsx
+        const currentUrl = new URL(window.location.href);
+        const redirectPath = currentUrl.pathname === '/' ? '' : currentUrl.pathname;
+        const mockSuccessUrl = `${currentUrl.origin}${currentUrl.hash.split('?')[0]}?payment=success&item=${itemKey}&mock=true${extraParams.invoice_id ? `&invoice_id=${extraParams.invoice_id}` : ''}`;
+        
+        window.location.href = mockSuccessUrl;
+        return;
     }
 
     // Llamada a la Edge Function 'create-checkout-session'
@@ -59,7 +76,7 @@ export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Re
 
     if (error) {
         console.error('Error invocando Edge Function:', error);
-        throw new Error('Error al conectar con el servidor de pagos.');
+        throw new Error('Error al conectar con el servidor de pagos. (Verifica que las Edge Functions estén desplegadas).');
     }
 
     if (!data?.url) {
@@ -74,6 +91,13 @@ export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Re
  * Abre el portal de facturación de Stripe para gestionar suscripciones.
  */
 export const redirectToCustomerPortal = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+        alert("Modo Demo: No puedes acceder al portal de facturación sin una cuenta real.");
+        return;
+    }
+
     const { data, error } = await supabase.functions.invoke('create-portal-session');
 
     if (error) {
