@@ -103,7 +103,8 @@ const AIAssistantPage: React.FC = () => {
                     let functionResult: any;
                     switch (call.name) {
                         case 'addExpense':
-                            const { description, amount, category } = call.args;
+                            // FIX: Cast call.args to any to avoid TS error: left-hand side of arithmetic operation must be of type 'any', 'number', etc.
+                            const { description, amount, category } = call.args as any;
                             store.addExpense({
                                 description,
                                 amount_cents: Math.round(amount * 100),
@@ -117,7 +118,8 @@ const AIAssistantPage: React.FC = () => {
                             break;
                         
                         case 'createInvoice':
-                            const { clientName, projectName, items } = call.args;
+                            // FIX: Cast call.args to any to avoid TS error: Property 'map' does not exist on type 'unknown'.
+                            const { clientName, projectName, items } = call.args as any;
                             const client = store.getClientByName(clientName);
                             const project = projectName ? store.getProjectByName(projectName) : null;
 
@@ -159,7 +161,7 @@ const AIAssistantPage: React.FC = () => {
                 ], tools);
             }
 
-            const aiMessage: Message = { id: Date.now() + 2, text: response.text, sender: 'ai' };
+            const aiMessage: Message = { id: Date.now() + 2, text: response.text || '', sender: 'ai' };
             setMessages(prev => [...prev, aiMessage]);
 
         } catch (error) {

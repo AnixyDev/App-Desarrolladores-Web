@@ -1,36 +1,35 @@
-// These item keys match what's expected in the PaymentHandler component
+
+import { supabase } from '../lib/supabaseClient';
+
+// Definición de ítems mapeados a IDs de precios reales en Stripe
 export const STRIPE_ITEMS = {
     proPlan: {
-        priceId: 'price_pro_plan_monthly', // Example Price ID from Stripe
+        priceId: 'price_1Q...', // ID real de Stripe Dashboard
         mode: 'subscription' as const,
         name: 'Plan Pro',
-        description: 'Acceso ilimitado y funciones avanzadas.',
     },
     teamsPlan: {
-        priceId: 'price_teams_plan_monthly',
+        priceId: 'price_1Q...', 
         mode: 'subscription' as const,
         name: 'Plan Teams',
-        description: 'Colaboración en equipo y gestión de roles.'
     },
     aiCredits500: {
-        priceId: 'price_credits_500',
+        priceId: 'price_1Q...',
         mode: 'payment' as const,
         name: '500 Créditos de IA',
-        credits: 500,
     },
     aiCredits1500: {
-        priceId: 'price_credits_1500',
+        priceId: 'price_1Q...',
         mode: 'payment' as const,
         name: '1500 Créditos de IA',
-        credits: 1500,
     },
     featuredJobPost: {
-        priceId: 'price_featured_job_post',
+        priceId: 'price_1Q...',
         mode: 'payment' as const,
-        name: 'Oferta de Trabajo Destacada',
+        name: 'Oferta Destacada',
     },
-    // This is a dynamic item for invoices, so it won't have a static price ID here.
     invoicePayment: {
+        priceId: 'price_placeholder_invoice',
         mode: 'payment' as const,
         name: 'Pago de Factura',
     }
@@ -39,10 +38,8 @@ export const STRIPE_ITEMS = {
 export type StripeItemKey = keyof typeof STRIPE_ITEMS;
 
 /**
- * Redirects the user to a Stripe Checkout session.
- * This is a mock function that simulates a call to a serverless function.
- * @param itemKey The key of the item in STRIPE_ITEMS.
- * @param extraParams Additional parameters to pass to the checkout session, like invoice_id.
+ * Llama a la Edge Function de Supabase para crear una sesión de Checkout.
+ * Esto es seguro porque la lógica de Stripe ocurre en el servidor (Edge Function).
  */
 export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Record<string, any> = {}) => {
     const item = STRIPE_ITEMS[itemKey];
@@ -51,24 +48,40 @@ export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Re
         throw new Error('El artículo de compra no es válido.');
     }
 
-    // In a real application, you would make a POST request to a backend endpoint.
-    // This endpoint would create a Stripe Checkout Session and return its URL.
-    // For this simulation, we'll just redirect to a success or cancelled URL with parameters.
-    // This mimics Stripe's redirect behavior.
-    console.log(`Simulating Stripe checkout for: ${item.name}`, extraParams);
-    
-    // Simulate a successful payment redirection for demonstration purposes.
-    const baseUrl = window.location.href.split('#')[0];
-    const hashPath = window.location.hash.split('?')[0];
+    // Llamada a la Edge Function 'create-checkout-session'
+    const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        body: {
+            priceId: item.priceId,
+            mode: item.mode,
+            metadata: { ...extraParams, itemKey } // Pasamos metadatos útiles para el webhook
+        }
+    });
 
-    const params = new URLSearchParams();
-    params.set('payment', 'success');
-    params.set('item', itemKey);
-    for (const key in extraParams) {
-        params.set(key, extraParams[key]);
+    if (error) {
+        console.error('Error invocando Edge Function:', error);
+        throw new Error('Error al conectar con el servidor de pagos.');
     }
-    
-    // Simulate redirecting to Stripe and then back to our app
-    // We'll just directly go to the success URL for this mock.
-    window.location.href = `${baseUrl}${hashPath}?${params.toString()}`;
+
+    if (!data?.url) {
+        throw new Error('No se recibió la URL de pago.');
+    }
+
+    // Redirigir a Stripe
+    window.location.href = data.url;
+};
+
+/**
+ * Abre el portal de facturación de Stripe para gestionar suscripciones.
+ */
+export const redirectToCustomerPortal = async () => {
+    const { data, error } = await supabase.functions.invoke('create-portal-session');
+
+    if (error) {
+        console.error('Error portal:', error);
+        throw new Error('Error al abrir el portal de facturación.');
+    }
+
+    if (data?.url) {
+        window.location.href = data.url;
+    }
 };

@@ -133,8 +133,38 @@ const CreateInvoicePage: React.FC = () => {
         }
     };
 
+    const validateForm = () => {
+        if (!newInvoice.client_id) {
+            addToast('Por favor, selecciona un cliente.', 'error');
+            return false;
+        }
+        if (newInvoice.items.length === 0) {
+            addToast('La factura debe tener al menos un concepto.', 'error');
+            return false;
+        }
+        for (let i = 0; i < newInvoice.items.length; i++) {
+            const item = newInvoice.items[i];
+            if (!item.description.trim()) {
+                addToast(`El concepto #${i + 1} debe tener una descripción.`, 'error');
+                return false;
+            }
+            if (item.quantity <= 0) {
+                addToast(`La cantidad para "${item.description}" debe ser mayor que 0.`, 'error');
+                return false;
+            }
+            if (isNaN(item.price_cents) || item.price_cents < 0) {
+                addToast(`El precio para "${item.description}" no es válido.`, 'error');
+                return false;
+            }
+        }
+        return true;
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (!validateForm()) return;
+
         if (newInvoice.isRecurring) {
             addRecurringInvoice({
                 client_id: newInvoice.client_id,
@@ -210,8 +240,8 @@ const CreateInvoicePage: React.FC = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <Input wrapperClassName="sm:col-span-1" label="Fecha de Emisión" name="issue_date" type="date" value={newInvoice.issue_date} onChange={handleInputChange} disabled={newInvoice.isRecurring} />
                         <Input wrapperClassName="sm:col-span-1" label="Fecha de Vencimiento" name="due_date" type="date" value={newInvoice.due_date} onChange={handleInputChange} disabled={newInvoice.isRecurring} />
-                        <Input wrapperClassName="sm:col-span-1" label="IVA (%)" name="tax_percent" type="number" value={newInvoice.tax_percent} onChange={handleInputChange} />
-                        <Input wrapperClassName="sm:col-span-1" label="Retención IRPF (%)" name="irpf_percent" type="number" value={newInvoice.irpf_percent} onChange={handleInputChange} />
+                        <Input wrapperClassName="sm:col-span-1" label="IVA (%)" name="tax_percent" type="number" min="0" value={newInvoice.tax_percent} onChange={handleInputChange} />
+                        <Input wrapperClassName="sm:col-span-1" label="Retención IRPF (%)" name="irpf_percent" type="number" min="0" value={newInvoice.irpf_percent} onChange={handleInputChange} />
                     </div>
 
                     <div className="pt-4 border-t border-gray-700">
@@ -244,9 +274,9 @@ const CreateInvoicePage: React.FC = () => {
                 <CardContent className="space-y-2">
                     {newInvoice.items.map((item, index) => (
                         <div key={index} className="flex gap-2 items-end">
-                            <Input label="Descripción" wrapperClassName="flex-1" value={item.description} onChange={e => handleItemChange(index, 'description', e.target.value)} />
-                            <Input label="Cant." type="number" wrapperClassName="w-16" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', e.target.value)} />
-                            <Input label="Precio (€)" type="number" step="0.01" wrapperClassName="w-24" value={item.price_cents / 100} onChange={e => handleItemChange(index, 'price_cents', e.target.value)} />
+                            <Input label="Descripción" wrapperClassName="flex-1" value={item.description} onChange={e => handleItemChange(index, 'description', e.target.value)} required />
+                            <Input label="Cant." type="number" step="0.1" min="0.1" wrapperClassName="w-16" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', e.target.value)} required />
+                            <Input label="Precio (€)" type="number" step="0.01" min="0" wrapperClassName="w-24" value={item.price_cents / 100} onChange={e => handleItemChange(index, 'price_cents', e.target.value)} required />
                             <Button type="button" variant="danger" size="sm" onClick={() => removeItem(index)} aria-label="Eliminar concepto"><TrashIcon className="w-4 h-4" /></Button>
                         </div>
                     ))}
