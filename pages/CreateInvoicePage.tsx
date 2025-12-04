@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../hooks/useAppStore.tsx';
@@ -10,6 +11,7 @@ import { PlusIcon, TrashIcon, SparklesIcon, RepeatIcon } from '../components/ico
 import { useToast } from '../hooks/useToast.ts';
 import { generateItemsForDocument, AI_CREDIT_COSTS } from '../services/geminiService.ts';
 import BuyCreditsModal from '../components/modals/BuyCreditsModal.tsx';
+import { formatCurrency } from '../lib/utils.ts';
 
 
 const CreateInvoicePage: React.FC = () => {
@@ -95,6 +97,15 @@ const CreateInvoicePage: React.FC = () => {
     const clientProjects = useMemo(() => {
         return projects.filter(p => p.client_id === newInvoice.client_id)
     }, [projects, newInvoice.client_id]);
+
+    const totals = useMemo(() => {
+        const subtotal = newInvoice.items.reduce((sum, item) => sum + (item.price_cents * item.quantity), 0);
+        const taxAmount = subtotal * (newInvoice.tax_percent / 100);
+        const irpfAmount = subtotal * (newInvoice.irpf_percent / 100);
+        const total = subtotal + taxAmount - irpfAmount;
+        
+        return { subtotal, taxAmount, irpfAmount, total };
+    }, [newInvoice.items, newInvoice.tax_percent, newInvoice.irpf_percent]);
 
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -281,6 +292,30 @@ const CreateInvoicePage: React.FC = () => {
                         </div>
                     ))}
                     <Button type="button" variant="secondary" size="sm" onClick={addItem}><PlusIcon className="w-4 h-4 mr-1"/>Añadir Concepto</Button>
+                    
+                    <div className="mt-8 pt-4 border-t border-gray-800 bg-gray-800/30 p-4 rounded-lg">
+                        <h3 className="text-white font-semibold mb-2">Resumen de Totales</h3>
+                        <div className="flex flex-col gap-1 text-sm">
+                            <div className="flex justify-between text-gray-300">
+                                <span>Base Imponible:</span>
+                                <span>{formatCurrency(totals.subtotal)}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-300">
+                                <span>IVA ({newInvoice.tax_percent}%):</span>
+                                <span>{formatCurrency(totals.taxAmount)}</span>
+                            </div>
+                            {newInvoice.irpf_percent > 0 && (
+                                <div className="flex justify-between text-gray-300">
+                                    <span>Retención IRPF (-{newInvoice.irpf_percent}%):</span>
+                                    <span className="text-red-400">-{formatCurrency(totals.irpfAmount)}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between font-bold text-white text-lg border-t border-gray-700 pt-2 mt-2">
+                                <span>Total a Pagar:</span>
+                                <span>{formatCurrency(totals.total)}</span>
+                            </div>
+                        </div>
+                    </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
                      <Button type="submit">Guardar Factura</Button>

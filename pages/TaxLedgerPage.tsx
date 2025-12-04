@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import { useAppStore } from '../hooks/useAppStore';
@@ -40,7 +41,8 @@ const TaxLedgerPage: React.FC = () => {
         const totalIngresos = filteredData.filteredInvoices.reduce((sum, i) => sum + i.subtotal_cents, 0);
         const totalGastos = filteredData.filteredExpenses.reduce((sum, e) => sum + e.amount_cents, 0);
         
-        const ivaRepercutido = filteredData.filteredInvoices.reduce((sum, i) => sum + (i.total_cents - i.subtotal_cents), 0);
+        // El IVA repercutido es la base * el porcentaje, no solo (total - base) porque el total puede estar afectado por IRPF
+        const ivaRepercutido = filteredData.filteredInvoices.reduce((sum, i) => sum + (i.subtotal_cents * (i.tax_percent / 100)), 0);
         const ivaSoportado = filteredData.filteredExpenses.reduce((sum, e) => sum + (e.amount_cents * ((e.tax_percent || 0) / 100)), 0);
         
         // Suma de retenciones de IRPF aplicadas en las facturas emitidas (para restar del Modelo 130)
@@ -77,10 +79,11 @@ const TaxLedgerPage: React.FC = () => {
         filteredData.filteredInvoices.forEach(inv => {
             const clientName = clients.find(c => c.id === inv.client_id)?.name || 'Cliente desconocido';
             const base = inv.subtotal_cents / 100;
-            const ivaQuota = (inv.total_cents - inv.subtotal_cents) / 100;
+            const ivaQuota = (inv.subtotal_cents * (inv.tax_percent / 100)) / 100;
             const irpfRate = inv.irpf_percent || 0;
             const irpfQuota = (inv.subtotal_cents * (irpfRate / 100)) / 100;
-            const total = (inv.total_cents / 100) - irpfQuota;
+            // Total neto en este contexto contable: Base + IVA - IRPF (liquidez recibida)
+            const total = base + ivaQuota - irpfQuota;
 
             csvRows.push([
                 inv.issue_date,
@@ -251,7 +254,7 @@ const TaxLedgerPage: React.FC = () => {
                                 <td className='p-3 text-gray-300 whitespace-nowrap'>{inv.issue_date}</td>
                                 <td className='p-3 text-white font-mono text-sm'>{inv.invoice_number}</td>
                                 <td className='p-3 text-right font-medium text-green-400'>{formatCurrency(inv.subtotal_cents)}</td>
-                                <td className='p-3 text-right text-gray-400 text-sm'>{formatCurrency(inv.total_cents - inv.subtotal_cents)}</td>
+                                <td className='p-3 text-right text-gray-400 text-sm'>{formatCurrency(inv.subtotal_cents * (inv.tax_percent / 100))}</td>
                                 <td className='p-3 text-right text-gray-400 text-sm'>{formatCurrency(inv.irpf_percent ? inv.subtotal_cents * (inv.irpf_percent/100) : 0)}</td>
                             </tr>
                         )) : (

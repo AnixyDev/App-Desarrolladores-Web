@@ -44,7 +44,13 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
     monthlyGoalCents: 0,
     addInvoice: (invoiceData, timeEntryIdsToBill) => {
         const subtotal = invoiceData.items.reduce((sum: number, item: any) => sum + item.price_cents * item.quantity, 0);
-        const total = subtotal * (1 + (invoiceData.tax_percent || 0) / 100);
+        
+        const taxAmount = subtotal * ((invoiceData.tax_percent || 0) / 100);
+        const irpfAmount = subtotal * ((invoiceData.irpf_percent || 0) / 100);
+        
+        // Total = Base + VAT - IRPF
+        const total = Math.round(subtotal + taxAmount - irpfAmount);
+
         const newInvoice = {
             ...invoiceData,
             id: `inv-${Date.now()}`,

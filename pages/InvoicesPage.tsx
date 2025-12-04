@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, lazy, Suspense, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 // FIX: Remove .tsx and .ts extensions from imports to fix module resolution errors.
@@ -138,6 +139,7 @@ const InvoicesPage: React.FC = () => {
                                         <th className="p-4">Nº Factura</th>
                                         <th className="p-4">Cliente</th>
                                         <th className="p-4">Fecha Emisión</th>
+                                        <th className="p-4">IRPF</th>
                                         <th className="p-4">Total</th>
                                         <th className="p-4">Estado</th>
                                         <th className="p-4">Acciones</th>
@@ -149,6 +151,7 @@ const InvoicesPage: React.FC = () => {
                                             <td className="p-4 font-mono text-white">{invoice.invoice_number}</td>
                                             <td className="p-4 text-primary-400"><Link to={`/clients/${invoice.client_id}`} className="hover:underline">{getClientById(invoice.client_id)?.name}</Link></td>
                                             <td className="p-4 text-gray-300">{invoice.issue_date}</td>
+                                            <td className="p-4 text-gray-300">{invoice.irpf_percent || 0}%</td>
                                             <td className="p-4 text-white font-semibold">{formatCurrency(invoice.total_cents)}</td>
                                             <td className="p-4"><StatusChip type="invoice" status={invoice.paid ? 'paid' : 'pending'} dueDate={invoice.due_date} /></td>
                                             <td className="p-4">
