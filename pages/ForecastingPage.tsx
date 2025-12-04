@@ -1,14 +1,13 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
-import { useAppStore } from '../hooks/useAppStore.tsx';
+import { useAppStore } from '../hooks/useAppStore';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
-import { formatCurrency } from '../lib/utils.ts';
-import { TrendingUpIcon, SparklesIcon, AlertTriangleIcon, CheckCircleIcon, RefreshCwIcon } from '../components/icons/Icon.tsx';
-import { Invoice, RecurringExpense } from '../types.ts';
-import { generateFinancialForecast, AI_CREDIT_COSTS } from '../services/geminiService.ts'; 
-import BuyCreditsModal from '../components/modals/BuyCreditsModal.tsx';
-import Button from '../components/ui/Button.tsx';
+import Card, { CardContent, CardHeader } from '../components/ui/Card';
+import { formatCurrency } from '../lib/utils';
+import { TrendingUpIcon, SparklesIcon, AlertTriangleIcon, CheckCircleIcon, RefreshCwIcon } from '../components/icons/Icon';
+import { Invoice, RecurringExpense } from '../types';
+import { generateFinancialForecast, AI_CREDIT_COSTS } from '../services/geminiService'; 
+import BuyCreditsModal from '../components/modals/BuyCreditsModal';
+import Button from '../components/ui/Button';
 
 interface ForecastData {
   month: string;
@@ -25,7 +24,7 @@ interface FinancialAnalysis {
 
 
 const ForecastingPage: React.FC = () => {
-    const { invoices, recurringExpenses, profile, consumeCredits } = useAppStore();
+    const { invoices, recurringInvoices, recurringExpenses, profile, consumeCredits } = useAppStore();
     const [forecastData, setForecastData] = useState<ForecastData[]>([]);
     const [analysis, setAnalysis] = useState<FinancialAnalysis | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -45,8 +44,8 @@ const ForecastingPage: React.FC = () => {
 
                 const monthKey = `${monthNames[month]} ${year}`;
 
-                // Ingresos: facturas pendientes de pago con fecha de vencimiento en este mes
-                const monthlyIncome = invoices
+                // 1. Ingresos: Facturas ya emitidas y pendientes de cobro (Accounts Receivable)
+                const pendingInvoiceIncome = invoices
                     .filter(inv => !inv.paid)
                     .filter(inv => {
                         const dueDate = new Date(inv.due_date);
@@ -54,7 +53,31 @@ const ForecastingPage: React.FC = () => {
                     })
                     .reduce((sum, inv) => sum + inv.total_cents, 0);
 
-                // Gastos: gastos recurrentes
+                // 2. Ingresos Proyectados: Facturas recurrentes futuras
+                // Solo sumamos si la fecha de la proyección es futura respecto a hoy (para evitar duplicar facturas ya generadas este mes)
+                let projectedRecurringIncome = 0;
+                if (forecastDate > new Date()) {
+                    projectedRecurringIncome = recurringInvoices.reduce((sum, inv) => {
+                        const start = new Date(inv.start_date);
+                        let isActiveInMonth = false;
+                        
+                        if (inv.frequency === 'monthly') {
+                            isActiveInMonth = start <= new Date(year, month + 1, 0);
+                        } else if (inv.frequency === 'yearly') {
+                            isActiveInMonth = start.getMonth() === month && start.getFullYear() <= year;
+                        }
+
+                        if (isActiveInMonth) {
+                            const invTotal = inv.items.reduce((s, item) => s + (item.price_cents * item.quantity), 0) * (1 + inv.tax_percent / 100);
+                            return sum + invTotal;
+                        }
+                        return sum;
+                    }, 0);
+                }
+
+                const totalIncome = pendingInvoiceIncome + projectedRecurringIncome;
+
+                // 3. Gastos: Gastos recurrentes
                 const monthlyExpenses = recurringExpenses
                     .filter(exp => {
                          const startDate = new Date(exp.start_date);
@@ -66,15 +89,15 @@ const ForecastingPage: React.FC = () => {
                 
                 data.push({
                     month: monthKey,
-                    ingresos: monthlyIncome / 100,
+                    ingresos: totalIncome / 100,
                     gastos: monthlyExpenses / 100,
-                    flujoNeto: (monthlyIncome - monthlyExpenses) / 100,
+                    flujoNeto: (totalIncome - monthlyExpenses) / 100,
                 });
             }
             setForecastData(data);
         };
         generateForecast();
-    }, [invoices, recurringExpenses]);
+    }, [invoices, recurringInvoices, recurringExpenses]);
 
     const handleGenerateAnalysis = async () => {
         if (profile.ai_credits < AI_CREDIT_COSTS.generateForecast) {
@@ -140,7 +163,7 @@ const ForecastingPage: React.FC = () => {
                         </div>
                         {analysis.potentialRisks.length > 0 && (
                              <div>
-                                <h3 className="font-semibold text-yellow-400 mb-2 flex items-center gap-2"><AlertTriangleIcon/> Riesgos Potenciales</h3>
+                                <h3 className="font-semibold text-yellow-400 mb-2 flex items-center gap-2"><AlertTriangleIcon className="w-5 h-5"/> Riesgos Potenciales</h3>
                                 <ul className="list-disc list-inside space-y-1 text-gray-300">
                                     {analysis.potentialRisks.map((risk, i) => <li key={i}>{risk}</li>)}
                                 </ul>
@@ -148,7 +171,7 @@ const ForecastingPage: React.FC = () => {
                         )}
                         {analysis.suggestions.length > 0 && (
                             <div>
-                                <h3 className="font-semibold text-green-400 mb-2 flex items-center gap-2"><CheckCircleIcon/> Sugerencias y Oportunidades</h3>
+                                <h3 className="font-semibold text-green-400 mb-2 flex items-center gap-2"><CheckCircleIcon className="w-5 h-5"/> Sugerencias y Oportunidades</h3>
                                 <ul className="list-disc list-inside space-y-1 text-gray-300">
                                     {analysis.suggestions.map((sug, i) => <li key={i}>{sug}</li>)}
                                 </ul>
@@ -163,5 +186,4 @@ const ForecastingPage: React.FC = () => {
     );
 };
 
-// FIX: Add default export for lazy loading.
 export default ForecastingPage;

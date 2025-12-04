@@ -41,6 +41,8 @@ export const generateInvoicePdf = async (invoice: Invoice, client: Client, profi
     doc.text(client.name, 14, 65);
     doc.text(client.company || '', 14, 70);
     doc.text(client.email, 14, 75);
+    if(client.tax_id) doc.text(client.tax_id, 14, 80);
+    if(client.address) doc.text(client.address, 14, 85);
 
     // --- Table ---
     const tableColumn = ["Descripción", "Cantidad", "Precio Unitario", "Total"];
@@ -52,7 +54,7 @@ export const generateInvoicePdf = async (invoice: Invoice, client: Client, profi
     ]);
 
     autoTable(doc, {
-        startY: 90,
+        startY: 95,
         head: [tableColumn],
         body: tableRows,
         theme: 'striped',
@@ -63,20 +65,34 @@ export const generateInvoicePdf = async (invoice: Invoice, client: Client, profi
     const finalY = (doc as any).lastAutoTable.finalY + 10;
     const labelX = 170;
     const valueX = 200;
+    
+    const subtotal = invoice.subtotal_cents;
+    const ivaAmount = invoice.total_cents - invoice.subtotal_cents;
+    // Calculate IRPF if present.
+    const irpfAmount = invoice.irpf_percent ? Math.round(subtotal * (invoice.irpf_percent / 100)) : 0;
+    const finalTotal = invoice.total_cents - irpfAmount;
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
 
     doc.text('Subtotal:', labelX, finalY, { align: 'right' });
-    doc.text(formatCurrency(invoice.subtotal_cents), valueX, finalY, { align: 'right' });
+    doc.text(formatCurrency(subtotal), valueX, finalY, { align: 'right' });
 
     doc.text(`IVA (${invoice.tax_percent}%):`, labelX, finalY + 7, { align: 'right' });
-    doc.text(formatCurrency(invoice.total_cents - invoice.subtotal_cents), valueX, finalY + 7, { align: 'right' });
+    doc.text(formatCurrency(ivaAmount), valueX, finalY + 7, { align: 'right' });
+    
+    let currentY = finalY + 14;
+    
+    if (invoice.irpf_percent && invoice.irpf_percent > 0) {
+        doc.text(`Retención IRPF (${invoice.irpf_percent}%):`, labelX, currentY, { align: 'right' });
+        doc.text(`-${formatCurrency(irpfAmount)}`, valueX, currentY, { align: 'right' });
+        currentY += 7;
+    }
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
-    doc.text('TOTAL:', labelX, finalY + 14, { align: 'right' });
-    doc.text(formatCurrency(invoice.total_cents), valueX, finalY + 14, { align: 'right' });
+    doc.text('TOTAL A PAGAR:', labelX, currentY, { align: 'right' });
+    doc.text(formatCurrency(finalTotal), valueX, currentY, { align: 'right' });
     
     // --- Footer ---
     doc.setFontSize(8);

@@ -180,36 +180,42 @@ export const getAIResponse = async (
 
 export const generateFinancialForecast = async (data: any): Promise<any> => {
     const prompt = `
-        Eres un asesor financiero experto para freelancers. Analiza los siguientes datos de previsión financiera y proporciona un análisis en formato JSON.
+        Eres un asesor financiero experto para freelancers. Analiza los siguientes datos de previsión financiera y proporciona un análisis estratégico.
 
         Datos de Previsión (próximos 6 meses):
         ${JSON.stringify(data, null, 2)}
 
         Instrucciones:
-        1.  Proporciona un resumen general (summary) del panorama financiero.
-        2.  Identifica riesgos potenciales (potentialRisks), como meses con flujo de caja negativo o muy bajo.
-        3.  Ofrece sugerencias accionables (suggestions) para mejorar la situación, como buscar nuevos proyectos o reducir gastos.
-        4.  El resultado debe ser un objeto JSON con las claves: "summary", "potentialRisks", "suggestions".
+        1.  "summary": Proporciona un resumen general del panorama financiero y la tendencia del flujo de caja.
+        2.  "potentialRisks": Identifica riesgos potenciales, como meses con flujo de caja negativo, estancamiento de ingresos o aumento de gastos.
+        3.  "suggestions": Ofrece 2-3 sugerencias accionables y concretas para mejorar la situación (ej. diversificar clientes, recortar gastos específicos, adelantar facturación).
     `;
     
     // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
-        config: { responseMimeType: "application/json" }
+        config: { 
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    summary: { type: Type.STRING },
+                    potentialRisks: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
+                },
+                required: ["summary", "potentialRisks", "suggestions"]
+            }
+        }
     }), "Error generating financial forecast");
 
     try {
-        const resultText = response.text;
-        if (resultText.startsWith("Error:")) {
-            return { summary: resultText, potentialRisks: [], suggestions: [] };
-        }
-        const text = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
-        return JSON.parse(text);
+        const resultText = response.text.trim();
+        return JSON.parse(resultText);
     } catch (e) {
         console.error("Error parsing Gemini forecast response:", e);
         return {
-            summary: "No se pudo generar un análisis automático. Revisa tus datos.",
+            summary: "No se pudo generar un análisis automático. Por favor, inténtalo de nuevo.",
             potentialRisks: [],
             suggestions: []
         };
@@ -305,25 +311,31 @@ export const rankArticlesByRelevance = async (query: string, articles: { id: str
 };
 
 export const analyzeProfitability = async (data: any) => {
+    const prompt = `Analiza los siguientes datos de rentabilidad de un freelancer (puede contener un desglose por cliente o por proyecto).
+    Identifica qué elementos ofrecen el mejor margen/beneficio y cuáles tienen costes excesivos o márgenes bajos.
+    
+    Datos: ${JSON.stringify(data)}
+    `;
+
     // FIX: Explicitly type the safeApiCall to ensure the response object is correctly typed as GenerateContentResponse.
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
         model: "gemini-2.5-flash",
-        contents: `Analiza los siguientes datos de rentabilidad de un freelancer y proporciona un análisis JSON conciso. Datos: ${JSON.stringify(data)}`,
+        contents: prompt,
         config: {
             responseMimeType: "application/json",
             responseSchema: {
                 type: Type.OBJECT,
                 properties: {
-                    summary: { type: Type.STRING, description: "Un resumen de 1-2 frases de la situación general." },
+                    summary: { type: Type.STRING, description: "Un resumen de 2-3 frases de la situación financiera y márgenes." },
                     topPerformers: { 
                         type: Type.ARRAY, 
                         items: { type: Type.STRING },
-                        description: "Lista de los 2-3 clientes o proyectos más rentables."
+                        description: "Lista de los 2-3 clientes o proyectos más rentables con un breve porqué."
                     },
                     areasForImprovement: { 
                         type: Type.ARRAY, 
                         items: { type: Type.STRING },
-                        description: "Lista de 2-3 áreas de mejora o clientes/proyectos menos rentables."
+                        description: "Sugerencias sobre clientes/proyectos con gastos altos o márgenes bajos."
                     },
                 },
                  required: ["summary", "topPerformers", "areasForImprovement"],

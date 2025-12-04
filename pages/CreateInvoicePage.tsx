@@ -33,6 +33,7 @@ const CreateInvoicePage: React.FC = () => {
         due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         items: [{ description: '', quantity: 1, price_cents: 0 }],
         tax_percent: 21,
+        irpf_percent: 0,
         isRecurring: false,
         frequency: 'monthly' as 'monthly' | 'yearly',
         start_date: new Date().toISOString().split('T')[0],
@@ -78,6 +79,12 @@ const CreateInvoicePage: React.FC = () => {
                 items: budgetItems,
             }));
             addToast('Factura pre-rellenada desde el presupuesto del proyecto.', 'info');
+        } else if (clientId && projectId) {
+             setNewInvoice(prev => ({
+                ...prev,
+                client_id: clientId,
+                project_id: projectId,
+            }));
         }
 
         // Clear state from navigation after using it
@@ -146,6 +153,7 @@ const CreateInvoicePage: React.FC = () => {
                  due_date: newInvoice.due_date,
                  items: newInvoice.items,
                  tax_percent: newInvoice.tax_percent,
+                 irpf_percent: newInvoice.irpf_percent,
             }, timeEntryIdsToBill);
             addToast('Factura creada con éxito', 'success');
         }
@@ -203,6 +211,7 @@ const CreateInvoicePage: React.FC = () => {
                         <Input wrapperClassName="sm:col-span-1" label="Fecha de Emisión" name="issue_date" type="date" value={newInvoice.issue_date} onChange={handleInputChange} disabled={newInvoice.isRecurring} />
                         <Input wrapperClassName="sm:col-span-1" label="Fecha de Vencimiento" name="due_date" type="date" value={newInvoice.due_date} onChange={handleInputChange} disabled={newInvoice.isRecurring} />
                         <Input wrapperClassName="sm:col-span-1" label="IVA (%)" name="tax_percent" type="number" value={newInvoice.tax_percent} onChange={handleInputChange} />
+                        <Input wrapperClassName="sm:col-span-1" label="Retención IRPF (%)" name="irpf_percent" type="number" value={newInvoice.irpf_percent} onChange={handleInputChange} />
                     </div>
 
                     <div className="pt-4 border-t border-gray-700">

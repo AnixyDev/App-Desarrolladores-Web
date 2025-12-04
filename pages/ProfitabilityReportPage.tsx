@@ -1,11 +1,16 @@
 // pages/ProfitabilityReportPage.tsx
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, lazy, Suspense } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
 import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
 import { formatCurrency } from '../lib/utils.ts';
 import { Link } from 'react-router-dom';
-import { ArrowUpCircleIcon, ArrowDownCircleIcon, DollarSignIcon, TrendingUpIcon, ChevronDownIcon, ChevronUpIcon, BriefcaseIcon } from '../components/icons/Icon.tsx';
+import { ArrowUpCircleIcon, ArrowDownCircleIcon, DollarSignIcon, TrendingUpIcon, ChevronDownIcon, ChevronUpIcon, BriefcaseIcon, SparklesIcon, RefreshCwIcon } from '../components/icons/Icon.tsx';
 import EmptyState from '../components/ui/EmptyState.tsx';
+import Button from '../components/ui/Button.tsx';
+import { analyzeProfitability, AI_CREDIT_COSTS } from '../services/geminiService.ts';
+import { useToast } from '../hooks/useToast.ts';
+
+const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal.tsx'));
 
 interface ProfitabilityData {
     projectId: string;
@@ -17,6 +22,12 @@ interface ProfitabilityData {
     margin: number;
     totalHours: number;
     effectiveHourlyRate: number;
+}
+
+interface FinancialAnalysis {
+    summary: string;
+    topPerformers: string[];
+    areasForImprovement: string[];
 }
 
 const StatCard: React.FC<{ icon: React.ElementType; title: string; value: string; project?: string; color: string }> = ({ icon: Icon, title, value, project, color }) => (
@@ -55,8 +66,12 @@ const SortableHeader: React.FC<{
 
 
 const ProfitabilityReportPage: React.FC = () => {
-    const { projects, clients, invoices, expenses, timeEntries, profile } = useAppStore();
+    const { projects, clients, invoices, expenses, timeEntries, profile, consumeCredits } = useAppStore();
+    const { addToast } = useToast();
     const [sortConfig, setSortConfig] = useState<{ key: keyof ProfitabilityData; direction: 'ascending' | 'descending' }>({ key: 'netProfit', direction: 'descending' });
+    const [analysis, setAnalysis] = useState<FinancialAnalysis | null>(null);
+    const [isAiLoading, setIsAiLoading] = useState(false);
+    const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
 
     const profitabilityData: ProfitabilityData[] = useMemo(() => {
         if (!profile) return [];
@@ -145,9 +160,40 @@ const ProfitabilityReportPage: React.FC = () => {
         return 'text-green-400';
     };
 
+    const handleAiAnalysis = async () => {
+        if (profile.ai_credits < AI_CREDIT_COSTS.analyzeProfitability) {
+            setIsBuyCreditsModalOpen(true);
+            return;
+        }
+        setIsAiLoading(true);
+        setAnalysis(null);
+        try {
+            // Filter out necessary data to reduce token usage and noise
+            const dataToAnalyze = profitabilityData.map(({ projectId, ...rest }) => rest);
+            const result = await analyzeProfitability({ projects: dataToAnalyze });
+            if (result) {
+                setAnalysis(result);
+                consumeCredits(AI_CREDIT_COSTS.analyzeProfitability);
+                addToast("Análisis de rentabilidad de proyectos completado.", "success");
+            } else {
+                addToast("No se pudo generar el análisis.", "error");
+            }
+        } catch (error) {
+            addToast((error as Error).message, 'error');
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-semibold text-white">Panel de Rentabilidad por Proyecto</h1>
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-semibold text-white">Panel de Rentabilidad por Proyecto</h1>
+                <Button onClick={handleAiAnalysis} disabled={isAiLoading || profitabilityData.length === 0}>
+                    {isAiLoading ? <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin"/> : <SparklesIcon className="w-4 h-4 mr-2" />}
+                    {isAiLoading ? 'Analizando...' : 'Analizar Proyectos con IA'}
+                </Button>
+            </div>
             
             {profitabilityData.length === 0 ? (
                 <EmptyState 
@@ -180,6 +226,32 @@ const ProfitabilityReportPage: React.FC = () => {
                             color="text-primary-400"
                         />
                     </div>
+
+                    {analysis && (
+                        <Card>
+                            <CardHeader><h2 className="text-lg font-semibold text-white flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-purple-400"/> Insights de IA sobre Proyectos</h2></CardHeader>
+                            <CardContent className="space-y-4">
+                                <div>
+                                    <h3 className="font-semibold text-primary-400 mb-2">Evaluación Estratégica</h3>
+                                    <p className="text-gray-300">{analysis.summary}</p>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <h3 className="font-semibold text-green-400 mb-2">Top Proyectos (Alto Rendimiento)</h3>
+                                        <ul className="list-disc list-inside space-y-1 text-gray-300 text-sm">
+                                            {analysis.topPerformers.map((item, i) => <li key={i}>{item}</li>)}
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-yellow-400 mb-2">Áreas de Optimización</h3>
+                                        <ul className="list-disc list-inside space-y-1 text-gray-300 text-sm">
+                                            {analysis.areasForImprovement.map((item, i) => <li key={i}>{item}</li>)}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     <Card>
                         <CardContent className="p-0">
@@ -217,6 +289,10 @@ const ProfitabilityReportPage: React.FC = () => {
                     </Card>
                 </>
             )}
+            
+            <Suspense fallback={null}>
+                {isBuyCreditsModalOpen && <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />}
+            </Suspense>
         </div>
     );
 };

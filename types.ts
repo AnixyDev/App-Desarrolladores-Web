@@ -1,3 +1,4 @@
+
 // types.ts
 
 export interface Profile {
@@ -6,6 +7,7 @@ export interface Profile {
   email: string;
   business_name: string;
   tax_id: string;
+  address?: string; // New: Domicilio fiscal for AEAT
   avatar_url: string;
   plan: 'Free' | 'Pro' | 'Teams';
   ai_credits: number;
@@ -21,10 +23,13 @@ export interface Profile {
   reminder_template_overdue: string;
   // --- Affiliate Program ---
   affiliate_code: string;
-  // FIX: Add Stripe Connect fields to Profile type
   // --- Stripe Connect ---
   stripe_account_id: string;
   stripe_onboarding_complete: boolean;
+  // --- Stripe Customer Data (New) ---
+  stripe_customer_id?: string;
+  stripe_subscription_id?: string;
+  current_period_end?: string;
 }
 
 export interface Client {
@@ -32,6 +37,8 @@ export interface Client {
   user_id: string;
   name: string;
   company: string;
+  tax_id?: string; // New: For invoices
+  address?: string; // New: For invoices
   email: string;
   phone: string;
   created_at: string;
@@ -82,6 +89,7 @@ export interface Invoice {
   items: InvoiceItem[];
   subtotal_cents: number;
   tax_percent: number;
+  irpf_percent?: number; // New: IRPF Retention
   total_cents: number;
   paid: boolean;
   payment_date: string | null;

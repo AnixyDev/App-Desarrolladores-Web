@@ -1,9 +1,6 @@
 
-
-
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-// FIX: Remove .tsx and .ts extensions from imports to resolve module resolution errors.
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -13,15 +10,21 @@ import { Project, NewProject, NewClient } from '../types';
 import { formatCurrency } from '../lib/utils';
 import StatusChip from '../components/ui/StatusChip';
 import EmptyState from '../components/ui/EmptyState';
-import { BriefcaseIcon, PlusIcon } from '../components/icons/Icon';
+import { BriefcaseIcon, PlusIcon, SearchIcon, Filter, Users } from '../components/icons/Icon';
 import { useToast } from '../hooks/useToast';
 
 const ProjectsPage: React.FC = () => {
-    const { projects, clients, addProject, getClientById, addClient } = useAppStore();
+    const { projects, clients, tasks, addProject, getClientById, addClient } = useAppStore();
     const { addToast } = useToast();
+    
+    // UI State
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+    
+    // Filters State
     const [filterStatus, setFilterStatus] = useState<'all' | Project['status']>('all');
+    const [filterClient, setFilterClient] = useState<string>('all');
+    const [searchTerm, setSearchTerm] = useState('');
 
     const initialProjectState: NewProject = {
         name: '',
@@ -37,10 +40,23 @@ const ProjectsPage: React.FC = () => {
     const initialClientState: NewClient = { name: '', company: '', email: '', phone: '' };
     const [newClient, setNewClient] = useState<NewClient>(initialClientState);
 
+    // Calculate progress for a project based on its tasks
+    const getProjectProgress = (projectId: string) => {
+        const projectTasks = tasks.filter(t => t.project_id === projectId);
+        if (projectTasks.length === 0) return 0;
+        const completed = projectTasks.filter(t => t.completed).length;
+        return Math.round((completed / projectTasks.length) * 100);
+    };
+
     const filteredProjects = useMemo(() => {
-        if (filterStatus === 'all') return projects;
-        return projects.filter(p => p.status === filterStatus);
-    }, [projects, filterStatus]);
+        return projects.filter(p => {
+            const matchesStatus = filterStatus === 'all' || p.status === filterStatus;
+            const matchesClient = filterClient === 'all' || p.client_id === filterClient;
+            const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                  getClientById(p.client_id)?.name.toLowerCase().includes(searchTerm.toLowerCase());
+            return matchesStatus && matchesClient && matchesSearch;
+        });
+    }, [projects, filterStatus, filterClient, searchTerm, getClientById]);
 
     const handleProjectInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -82,72 +98,140 @@ const ProjectsPage: React.FC = () => {
     const openProjectModal = () => {
         setNewProject({
             ...initialProjectState,
-            client_id: clients[0]?.id || ''
+            client_id: clients.length > 0 ? clients[0].id : ''
         });
         setIsProjectModalOpen(true);
     };
 
     return (
-        <div>
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <h1 className="text-2xl font-semibold text-white">Proyectos</h1>
-                <div className="flex gap-2">
-                    <select
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value as any)}
-                        className="block px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white"
-                    >
-                        <option value="all">Todos</option>
-                        <option value="planning">Planificación</option>
-                        <option value="in-progress">En Progreso</option>
-                        <option value="completed">Completado</option>
-                        <option value="on-hold">En Pausa</option>
-                    </select>
-                    <Button onClick={openProjectModal}>Añadir Proyecto</Button>
-                </div>
+                <Button onClick={openProjectModal}>
+                    <PlusIcon className="w-5 h-5 mr-2" />
+                    Nuevo Proyecto
+                </Button>
             </div>
+
+            {/* Filters Bar */}
+            <Card className="bg-gray-900 border-gray-800">
+                <div className="p-4 flex flex-col md:flex-row gap-4 items-center">
+                    <div className="relative flex-1 w-full">
+                        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                        <input 
+                            type="text" 
+                            placeholder="Buscar proyecto..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full bg-gray-800 text-white pl-10 pr-4 py-2 rounded-lg border border-gray-700 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none text-sm"
+                        />
+                    </div>
+                    
+                    <div className="flex gap-2 w-full md:w-auto">
+                        <div className="relative w-full md:w-48">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Users className="h-4 w-4 text-gray-500" />
+                            </div>
+                            <select
+                                value={filterClient}
+                                onChange={(e) => setFilterClient(e.target.value)}
+                                className="block w-full pl-10 pr-8 py-2 text-sm bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-primary-500 focus:border-primary-500 appearance-none"
+                            >
+                                <option value="all">Todos los Clientes</option>
+                                {clients.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="relative w-full md:w-48">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Filter className="h-4 w-4 text-gray-500" />
+                            </div>
+                            <select
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value as any)}
+                                className="block w-full pl-10 pr-8 py-2 text-sm bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-primary-500 focus:border-primary-500 appearance-none"
+                            >
+                                <option value="all">Todos los Estados</option>
+                                <option value="planning">Planificación</option>
+                                <option value="in-progress">En Progreso</option>
+                                <option value="completed">Completado</option>
+                                <option value="on-hold">En Pausa</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </Card>
             
             {filteredProjects.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {filteredProjects.map(project => (
-                        <Card key={project.id} className="flex flex-col hover:border-primary-500/50 transition-colors">
-                            <CardHeader>
-                                <div className="flex justify-between items-start">
-                                    <Link to={`/projects/${project.id}`} className="text-primary-400 text-lg font-semibold hover:underline pr-2">
+                    {filteredProjects.map(project => {
+                        const progress = getProjectProgress(project.id);
+                        const client = getClientById(project.client_id);
+                        
+                        return (
+                            <Card key={project.id} className="flex flex-col hover:border-primary-500/50 transition-all duration-300 group">
+                                <CardHeader className="pb-3">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <StatusChip type="project" status={project.status} />
+                                        {project.budget_cents > 0 && (
+                                            <span className="text-sm font-semibold text-white bg-gray-800 px-2 py-1 rounded">
+                                                {formatCurrency(project.budget_cents)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <Link to={`/projects/${project.id}`} className="text-xl font-bold text-white group-hover:text-primary-400 transition-colors line-clamp-1" title={project.name}>
                                         {project.name}
                                     </Link>
-                                    <StatusChip type="project" status={project.status} />
-                                </div>
-                                <Link to={`/clients/${project.client_id}`} className="text-sm text-gray-400 hover:underline">{getClientById(project.client_id)?.name}</Link>
-                            </CardHeader>
-                            <CardContent className="flex-grow space-y-2 text-sm text-gray-300">
-                                <p>{project.description?.substring(0, 100) || 'Sin descripción.'}...</p>
-                            </CardContent>
-                            <div className="p-4 border-t border-gray-800 flex items-center justify-between text-sm">
-                                <div>
-                                    <p className="text-gray-400">Vencimiento</p>
-                                    <p className="text-white font-medium">{project.due_date}</p>
-                                </div>
-                                {project.budget_cents > 0 && (
-                                     <div>
-                                        <p className="text-gray-400">Presupuesto</p>
-                                        <p className="text-white font-semibold">{formatCurrency(project.budget_cents)}</p>
+                                    <Link to={`/clients/${project.client_id}`} className="text-sm text-gray-400 hover:text-gray-200 flex items-center gap-1 mt-1">
+                                        <BriefcaseIcon className="w-3 h-3" />
+                                        {client?.name || 'Cliente desconocido'}
+                                    </Link>
+                                </CardHeader>
+                                
+                                <CardContent className="flex-grow space-y-4 pt-0">
+                                    <p className="text-sm text-gray-300 line-clamp-2 h-10">
+                                        {project.description || 'Sin descripción.'}
+                                    </p>
+                                    
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between text-xs text-gray-400 mb-1">
+                                            <span>Progreso</span>
+                                            <span>{progress}%</span>
+                                        </div>
+                                        <div className="w-full bg-gray-700 rounded-full h-2">
+                                            <div 
+                                                className={`h-2 rounded-full transition-all duration-500 ${progress === 100 ? 'bg-green-500' : 'bg-primary-500'}`} 
+                                                style={{ width: `${progress}%` }}
+                                            ></div>
+                                        </div>
                                     </div>
-                                )}
-                            </div>
-                        </Card>
-                    ))}
+                                </CardContent>
+                                
+                                <div className="px-6 py-4 border-t border-gray-800 bg-gray-900/50 rounded-b-lg flex items-center justify-between text-xs text-gray-400">
+                                    <span>Inicio: {new Date(project.start_date).toLocaleDateString()}</span>
+                                    <span className={new Date(project.due_date) < new Date() && project.status !== 'completed' ? 'text-red-400 font-bold' : ''}>
+                                        Entrega: {new Date(project.due_date).toLocaleDateString()}
+                                    </span>
+                                </div>
+                            </Card>
+                        );
+                    })}
                 </div>
             ) : (
                  <EmptyState
                     icon={BriefcaseIcon}
-                    title="No hay proyectos"
-                    message={filterStatus === 'all' ? "Aún no has creado ningún proyecto." : `No hay proyectos con el estado seleccionado.`}
-                    action={filterStatus === 'all' ? { text: 'Crear Proyecto', onClick: openProjectModal } : undefined}
+                    title="No se encontraron proyectos"
+                    message={searchTerm || filterClient !== 'all' || filterStatus !== 'all' 
+                        ? "No hay proyectos que coincidan con los filtros seleccionados." 
+                        : "Aún no has creado ningún proyecto. ¡Empieza ahora!"}
+                    action={filterStatus === 'all' && filterClient === 'all' && !searchTerm ? { text: 'Crear Primer Proyecto', onClick: openProjectModal } : { text: 'Limpiar Filtros', onClick: () => { setFilterClient('all'); setFilterStatus('all'); setSearchTerm(''); } }}
                 />
             )}
 
-            <Modal isOpen={isProjectModalOpen} onClose={() => setIsProjectModalOpen(false)} title="Añadir Nuevo Proyecto">
+            {/* Modal: Add Project */}
+            <Modal isOpen={isProjectModalOpen} onClose={() => setIsProjectModalOpen(false)} title="Nuevo Proyecto">
                 <form onSubmit={handleProjectSubmit} className="space-y-4">
                     <Input name="name" label="Nombre del Proyecto" value={newProject.name} onChange={handleProjectInputChange} required />
                     <div>
@@ -162,7 +246,7 @@ const ProjectsPage: React.FC = () => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-1">Descripción</label>
-                         <textarea name="description" rows={4} value={newProject.description} onChange={handleProjectInputChange} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white" />
+                         <textarea name="description" rows={3} value={newProject.description} onChange={handleProjectInputChange} className="block w-full px-3 py-2 border border-gray-600 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-800 text-white" />
                     </div>
                      <div className="grid grid-cols-2 gap-4">
                         <Input name="start_date" label="Fecha de Inicio" type="date" value={newProject.start_date} onChange={handleProjectInputChange} required />
@@ -170,14 +254,16 @@ const ProjectsPage: React.FC = () => {
                     </div>
                     <Input label="Presupuesto (€, opcional)" type="number" step="0.01" onChange={handleBudgetChange} />
                     <div className="flex justify-end pt-4">
-                        <Button type="submit">Guardar Proyecto</Button>
+                        <Button type="submit">Crear Proyecto</Button>
                     </div>
                 </form>
             </Modal>
             
+            {/* Modal: Add Client (Quick Access) */}
             <Modal isOpen={isClientModalOpen} onClose={() => setIsClientModalOpen(false)} title="Añadir Cliente Rápido">
                 <form onSubmit={handleClientSubmit} className="space-y-4">
                     <Input name="name" label="Nombre Completo" value={newClient.name} onChange={handleClientInputChange} required />
+                    <Input name="company" label="Empresa" value={newClient.company} onChange={handleClientInputChange} />
                     <Input name="email" label="Email" type="email" value={newClient.email} onChange={handleClientInputChange} required />
                     <div className="flex justify-end pt-4">
                         <Button type="submit">Guardar Cliente</Button>

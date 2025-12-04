@@ -69,8 +69,13 @@ const ReportsPage: React.FC = () => {
             .filter(e => e.project_id && clientProjectIds.includes(e.project_id))
             .reduce((sum, e) => sum + e.amount_cents, 0);
 
-        return { name: client.name, profit: clientIncome - clientExpenses };
-    }).filter(c => c.profit > 0).sort((a, b) => b.profit - a.profit);
+        return { 
+            name: client.name, 
+            income: clientIncome,
+            expenses: clientExpenses,
+            profit: clientIncome - clientExpenses 
+        };
+    }).filter(c => c.profit !== 0 || c.expenses > 0).sort((a, b) => b.profit - a.profit);
 
     const totalHoursTracked = filteredData.filteredTimeEntries.reduce((sum, entry) => sum + entry.duration_seconds, 0) / 3600;
 
@@ -107,8 +112,13 @@ const ReportsPage: React.FC = () => {
     
      autoTable(doc, {
         startY: (doc as any).lastAutoTable.finalY + 10,
-        head: [['Cliente', 'Beneficio Neto']],
-        body: reportKpis.clientProfitability.map(c => [c.name, formatCurrency(c.profit)]),
+        head: [['Cliente', 'Ingresos', 'Gastos', 'Beneficio Neto']],
+        body: reportKpis.clientProfitability.map(c => [
+            c.name, 
+            formatCurrency(c.income),
+            formatCurrency(c.expenses),
+            formatCurrency(c.profit)
+        ]),
     });
 
     doc.save(`Reporte_DevFreelancer_${startDate}_${endDate}.pdf`);
@@ -147,7 +157,7 @@ const ReportsPage: React.FC = () => {
               <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="px-3 py-2 border border-gray-600 rounded-md bg-gray-800 text-white" />
               <Button onClick={handleAiAnalysis} disabled={isAiLoading}>
                   {isAiLoading ? <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin"/> : <SparklesIcon className="w-4 h-4 mr-2" />}
-                  {isAiLoading ? 'Analizando...' : 'Analizar con IA'}
+                  {isAiLoading ? 'Analizando...' : 'Analizar Rentabilidad Cliente'}
               </Button>
               <Button onClick={handleExportPdf} variant="secondary"><DownloadIcon className="w-4 h-4 mr-2" /> Exportar PDF</Button>
           </div>
@@ -165,17 +175,17 @@ const ReportsPage: React.FC = () => {
                 <CardHeader><h2 className="text-lg font-semibold text-white">Análisis de Rentabilidad por IA</h2></CardHeader>
                 <CardContent className="space-y-4">
                     <div>
-                        <h3 className="font-semibold text-primary-400 mb-2">Resumen</h3>
+                        <h3 className="font-semibold text-primary-400 mb-2">Resumen Estratégico</h3>
                         <p className="text-gray-300">{analysis.summary}</p>
                     </div>
                      <div>
-                        <h3 className="font-semibold text-green-400 mb-2">Clientes y Proyectos Estrella</h3>
+                        <h3 className="font-semibold text-green-400 mb-2">Mejores Clientes (Mayor Margen)</h3>
                         <ul className="list-disc list-inside space-y-1 text-gray-300">
                             {analysis.topPerformers.map((item, i) => <li key={i}>{item}</li>)}
                         </ul>
                     </div>
                      <div>
-                        <h3 className="font-semibold text-yellow-400 mb-2">Áreas de Mejora</h3>
+                        <h3 className="font-semibold text-yellow-400 mb-2">Oportunidades de Mejora</h3>
                         <ul className="list-disc list-inside space-y-1 text-gray-300">
                             {analysis.areasForImprovement.map((item, i) => <li key={i}>{item}</li>)}
                         </ul>

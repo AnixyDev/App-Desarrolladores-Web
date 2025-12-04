@@ -98,7 +98,9 @@ const InvoicesPage: React.FC = () => {
     };
     
     const handleCopyPaymentLink = (invoiceId: string) => {
-        const portalLink = `${window.location.origin}${window.location.pathname}#/portal/invoice/${invoiceId}`;
+        // Construct URL based on current location to handle different environments/deployments
+        const baseUrl = window.location.href.split('#')[0];
+        const portalLink = `${baseUrl}#/portal/invoice/${invoiceId}`;
         navigator.clipboard.writeText(portalLink);
         addToast('Enlace de pago copiado al portapapeles', 'success');
     };
