@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DevFreelancer</title>
+    <title>DevFreelancer - Gestión Integral para Freelancers</title>
     
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImxvZ29HcmFkaWVudCIgeDE9IjAiIHkxPSIwIiB4Mj0iMzIiIHkyPSIzMiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIHN0b3AtY29sb3I9IiNGMDAwQjgiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM5RDAwRkYiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48dGV4dCB4PSI1MCUiIHk9IjUyJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMiIgZm9udC1mYW1pbHk9IkludGVyLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iODAwIiBmaWxsPSJ1cmwoI2xvZ29HcmFkaWVudCkiPkRGPC90ZXh0Pjwvc3ZnPg==">
@@ -13,95 +13,48 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Stripe.js -->
+    <!-- Stripe.js (Required for some client-side operations) -->
     <script src="https://js.stripe.com/v3/"></script>
-    <script async src="https://js.stripe.com/v3/pricing-table.js"></script>
 
-    <!-- Tailwind JIT placeholer styles & custom variables -->
+    <!-- Estilos Base Globales -->
     <style>
-      /* Base styles */
       body {
         font-family: 'Inter', sans-serif;
         background-color: #030712; /* bg-gray-950 */
-        color: #f9fafb; /* text-gray-50 */
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
+        color: #f9fafb;
+        margin: 0;
+        padding: 0;
       }
-      /* Custom primary color palette */
-      :root {
-        --primary-400: #f000b8;
-        --primary-500: #d9009f;
-        --primary-600: #c026d3;
-        --primary-700: #a21caf;
-      }
-      .text-primary-400 { color: var(--primary-400); }
-      .bg-primary-500 { background-color: var(--primary-500); }
-      .bg-primary-600 { background-color: var(--primary-600); }
-      .hover\\:bg-primary-700:hover { background-color: var(--primary-700); }
-      .focus\\:ring-primary-500:focus { --tw-ring-color: var(--primary-500); }
-      .focus\\:border-primary-500:focus { border-color: var(--primary-500); }
-      .bg-primary-600\\/20 { background-color: rgba(192, 38, 211, 0.2); }
       
-      /* Custom fuchsia colors for static pages */
-      .text-fuchsia-500 { color: #f000b8; }
-      .bg-fuchsia-600 { background-color: #f000b8; }
-      .hover\\:bg-fuchsia-700:hover { background-color: #d9009f; }
-      .border-fuchsia-600 { border-color: #f000b8; }
-      .focus\\:border-fuchsia-500:focus { border-color: #f000b8; }
-      .focus\\:ring-fuchsia-500:focus { --tw-ring-color: #f000b8; }
-      .shadow-fuchsia-900\\/50 { box-shadow: 0 10px 15px -3px rgba(112, 26, 117, 0.5), 0 4px 6px -2px rgba(112, 26, 117, 0.5); }
-      .shadow-fuchsia-500\\/50 { box-shadow: 0 10px 15px -3px rgba(240, 0, 184, 0.5), 0 4px 6px -2px rgba(240, 0, 184, 0.5); }
-      .bg-fuchsia-200 { background-color: #fae8ff; }
-      .text-fuchsia-800 { color: #86198f; }
-      .bg-fuchsia-900\\/30 { background-color: rgba(112, 26, 117, 0.3); }
-      .bg-fuchsia-800\\/50 { background-color: rgba(134, 25, 143, 0.5); }
-      
-       /* Styles for prose (Markdown rendering in KnowledgeBase) */
-      .prose { color: #d1d5db; }
-      .prose h1, .prose h2, .prose h3 { font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; color: #fff; }
-      .prose p { margin-bottom: 1rem; }
-      .prose ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
-      .prose pre { padding: 1rem; border-radius: 0.5rem; background-color: #1f2937; white-space: pre-wrap; }
-      .prose code { color: #d1d5db; }
-      .prose-invert { /* already dark */ }
-
-      /* Animation for Toast */
-      @keyframes fade-in-right {
-        from {
-          opacity: 0;
-          transform: translateX(100%);
-        }
-        to {
-          opacity: 1;
-          transform: translateX(0);
-        }
+      /* Animaciones utilitarias */
+      @keyframes fade-in-up {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
       }
-      .animate-fade-in-right {
-        animation: fade-in-right 0.3s ease-out forwards;
+      .animate-fade-in-up {
+        animation: fade-in-up 0.5s ease-out forwards;
       }
     </style>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script type="importmap">
+<script type="importmap">
 {
   "imports": {
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.469.0",
-    "react/": "https://aistudiocdn.com/react@^19.0.0/",
-    "react": "https://aistudiocdn.com/react@^19.0.0",
-    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.1.1",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.0.0/",
-    "uuid": "https://aistudiocdn.com/uuid@^11.0.3",
-    "recharts": "https://aistudiocdn.com/recharts@^2.15.0",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^0.1.2",
-    "@react-oauth/google": "https://aistudiocdn.com/@react-oauth/google@^0.12.1",
-    "zustand/": "https://aistudiocdn.com/zustand@^5.0.2/",
-    "zustand": "https://aistudiocdn.com/zustand@^5.0.2",
-    "jspdf": "https://aistudiocdn.com/jspdf@^2.5.2",
-    "jspdf-autotable": "https://aistudiocdn.com/jspdf-autotable@^3.8.4",
-    "marked": "https://aistudiocdn.com/marked@^15.0.4",
-    "next/": "https://aistudiocdn.com/next@^15.1.3/",
-    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.47.10",
-    "stripe": "https://aistudiocdn.com/stripe@^17.5.0"
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.10.1",
+    "@react-oauth/google": "https://aistudiocdn.com/@react-oauth/google@^0.12.2",
+    "zustand": "https://aistudiocdn.com/zustand@^5.0.9",
+    "zustand/": "https://aistudiocdn.com/zustand@^5.0.9/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.1",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
+    "jspdf": "https://aistudiocdn.com/jspdf@^3.0.4",
+    "jspdf-autotable": "https://aistudiocdn.com/jspdf-autotable@^5.0.2",
+    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
+    "marked": "https://aistudiocdn.com/marked@^17.0.1",
+    "stripe": "https://aistudiocdn.com/stripe@^20.0.0",
+    "next/": "https://aistudiocdn.com/next@^16.0.7/",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.86.2"
   }
 }
 </script>

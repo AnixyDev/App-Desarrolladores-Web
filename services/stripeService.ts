@@ -1,3 +1,4 @@
+
 import { supabase } from '../lib/supabaseClient';
 
 // Definición de ítems mapeados a IDs de precios reales en Stripe (basado en prices.csv)
@@ -41,7 +42,7 @@ export const STRIPE_ITEMS = {
         name: 'Oferta Destacada',
     },
     invoicePayment: {
-        priceId: 'price_placeholder_invoice', // Dinámico en backend real
+        priceId: 'price_placeholder_invoice', // Este ID se genera dinámicamente en una implementación real o se usa un producto genérico
         mode: 'payment' as const,
         name: 'Pago de Factura',
     }
