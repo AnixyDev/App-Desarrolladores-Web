@@ -134,6 +134,17 @@ export interface RecurringExpense {
   created_at: string;
 }
 
+export interface CashMovement {
+    id: string;
+    description: string;
+    amount_cents: number;
+    type: 'income' | 'expense';
+    date: string;
+    category: string;
+    user_id: string;
+    created_at: string;
+}
+
 
 export interface TimeEntry {
   id: string;

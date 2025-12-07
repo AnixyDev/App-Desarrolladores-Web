@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { MOCK_DATA } from '../lib/mock-data';
@@ -44,6 +45,7 @@ export const useAppStore = create<AppState>()(
         recurringInvoices: state.recurringInvoices,
         expenses: state.expenses,
         recurringExpenses: state.recurringExpenses,
+        cashMovements: state.cashMovements, // Persist cash movements
         timeEntries: state.timeEntries,
         budgets: state.budgets,
         proposals: state.proposals,

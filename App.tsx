@@ -35,6 +35,7 @@ const TimeTrackingPage = lazy(() => import('./pages/TimeTrackingPage'));
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 const ProfitabilityReportPage = lazy(() => import('./pages/ProfitabilityReportPage'));
 const TaxLedgerPage = lazy(() => import('./pages/TaxLedgerPage'));
+const CashLedgerPage = lazy(() => import('./pages/CashLedgerPage')); // New
 const AIAssistantPage = lazy(() => import('./pages/AIAssistantPage'));
 const JobMarketDashboard = lazy(() => import('./pages/JobMarketDashboard'));
 const JobDetailPage = lazy(() => import('./pages/JobDetailPage'));
@@ -200,6 +201,7 @@ function App() {
                         <Route path="proposals" element={<ProposalsPage />} />
                         <Route path="contracts" element={<ContractsPage />} />
                         <Route path="tax-ledger" element={<TaxLedgerPage />} />
+                        <Route path="cash-ledger" element={<CashLedgerPage />} />
                         
                         {/* Reportes */}
                         <Route path="reports" element={<ReportsPage />} />
