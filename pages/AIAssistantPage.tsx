@@ -1,16 +1,14 @@
-
-import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 // FIX: Remove .tsx extensions from imports to fix module resolution errors.
 import { SendIcon, SparklesIcon, UserIcon } from '../components/icons/Icon';
-import { getAIResponse, AI_CREDIT_COSTS } from '../services/geminiService';
+import { getAIResponse } from '../services/geminiService';
 import { useAppStore } from '../hooks/useAppStore';
 import { FunctionDeclaration, Type, GenerateContentResponse } from '@google/genai';
 import { useToast } from '../hooks/useToast';
 
-const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal'));
 
 interface Message {
     id: number;
@@ -21,14 +19,12 @@ interface Message {
 const AIAssistantPage: React.FC = () => {
     const { addToast } = useToast();
     const store = useAppStore();
-    const { profile, consumeCredits } = store;
 
     const [messages, setMessages] = useState<Message[]>([
         { id: 1, text: 'Hola, soy tu asistente de IA. ¿En qué puedo ayudarte hoy? Puedes pedirme que cree una factura o añada un gasto.', sender: 'ai' }
     ]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -83,12 +79,6 @@ const AIAssistantPage: React.FC = () => {
         e.preventDefault();
         if (input.trim() === '' || isLoading) return;
 
-        // Check for credits before sending
-        if (profile.ai_credits < AI_CREDIT_COSTS.chatMessage) {
-            setIsBuyCreditsModalOpen(true);
-            return;
-        }
-
         const userMessage: Message = { id: Date.now(), text: input, sender: 'user' };
         setMessages(prev => [...prev, userMessage]);
         const currentInput = input;
@@ -102,9 +92,6 @@ const AIAssistantPage: React.FC = () => {
 
         try {
             let response: GenerateContentResponse = await getAIResponse(currentInput, history, tools);
-            
-            // Consume credit for the message interaction
-            consumeCredits(AI_CREDIT_COSTS.chatMessage);
             
             while(response.functionCalls && response.functionCalls.length > 0) {
                 const functionCalls = response.functionCalls;
@@ -234,10 +221,6 @@ const AIAssistantPage: React.FC = () => {
                     </form>
                 </div>
             </Card>
-            
-            <Suspense fallback={null}>
-                {isBuyCreditsModalOpen && <BuyCreditsModal isOpen={isBuyCreditsModalOpen} onClose={() => setIsBuyCreditsModalOpen(false)} />}
-            </Suspense>
         </div>
     );
 };

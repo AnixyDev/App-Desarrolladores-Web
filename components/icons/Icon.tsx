@@ -1,4 +1,3 @@
-
 // components/icons/Icon.tsx
 export {
   LayoutDashboard,
@@ -55,5 +54,4 @@ export {
   ShoppingBag,
   CreditCard,
   Filter,
-  Wallet as WalletIcon,
 } from 'lucide-react';

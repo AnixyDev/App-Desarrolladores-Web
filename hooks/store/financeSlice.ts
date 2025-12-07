@@ -1,6 +1,6 @@
 
 import { StateCreator } from 'zustand';
-import { Invoice, Expense, RecurringExpense, Budget, Proposal, Contract, RecurringInvoice, CashMovement } from '../../types.ts';
+import { Invoice, Expense, RecurringExpense, Budget, Proposal, Contract, RecurringInvoice } from '../../types.ts';
 import { AppState } from '../useAppStore.tsx';
 
 export interface FinanceSlice {
@@ -8,7 +8,6 @@ export interface FinanceSlice {
   recurringInvoices: RecurringInvoice[];
   expenses: Expense[];
   recurringExpenses: RecurringExpense[];
-  cashMovements: CashMovement[]; // New
   budgets: Budget[];
   proposals: Proposal[];
   contracts: Contract[];
@@ -23,8 +22,6 @@ export interface FinanceSlice {
   deleteExpense: (id: string) => void;
   addRecurringExpense: (expense: Omit<RecurringExpense, 'id'|'user_id'|'created_at'|'next_due_date'>) => void;
   deleteRecurringExpense: (id: string) => void;
-  addCashMovement: (movement: Omit<CashMovement, 'id'|'user_id'|'created_at'>) => void; // New
-  deleteCashMovement: (id: string) => void; // New
   addBudget: (budget: any) => void;
   updateBudgetStatus: (id: string, status: Budget['status']) => void;
   addProposal: (proposal: any) => void;
@@ -41,7 +38,6 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
     recurringInvoices: [],
     expenses: [],
     recurringExpenses: [],
-    cashMovements: [],
     budgets: [],
     proposals: [],
     contracts: [],
@@ -150,8 +146,6 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
           set(state => ({ recurringExpenses: [newRecExpense, ...state.recurringExpenses] }));
     },
     deleteRecurringExpense: (id) => set(state => ({ recurringExpenses: state.recurringExpenses.filter(re => re.id !== id) })),
-    addCashMovement: (movement) => set(state => ({ cashMovements: [{ ...movement, id: `cm-${Date.now()}`, user_id: 'u-1', created_at: new Date().toISOString() }, ...state.cashMovements] })),
-    deleteCashMovement: (id) => set(state => ({ cashMovements: state.cashMovements.filter(m => m.id !== id) })),
     addBudget: (budgetData) => {
         const amount_cents = budgetData.items.reduce((sum: number, item: any) => sum + item.price_cents * item.quantity, 0);
         const newBudget = {
