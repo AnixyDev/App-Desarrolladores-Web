@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -149,7 +150,12 @@ const PaymentHandler = () => {
 
 
 function App() {
-    const { isAuthenticated, checkInvoiceStatuses } = useAppStore();
+    const { isAuthenticated, checkInvoiceStatuses, initializeAuth } = useAppStore();
+
+    useEffect(() => {
+        // Initialize auth session from Supabase on mount
+        initializeAuth();
+    }, [initializeAuth]);
 
     useEffect(() => {
         if (isAuthenticated) {

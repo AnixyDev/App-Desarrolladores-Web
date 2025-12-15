@@ -19,17 +19,25 @@ const RegisterPage: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const [showGoogleConfigError, setShowGoogleConfigError] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setShowGoogleConfigError(false);
-        const success = register(name, email, password);
-        if (success) {
-            navigate('/');
-        } else {
-            setError('No se pudo crear la cuenta. Inténtalo de nuevo.');
+        setLoading(true);
+        try {
+            const success = await register(name, email, password);
+            if (success) {
+                navigate('/');
+            } else {
+                setError('No se pudo crear la cuenta. Inténtalo de nuevo.');
+            }
+        } catch (err) {
+            setError('Ocurrió un error durante el registro.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -38,7 +46,7 @@ const RegisterPage: React.FC = () => {
         if (credentialResponse.credential) {
             const decoded: GoogleJwtPayload | null = jwtDecode(credentialResponse.credential);
             if (decoded) {
-                loginWithGoogle(decoded); // Re-use the login logic for registration, as the outcome is the same
+                loginWithGoogle(decoded); 
                 navigate('/');
             } else {
                 setError('No se pudo verificar la información de Google.');
@@ -100,7 +108,9 @@ const RegisterPage: React.FC = () => {
                     required
                 />
                 {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-                <Button type="submit" className="w-full">Crear Cuenta</Button>
+                <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
+                </Button>
             </form>
 
             <div className="relative my-6">

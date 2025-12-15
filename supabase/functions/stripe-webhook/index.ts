@@ -1,5 +1,4 @@
 
-// supabase/functions/stripe-webhook/index.ts
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno'
@@ -19,11 +18,11 @@ serve(async (req) => {
   let event
   try {
     event = stripe.webhooks.constructEvent(body, signature!, endpointSecret!)
-  } catch (err) {
+  } catch (err: any) {
     return new Response(`Webhook Error: ${err.message}`, { status: 400 })
   }
 
-  // Admin Client para escribir en la DB ignorando RLS si es necesario
+  // Cliente Supabase con Service Role para saltar RLS
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -33,35 +32,59 @@ serve(async (req) => {
     case 'checkout.session.completed': {
       const session = event.data.object
       const userId = session.metadata?.supabase_user_id
-      
-      // Lógica: Actualizar suscripción o añadir créditos
-      if (session.mode === 'subscription') {
-        await supabaseAdmin.from('profiles').update({
-          stripe_subscription_id: session.subscription,
-          plan: 'Pro' // Aquí deberías mapear priceId a nombre del plan
-        }).eq('id', userId)
-      } else if (session.mode === 'payment') {
-        // Ejemplo: Añadir créditos si es un pago único
-        if (session.metadata?.itemKey === 'aiCredits500') {
-           // Usamos RPC (stored procedure) para incrementar de forma atómica
-           await supabaseAdmin.rpc('increment_credits', { user_id: userId, amount: 500 })
+      const itemKey = session.metadata?.itemKey
+
+      if (userId) {
+        if (session.mode === 'subscription') {
+          // Actualizar perfil con datos de suscripción
+          const planName = itemKey?.includes('teams') ? 'Teams' : 'Pro';
+          await supabaseAdmin.from('profiles').update({
+            stripe_subscription_id: session.subscription,
+            stripe_customer_id: session.customer,
+            plan: planName,
+            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // Placeholder, real update via subscription.updated
+          }).eq('id', userId)
+        } 
+        else if (session.mode === 'payment') {
+          // Compra de Créditos o Pago de Factura
+          if (itemKey?.startsWith('aiCredits')) {
+             let amount = 0;
+             if(itemKey === 'aiCredits100') amount = 100;
+             if(itemKey === 'aiCredits500') amount = 500;
+             if(itemKey === 'aiCredits1000') amount = 1000;
+             
+             if(amount > 0) {
+               await supabaseAdmin.rpc('increment_credits', { user_id: userId, amount: amount })
+             }
+          }
+          if (session.metadata?.invoice_id) {
+             await supabaseAdmin.from('invoices').update({
+               paid: true,
+               payment_date: new Date().toISOString(),
+               stripe_payment_intent_id: session.payment_intent
+             }).eq('id', session.metadata.invoice_id)
+          }
         }
       }
       break
     }
-    case 'customer.subscription.updated':
+    case 'customer.subscription.updated': {
+      const subscription = event.data.object
+      // Buscar usuario por ID de suscripción
+      const { data: profile } = await supabaseAdmin.from('profiles').select('id').eq('stripe_subscription_id', subscription.id).single();
+      
+      if(profile) {
+          const status = subscription.status === 'active' ? 'Pro' : 'Free'; // Lógica simplificada
+          await supabaseAdmin.from('profiles').update({ 
+              plan: status,
+              current_period_end: new Date(subscription.current_period_end * 1000).toISOString()
+          }).eq('id', profile.id)
+      }
+      break
+    }
     case 'customer.subscription.deleted': {
       const subscription = event.data.object
-      // Sincronizar estado
-      const userId = subscription.metadata?.supabase_user_id 
-      // Nota: Stripe a veces no envía metadata en la subscription obj, hay que recuperarla del customer o buscar el usuario por stripe_customer_id
-      const customerId = subscription.customer
-      
-      const status = subscription.status === 'active' ? 'Pro' : 'Free'
-      
-      await supabaseAdmin.from('profiles')
-        .update({ plan: status })
-        .eq('stripe_customer_id', customerId)
+      await supabaseAdmin.from('profiles').update({ plan: 'Free' }).eq('stripe_subscription_id', subscription.id)
       break
     }
   }

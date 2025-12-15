@@ -17,16 +17,24 @@ const LoginPage: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const [showGoogleConfigError, setShowGoogleConfigError] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        const success = login(email, password);
-        if (success) {
-            navigate('/');
-        } else {
-            setError('Email no encontrado o incorrecto. Por favor, regístrate o usa Google.');
+        setLoading(true);
+        try {
+            const success = await login(email, password);
+            if (success) {
+                navigate('/');
+            } else {
+                setError('Email no encontrado o contraseña incorrecta.');
+            }
+        } catch (err) {
+            setError('Ocurrió un error al iniciar sesión.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -90,7 +98,9 @@ const LoginPage: React.FC = () => {
                     required
                 />
                 {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-                <Button type="submit" className="w-full">Entrar</Button>
+                <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? 'Iniciando...' : 'Entrar'}
+                </Button>
             </form>
 
             <div className="relative my-6">

@@ -1,5 +1,4 @@
 
-// supabase/functions/create-checkout-session/index.ts
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno'
@@ -11,25 +10,30 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') as string, {
   httpClient: Stripe.createFetchHttpClient(),
 })
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' } })
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // 1. Verificar Usuario Supabase
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
+    
+    // Verificar usuario autenticado
     const { data: { user } } = await supabaseClient.auth.getUser()
     if (!user) throw new Error('Usuario no autenticado')
 
-    // 2. Obtener datos del cuerpo
     const { priceId, mode, metadata } = await req.json()
 
-    // 3. Obtener o crear Customer en Stripe
+    // Obtener perfil para ver si ya tiene customer_id
     const { data: profile } = await supabaseClient
       .from('profiles')
       .select('stripe_customer_id, email, full_name')
@@ -38,6 +42,7 @@ serve(async (req) => {
 
     let customerId = profile?.stripe_customer_id
 
+    // Crear cliente en Stripe si no existe
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: user.email,
@@ -45,11 +50,12 @@ serve(async (req) => {
         metadata: { supabase_user_id: user.id },
       })
       customerId = customer.id
-      // Guardar ID en Supabase (usando service role para bypass RLS si es necesario, o la misma conexión si el usuario puede editarse)
-      await supabaseClient.from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id)
+      
+      // Actualizar perfil con Service Role (bypass RLS si es necesario, o usar el cliente del usuario si las policies lo permiten)
+      const supabaseAdmin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+      await supabaseAdmin.from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id)
     }
 
-    // 4. Crear Sesión de Checkout
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
@@ -58,16 +64,18 @@ serve(async (req) => {
       cancel_url: `${req.headers.get('origin')}/?payment=cancelled`,
       metadata: { supabase_user_id: user.id, ...metadata },
       allow_promotion_codes: true,
+      billing_address_collection: 'required', // Obligatorio para facturas legales (AEAT)
+      tax_id_collection: { enabled: true },   // Recoger NIF/CIF
     })
 
     return new Response(JSON.stringify({ url: session.url }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
-  } catch (error) {
+  } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
 })
