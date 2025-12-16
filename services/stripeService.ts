@@ -48,6 +48,11 @@ export const STRIPE_ITEMS = {
         priceId: 'price_1SOlOv8oC5awQy15Q2aXoEg7', 
         mode: 'payment' as const,
         name: 'Oferta Destacada',
+    },
+    invoicePayment: {
+        priceId: null, 
+        mode: 'payment' as const,
+        name: 'Pago de Factura',
     }
 };
 
@@ -62,6 +67,8 @@ export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Re
         body: {
             priceId: item.priceId,
             mode: item.mode,
+            amount: itemKey === 'invoicePayment' ? extraParams.amount_cents : undefined,
+            productName: itemKey === 'invoicePayment' ? `Factura ${extraParams.invoice_number}` : undefined,
             metadata: { ...extraParams, itemKey }
         }
     });
@@ -78,10 +85,14 @@ export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Re
     }
 };
 
-// 1. Lógica para llamar a payment-sheet (Single Payment Flow)
-export const createPaymentSheet = async (amountCents: number) => {
+// 1. Lógica para llamar a payment-sheet (Single Payment Flow - Embedded)
+export const createPaymentSheet = async (amountCents: number, description: string, metadata: any = {}) => {
     const { data, error } = await supabase.functions.invoke('payment-sheet', {
-        body: { amount: amountCents }
+        body: { 
+            amount: amountCents,
+            description,
+            metadata
+        }
     });
 
     if (error) {

@@ -5,7 +5,6 @@ import { useAppStore } from '../../hooks/useAppStore';
 import Card, { CardHeader, CardContent, CardFooter } from '../../components/ui/Card';
 import { formatCurrency } from '../../lib/utils';
 import Button from '../../components/ui/Button';
-import { RefreshCwIcon } from '../../components/icons/Icon';
 import { useToast } from '../../hooks/useToast';
 
 const StripePaymentModal = lazy(() => import('../../components/modals/StripePaymentModal'));
@@ -27,7 +26,7 @@ const PortalInvoiceViewPage: React.FC = () => {
     const handlePaymentSuccess = () => {
         markInvoiceAsPaid(invoice.id);
         addToast("¡Pago realizado con éxito! Gracias.", "success");
-        setIsPaymentModalOpen(false);
+        // Don't close immediately here, modal handles delayed close for UX
     };
 
     return (
@@ -114,6 +113,7 @@ const PortalInvoiceViewPage: React.FC = () => {
                         onClose={() => setIsPaymentModalOpen(false)}
                         amountCents={invoice.total_cents}
                         description={`Pago Factura ${invoice.invoice_number}`}
+                        metadata={{ invoice_id: invoice.id }}
                         onPaymentSuccess={handlePaymentSuccess}
                     />
                 )}
