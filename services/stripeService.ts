@@ -2,8 +2,19 @@
 import { supabase } from '../lib/supabaseClient';
 import { loadStripe } from '@stripe/stripe-js';
 
-// Asegúrate de definir tu clave pública en el entorno o sustitúyela aquí para pruebas
-const STRIPE_PUBLIC_KEY = 'pk_test_...'; // REEMPLAZAR CON TU CLAVE PÚBLICA REAL
+// Helper para obtener variables de entorno
+const getEnv = (key: string): string => {
+    if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
+        return (import.meta as any).env[key] || '';
+    }
+    if (typeof process !== 'undefined' && process.env) {
+        return process.env[key] || '';
+    }
+    return '';
+};
+
+// Intenta obtener la clave de las variables de entorno, o usa un fallback para desarrollo/demo
+const STRIPE_PUBLIC_KEY = getEnv('VITE_STRIPE_PUBLIC_KEY') || getEnv('NEXT_PUBLIC_STRIPE_PUBLIC_KEY') || 'pk_test_...'; 
 
 export const getStripe = () => {
     return loadStripe(STRIPE_PUBLIC_KEY);
