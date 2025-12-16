@@ -26,47 +26,26 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
-    
+
+    // 1. Get the user
     const { data: { user } } = await supabaseClient.auth.getUser()
     if (!user) throw new Error('Usuario no autenticado')
 
-    const { priceId, mode, metadata } = await req.json()
-
-    // Obtener perfil para ver si ya tiene customer_id
+    // 2. Get the customer ID from the profile
     const { data: profile } = await supabaseClient
       .from('profiles')
-      .select('stripe_customer_id, email, full_name')
+      .select('stripe_customer_id')
       .eq('id', user.id)
       .single()
 
-    let customerId = profile?.stripe_customer_id
-
-    // Crear cliente en Stripe si no existe
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        name: profile?.full_name,
-        metadata: { supabase_user_id: user.id },
-      })
-      customerId = customer.id
-      
-      const supabaseAdmin = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '', 
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      )
-      await supabaseAdmin.from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id)
+    if (!profile?.stripe_customer_id) {
+      throw new Error('No se encontró un cliente de Stripe asociado a este usuario.')
     }
 
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      line_items: [{ price: priceId, quantity: 1 }],
-      mode: mode,
-      success_url: `${req.headers.get('origin')}/?payment=success&session_id={CHECKOUT_SESSION_ID}&item=${metadata.itemKey}`,
-      cancel_url: `${req.headers.get('origin')}/?payment=cancelled`,
-      metadata: { supabase_user_id: user.id, ...metadata },
-      allow_promotion_codes: true,
-      billing_address_collection: 'required',
-      tax_id_collection: { enabled: true },
+    // 3. Create the Portal Session
+    const session = await stripe.billingPortal.sessions.create({
+      customer: profile.stripe_customer_id,
+      return_url: `${req.headers.get('origin')}/#/billing`, 
     })
 
     return new Response(JSON.stringify({ url: session.url }), {
