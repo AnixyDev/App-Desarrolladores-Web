@@ -1,15 +1,20 @@
-import React from 'react';
+
+import React, { useState, lazy, Suspense } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAppStore } from '../../hooks/useAppStore';
 import Card, { CardHeader, CardContent, CardFooter } from '../../components/ui/Card';
 import { formatCurrency } from '../../lib/utils';
 import Button from '../../components/ui/Button';
-// FIX: Remove .ts extension from import to fix module resolution error.
-import { redirectToCheckout } from '../../services/stripeService';
+import { RefreshCwIcon } from '../../components/icons/Icon';
+import { useToast } from '../../hooks/useToast';
+
+const StripePaymentModal = lazy(() => import('../../components/modals/StripePaymentModal'));
 
 const PortalInvoiceViewPage: React.FC = () => {
     const { invoiceId } = useParams<{ invoiceId: string }>();
-    const { invoices, getClientById, profile } = useAppStore();
+    const { invoices, getClientById, profile, markInvoiceAsPaid } = useAppStore();
+    const { addToast } = useToast();
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
     const invoice = invoices.find(i => i.id === invoiceId);
 
@@ -19,17 +24,10 @@ const PortalInvoiceViewPage: React.FC = () => {
     
     const client = getClientById(invoice.client_id);
     
-    const handlePay = async () => {
-        if (invoice) {
-            try {
-                // In a real app, this would be a specific Stripe item for this invoice.
-                // For this mock, we'll use a generic item and pass the invoice_id.
-                await redirectToCheckout('invoicePayment', { invoice_id: invoice.id });
-            } catch (error) {
-                console.error("Payment redirection failed", error);
-                alert((error as Error).message);
-            }
-        }
+    const handlePaymentSuccess = () => {
+        markInvoiceAsPaid(invoice.id);
+        addToast("¡Pago realizado con éxito! Gracias.", "success");
+        setIsPaymentModalOpen(false);
     };
 
     return (
@@ -41,7 +39,9 @@ const PortalInvoiceViewPage: React.FC = () => {
                     <p className="text-gray-400">Fecha de vencimiento: {invoice.due_date}</p>
                 </div>
                 {!invoice.paid && (
-                     <Button onClick={handlePay}>Pagar Factura</Button>
+                     <Button onClick={() => setIsPaymentModalOpen(true)}>
+                        Pagar Factura Online
+                     </Button>
                 )}
             </CardHeader>
             <CardContent>
@@ -103,9 +103,21 @@ const PortalInvoiceViewPage: React.FC = () => {
                  <span className={`px-3 py-1 rounded-full text-sm ${
                     invoice.paid ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
                  }`}>
-                    {invoice.paid ? `Pagada el ${invoice.payment_date}` : 'Pendiente de Pago'}
+                    {invoice.paid ? `Pagada el ${invoice.payment_date ? new Date(invoice.payment_date).toLocaleDateString() : 'fecha desconocida'}` : 'Pendiente de Pago'}
                 </span>
             </CardFooter>
+
+            <Suspense fallback={null}>
+                {isPaymentModalOpen && (
+                    <StripePaymentModal 
+                        isOpen={isPaymentModalOpen}
+                        onClose={() => setIsPaymentModalOpen(false)}
+                        amountCents={invoice.total_cents}
+                        description={`Pago Factura ${invoice.invoice_number}`}
+                        onPaymentSuccess={handlePaymentSuccess}
+                    />
+                )}
+            </Suspense>
         </Card>
     );
 };

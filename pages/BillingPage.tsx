@@ -3,14 +3,15 @@ import React, { useState } from 'react';
 import { useAppStore } from '../hooks/useAppStore';
 import Card, { CardContent, CardHeader, CardFooter } from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import { CheckCircleIcon, SparklesIcon, CreditCard, Users, RefreshCwIcon, ZapIcon, StarIcon } from '../components/icons/Icon';
-import { redirectToCheckout, StripeItemKey } from '../services/stripeService';
+import { CheckCircleIcon, SparklesIcon, CreditCard, Users, RefreshCwIcon, ZapIcon, StarIcon, SettingsIcon } from '../components/icons/Icon';
+import { redirectToCheckout, redirectToCustomerPortal, StripeItemKey } from '../services/stripeService';
 import { useToast } from '../hooks/useToast';
 
 const BillingPage: React.FC = () => {
     const { profile } = useAppStore();
     const { addToast } = useToast();
     const [isLoading, setIsLoading] = useState<string | null>(null);
+    const [isPortalLoading, setIsPortalLoading] = useState(false);
     const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
     const handlePurchase = async (itemKey: StripeItemKey) => {
@@ -20,6 +21,16 @@ const BillingPage: React.FC = () => {
         } catch (error) {
             addToast((error as Error).message, 'error');
             setIsLoading(null);
+        }
+    };
+
+    const handleOpenPortal = async () => {
+        setIsPortalLoading(true);
+        try {
+            await redirectToCustomerPortal();
+        } catch (error) {
+            addToast((error as Error).message, 'error');
+            setIsPortalLoading(false);
         }
     };
 
@@ -175,6 +186,16 @@ const BillingPage: React.FC = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Portal Button */}
+            {(isPro || isTeams) && (
+                <div className="flex justify-center">
+                    <Button onClick={handleOpenPortal} variant="secondary" disabled={isPortalLoading}>
+                        {isPortalLoading ? <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin"/> : <SettingsIcon className="w-4 h-4 mr-2"/>}
+                        Gestionar Suscripción / Ver Facturas
+                    </Button>
+                </div>
+            )}
 
             {/* Plans Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto px-4">
