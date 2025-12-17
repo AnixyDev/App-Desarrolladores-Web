@@ -1,30 +1,35 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-// Helper function to safely get environment variables across different environments (Vite, Webpack, Node)
+// Helper function to safely get environment variables across different environments
 const getEnv = (key: string): string => {
-    // Check import.meta.env (Vite)
+    // Check for Vite
     if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
-        return (import.meta as any).env[key] || '';
+        const val = (import.meta as any).env[key];
+        if (val) return val;
     }
-    // Check process.env (Node/Next.js/Webpack)
+    // Check for process.env (Node/Next/Webpack)
     if (typeof process !== 'undefined' && process.env) {
-        return process.env[key] || '';
+        const val = process.env[key];
+        if (val) return val;
+    }
+    // Check for global window (Fallback)
+    if (typeof window !== 'undefined') {
+        const val = (window as any)[key];
+        if (val) return val;
     }
     return '';
 };
 
-// Try getting the variables using both VITE_ and NEXT_PUBLIC_ prefixes for compatibility
-const supabaseUrl = getEnv('VITE_SUPABASE_URL') || getEnv('NEXT_PUBLIC_SUPABASE_URL');
-const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+// URL de Supabase proporcionada por el usuario
+const DEFAULT_URL = 'https://umqsjycqypxvhbhmidma.supabase.co';
+// Clave Anon proporcionada por el usuario
+const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtcXNqeWNxeXB4dmhiaG1pZG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3MTcwNTksImV4cCI6MjA3ODI5MzA1OX0.YmlHDqxoQa9DRuONwxYenmU-Rj05sVjlMstG3oyCM8I';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('⚠️ ADVERTENCIA: Faltan las variables de entorno de Supabase (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY). La autenticación y base de datos no funcionarán correctamente.');
-}
+const supabaseUrl = getEnv('VITE_SUPABASE_URL') || getEnv('NEXT_PUBLIC_SUPABASE_URL') || DEFAULT_URL;
+const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY') || DEFAULT_KEY;
 
-// Fallback values prevent immediate crash during initialization, though requests will fail if keys are missing.
-// We use a syntactically valid URL to prevent 'Invalid URL' errors during client creation.
+// Inicializamos el cliente.
 export const supabase = createClient(
-    supabaseUrl || 'https://placeholder.supabase.co', 
-    supabaseAnonKey || 'placeholder'
+    supabaseUrl, 
+    supabaseAnonKey
 );

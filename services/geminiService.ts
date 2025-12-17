@@ -1,21 +1,7 @@
-
 import { GoogleGenAI, GenerateContentResponse, Type, FunctionDeclaration } from "@google/genai";
 
-// Helper function to safely get environment variables
-const getEnv = (key: string): string => {
-    if (typeof process !== 'undefined' && process.env && process.env[key]) {
-        return process.env[key] as string;
-    }
-    if (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env[key]) {
-        return (import.meta as any).env[key] as string;
-    }
-    return '';
-};
-
-const apiKey = getEnv('API_KEY') || getEnv('VITE_GEMINI_API_KEY');
-
-// Se inicializa el cliente una vez.
-const ai = new GoogleGenAI({ apiKey: apiKey });
+// Se inicializa el cliente utilizando exclusivamente process.env.API_KEY según las directrices.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
 const API_KEY_ERROR_MESSAGE = "Error: La clave de API para los servicios de IA no está configurada o no es válida.";
 
@@ -32,7 +18,6 @@ export const AI_CREDIT_COSTS = {
     chatMessage: 1,
     generateTasks: 5,
     estimateBudget: 8,
-    // --- Nuevos Costes ---
     searchKnowledgeBase: 2,
     analyzeProfitability: 15,
     generateInvoiceItems: 8,
@@ -40,21 +25,16 @@ export const AI_CREDIT_COSTS = {
 
 // Función auxiliar para gestionar las llamadas a la API de forma segura
 async function safeApiCall<T>(apiCall: () => Promise<T>, errorContext: string): Promise<T> {
-    if (!apiKey) {
-        console.error("La clave de API de Gemini no está configurada en el entorno.");
-        throw new Error(API_KEY_ERROR_MESSAGE);
-    }
     try {
         return await apiCall();
     } catch (error) {
         console.error(`${errorContext}:`, error);
         if (error instanceof Error && (error.message.includes('API key not valid') || error.message.includes('API_KEY_INVALID'))) {
-            throw new Error("Error: La clave de API de Gemini proporcionada por el entorno no es válida. Por favor, verifica la configuración.");
+            throw new Error("Error: La clave de API de Gemini no es válida. Por favor, verifica la configuración.");
         }
         throw new Error(`Hubo un error al procesar la solicitud de IA. Por favor, inténtalo de nuevo.`);
     }
 }
-
 
 export const generateProposalText = async (jobTitle: string, jobDescription: string, userProfile: string): Promise<string> => {
     const prompt = `
@@ -82,7 +62,7 @@ export const generateProposalText = async (jobTitle: string, jobDescription: str
     `;
 
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
             temperature: 0.7,
@@ -109,7 +89,7 @@ export const refineProposalText = async (originalProposal: string, refinementTyp
     `;
 
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
             temperature: 0.8,
@@ -140,7 +120,7 @@ export const summarizeApplicant = async (jobDescription: string, applicantProfil
     `;
 
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
             responseMimeType: "application/json",
@@ -165,7 +145,6 @@ export const summarizeApplicant = async (jobDescription: string, applicantProfil
     }
 };
 
-
 export const getAIResponse = async (
     prompt: string, 
     history: { role: string, parts: any }[],
@@ -175,7 +154,7 @@ export const getAIResponse = async (
     const contents = [...history, { role: 'user', parts: [{ text: prompt }] }];
 
     return safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
-        model: 'gemini-2.5-pro',
+        model: 'gemini-3-pro-preview',
         contents: contents as any,
         config: {
             tools: tools ? [{ functionDeclarations: tools }] : undefined,
@@ -201,7 +180,7 @@ export const generateFinancialForecast = async (data: any): Promise<any> => {
     `;
     
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3-flash-preview',
         contents: prompt,
         config: { 
             responseMimeType: "application/json",
@@ -244,12 +223,11 @@ export const generateTimeEntryDescription = async (projectName: string, projectD
         **Instrucciones:**
         1.  Basándote en el contexto y las palabras clave, escribe una descripción de 1 frase para un registro de tiempo.
         2.  La descripción debe ser específica y sonar profesional.
-        3.  Ejemplos: "Implementado el flujo de autenticación de dos factores para el portal de administración.", "Investigado y solucionado un bug de rendimiento en la consulta de la base de datos de productos.", "Desarrollada la maquetación de la página de perfil de usuario con React y Tailwind CSS."
-        4.  Genera solo el texto de la descripción, sin introducciones ni saludos.
+        3.  Genera solo el texto de la descripción, sin introducciones ni saludos.
     `;
 
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
             temperature: 0.6,
@@ -260,13 +238,9 @@ export const generateTimeEntryDescription = async (projectName: string, projectD
     return response.text ? response.text.trim() : '';
 };
 
-
-// --- NUEVAS FUNCIONES ---
-
 export const generateItemsForDocument = async (prompt: string, hourlyRate: number) => {
-    // Hourly rate comes in cents, convert to EUR for the prompt, AI understands standard currency better.
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3-flash-preview",
         contents: `Basado en la siguiente descripción, genera una lista de conceptos para una factura o presupuesto. Estima las horas si es necesario y calcula el precio usando una tarifa de ${hourlyRate / 100} EUR/hora. La descripción es: "${prompt}"`,
         config: {
             responseMimeType: "application/json",
@@ -298,7 +272,7 @@ export const rankArticlesByRelevance = async (query: string, articles: { id: str
     const simplifiedArticles = articles.map(a => ({ id: a.id, title: a.title, excerpt: a.content.substring(0, 150) }));
     
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3-flash-preview",
         contents: `Dada la siguiente consulta de búsqueda y una lista de artículos, devuelve un array JSON con los IDs de los artículos ordenados por relevancia semántica (el más relevante primero). Consulta: "${query}". Artículos: ${JSON.stringify(simplifiedArticles)}`,
         config: {
             responseMimeType: "application/json",
@@ -321,30 +295,22 @@ export const analyzeProfitability = async (data: any) => {
     Datos: ${JSON.stringify(data)}
 
     Genera un informe estratégico en JSON:
-    1. summary: Diagnóstico ejecutivo de la salud financiera y márgenes. Se conciso y directo.
-    2. topPerformers: Identifica los 2-3 Clientes/Proyectos con mejor rendimiento (mayor margen) y explica brevemente por qué son valiosos.
-    3. areasForImprovement: Detecta ineficiencias concretas (ej. clientes con muchos gastos de proyecto y bajo margen) y sugiere acciones correctivas.
+    1. summary: Diagnóstico ejecutivo de la salud financiera y márgenes.
+    2. topPerformers: Clientes/Proyectos con mejor rendimiento.
+    3. areasForImprovement: Acciones correctivas sugeridas.
     `;
 
     const response = await safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
             responseMimeType: "application/json",
             responseSchema: {
                 type: Type.OBJECT,
                 properties: {
-                    summary: { type: Type.STRING, description: "Diagnóstico ejecutivo de la situación." },
-                    topPerformers: { 
-                        type: Type.ARRAY, 
-                        items: { type: Type.STRING },
-                        description: "Clientes/Proyectos más rentables con justificación."
-                    },
-                    areasForImprovement: { 
-                        type: Type.ARRAY, 
-                        items: { type: Type.STRING },
-                        description: "Acciones correctivas para mejorar márgenes."
-                    },
+                    summary: { type: Type.STRING },
+                    topPerformers: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    areasForImprovement: { type: Type.ARRAY, items: { type: Type.STRING } },
                 },
                  required: ["summary", "topPerformers", "areasForImprovement"],
             }
