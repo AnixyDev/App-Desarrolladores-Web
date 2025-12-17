@@ -1,35 +1,36 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Helper function to safely get environment variables across different environments
-const getEnv = (key: string): string => {
-    // Check for Vite
+/**
+ * CONFIGURACIÓN DE SUPABASE
+ * Estos valores son públicos y necesarios para que el frontend se comunique con la API de Supabase.
+ */
+
+const SUPABASE_URL = 'https://umqsjycqypxvhbhmidma.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtcXNqeWNxeXB4dmhiaG1pZG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3MTcwNTksImV4cCI6MjA3ODI5MzA1OX0.YmlHDqxoQa9DRuONwxYenmU-Rj05sVjlMstG3oyCM8I';
+
+// Función para obtener variables de entorno con fallback a los valores proporcionados
+const getEnv = (key: string, defaultValue: string): string => {
     if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
-        const val = (import.meta as any).env[key];
-        if (val) return val;
+        return (import.meta as any).env[key] || defaultValue;
     }
-    // Check for process.env (Node/Next/Webpack)
     if (typeof process !== 'undefined' && process.env) {
-        const val = process.env[key];
-        if (val) return val;
+        return process.env[key] || defaultValue;
     }
-    // Check for global window (Fallback)
-    if (typeof window !== 'undefined') {
-        const val = (window as any)[key];
-        if (val) return val;
-    }
-    return '';
+    return defaultValue;
 };
 
-// URL de Supabase proporcionada por el usuario
-const DEFAULT_URL = 'https://umqsjycqypxvhbhmidma.supabase.co';
-// Clave Anon proporcionada por el usuario
-const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtcXNqeWNxeXB4dmhiaG1pZG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3MTcwNTksImV4cCI6MjA3ODI5MzA1OX0.YmlHDqxoQa9DRuONwxYenmU-Rj05sVjlMstG3oyCM8I';
+const finalUrl = getEnv('VITE_SUPABASE_URL', SUPABASE_URL);
+const finalKey = getEnv('VITE_SUPABASE_ANON_KEY', SUPABASE_ANON_KEY);
 
-const supabaseUrl = getEnv('VITE_SUPABASE_URL') || getEnv('NEXT_PUBLIC_SUPABASE_URL') || DEFAULT_URL;
-const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY') || DEFAULT_KEY;
+// Verificación de seguridad básica
+if (!finalUrl.startsWith('https://')) {
+    console.error('⚠️ ERROR: La URL de Supabase debe comenzar con https://');
+}
 
-// Inicializamos el cliente.
-export const supabase = createClient(
-    supabaseUrl, 
-    supabaseAnonKey
-);
+export const supabase = createClient(finalUrl, finalKey, {
+    auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+    }
+});
