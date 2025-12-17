@@ -13,8 +13,13 @@ const getEnv = (key: string): string => {
     return '';
 };
 
-// Intenta obtener la clave de las variables de entorno, o usa un fallback para desarrollo/demo
-const STRIPE_PUBLIC_KEY = getEnv('VITE_STRIPE_PUBLIC_KEY') || getEnv('NEXT_PUBLIC_STRIPE_PUBLIC_KEY') || 'pk_test_...'; 
+// Intenta obtener la clave de las variables de entorno. 
+// Aceptamos VITE_, NEXT_PUBLIC_ y el formato estándar PUBLISHABLE_KEY
+const STRIPE_PUBLIC_KEY = 
+    getEnv('VITE_STRIPE_PUBLIC_KEY') || 
+    getEnv('NEXT_PUBLIC_STRIPE_PUBLIC_KEY') || 
+    getEnv('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY') || // Añadido para compatibilidad con Vercel
+    'pk_test_placeholder'; 
 
 export const getStripe = () => {
     return loadStripe(STRIPE_PUBLIC_KEY);
@@ -25,17 +30,17 @@ export const STRIPE_ITEMS = {
     proPlan: {
         priceId: 'price_1SOgUF8oC5awQy15dOEM5jGS', 
         mode: 'subscription' as const,
-        name: 'Plan Pro',
+        name: 'Pro Plan',
     },
     teamsPlan: {
         priceId: 'price_1SOggV8oC5awQy15YW1wAgcg', 
         mode: 'subscription' as const,
-        name: 'Plan Teams',
+        name: 'Plan de equipos',
     },
     teamsPlanYearly: {
         priceId: 'price_1SOggV8oC5awQy15Ppz7bUj0', 
         mode: 'subscription' as const,
-        name: 'Plan Teams (Anual)',
+        name: 'Plan de equipos (Anual)',
     },
     aiCredits100: {
         priceId: 'price_1SOgpy8oC5awQy15TW22fBot',
@@ -58,7 +63,7 @@ export const STRIPE_ITEMS = {
     featuredJobPost: {
         priceId: 'price_1SOlOv8oC5awQy15Q2aXoEg7', 
         mode: 'payment' as const,
-        name: 'Oferta Destacada',
+        name: 'Oferta de empleo destacada',
     },
     invoicePayment: {
         priceId: null, 
