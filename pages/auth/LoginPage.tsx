@@ -1,24 +1,35 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthCard from '../../components/auth/AuthCard';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { useAppStore } from '../../hooks/useAppStore';
-import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
-import { GoogleJwtPayload } from '../../types';
-import { AlertTriangleIcon } from '../../components/icons/Icon';
-import { jwtDecode } from '../../lib/utils';
+import { supabase } from '../../lib/supabaseClient'; // Importamos tu cliente corregido
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
     const login = useAppStore(state => state.login);
-    const loginWithGoogle = useAppStore(state => state.loginWithGoogle);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [showGoogleConfigError, setShowGoogleConfigError] = useState(false);
+
+    // FUNCIÓN CORREGIDA PARA GOOGLE
+    const handleGoogleLogin = async () => {
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    // Importante: Sin el punto extra que tenías antes
+                    redirectTo: 'https://devfreelancer.app',
+                },
+            });
+            if (error) throw error;
+        } catch (err: any) {
+            setError('Error al conectar con Google');
+            console.error(err.message);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -38,49 +49,10 @@ const LoginPage: React.FC = () => {
         }
     };
 
-    const handleGoogleSuccess = (credentialResponse: CredentialResponse) => {
-        setShowGoogleConfigError(false);
-        if (credentialResponse.credential) {
-            const decoded: GoogleJwtPayload | null = jwtDecode(credentialResponse.credential);
-            if (decoded) {
-                loginWithGoogle(decoded);
-                navigate('/');
-            } else {
-                setError('No se pudo verificar la información de Google.');
-            }
-        }
-    };
-
-    const handleGoogleError = () => {
-        setError('');
-        setShowGoogleConfigError(true);
-        console.error('Login Failed');
-    };
-
     return (
         <AuthCard>
             <h2 className="text-2xl font-bold text-center text-white mb-6">Iniciar Sesión</h2>
             
-            {showGoogleConfigError && (
-                 <div className="bg-red-900/50 border border-red-500/50 text-red-300 p-4 rounded-lg mb-6 text-sm">
-                    <div className="flex items-start">
-                        <AlertTriangleIcon className="w-5 h-5 mr-3 shrink-0" />
-                        <div>
-                            <h3 className="font-bold mb-1">Error de Configuración (origin_mismatch)</h3>
-                            <p className="mb-2">Este error ocurre porque la URL de esta aplicación no está autorizada en tu Google Cloud Console.</p>
-                            <p className="font-semibold">Solución:</p>
-                            <ol className="list-decimal list-inside space-y-1 mt-1">
-                                <li>Copia esta URL de origen: <br/><code className="bg-gray-800 text-white p-1 rounded text-xs select-all">{window.location.origin}</code></li>
-                                <li>Añádela a "Orígenes de JavaScript autorizados" en tu configuración de cliente de OAuth.</li>
-                            </ol>
-                            <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="inline-block mt-3 px-3 py-1 bg-red-600 text-white font-semibold rounded hover:bg-red-700">
-                                Ir a Google Cloud Console
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <form onSubmit={handleSubmit} className="space-y-6">
                 <Input 
                     label="Email" 
@@ -112,14 +84,17 @@ const LoginPage: React.FC = () => {
                 </div>
             </div>
 
+            {/* BOTÓN DE GOOGLE CORREGIDO USANDO TU COMPONENTE BUTTON */}
             <div className='flex justify-center'>
-                 <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={handleGoogleError}
-                    theme="filled_black"
-                    text="continue_with"
-                    shape="pill"
-                />
+                 <Button 
+                    type="button"
+                    variant="outline"
+                    className="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-200"
+                    onClick={handleGoogleLogin}
+                >
+                    <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
+                    Continuar con Google
+                </Button>
             </div>
 
             <p className="mt-6 text-center text-sm text-gray-400">
