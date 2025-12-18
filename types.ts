@@ -10,6 +10,7 @@ export interface Profile {
   address?: string; // New: Domicilio fiscal for AEAT
   avatar_url: string;
   plan: 'Free' | 'Pro' | 'Teams';
+  role: 'Admin' | 'Developer' | 'Manager' | string; // Añadido campo role
   ai_credits: number;
   hourly_rate_cents: number;
   pdf_color: string;
@@ -45,7 +46,7 @@ export interface Client {
 }
 export type NewClient = Omit<Client, 'id' | 'user_id' | 'created_at'>;
 
-
+// ... resto del archivo se mantiene igual ...
 export interface Project {
   id: string;
   user_id: string;

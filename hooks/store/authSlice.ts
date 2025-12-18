@@ -3,6 +3,7 @@ import { AppState } from '../useAppStore';
 import { Profile } from '../../types';
 import { supabase } from '../../lib/supabaseClient';
 
+// FIX: Added missing 'role' property to satisfy the Profile interface requirement.
 const initialProfile: Profile = {
     id: '',
     full_name: '',
@@ -11,6 +12,7 @@ const initialProfile: Profile = {
     tax_id: '',
     avatar_url: '',
     plan: 'Free',
+    role: '',
     ai_credits: 10,
     hourly_rate_cents: 0,
     pdf_color: '#d9009f',
