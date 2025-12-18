@@ -60,45 +60,54 @@ const PortalInvoiceViewPage = lazy(() => import('./pages/portal/PortalInvoiceVie
 
 const LoadingFallback = () => (
     <div className="flex h-screen items-center justify-center bg-gray-950">
-        <div className="w-12 h-12 rounded-full border-4 border-primary-500 border-t-transparent animate-spin"></div>
+        <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 rounded-full border-4 border-primary-500 border-t-transparent animate-spin"></div>
+            <p className="text-gray-400 text-sm font-medium animate-pulse">Sincronizando sesión segura...</p>
+        </div>
     </div>
 );
 
 const AuthListener = () => {
-    const { initializeAuth, isAuthenticated } = useAppStore();
+    const { initializeAuth, refreshProfile } = useAppStore();
     const navigate = useNavigate();
     const location = useLocation();
 
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (session) {
-                // Si venimos de un flujo OAuth (hash con access_token), limpiamos la URL
                 if (window.location.hash.includes('access_token')) {
                     window.history.replaceState(null, '', window.location.pathname);
                 }
                 
-                await initializeAuth();
+                // Disparamos la carga del perfil inmediatamente
+                await refreshProfile();
                 
-                // Si el usuario está en la página de login y ya tiene sesión, redirigir al inicio
                 if (location.pathname.includes('/auth/login')) {
                     navigate('/');
                 }
             }
         });
         return () => subscription.unsubscribe();
-    }, [initializeAuth, navigate, location.pathname]);
+    }, [refreshProfile, navigate, location.pathname]);
 
     return null;
 };
 
 const PrivateRoute = () => {
-    const isAuthenticated = useAppStore(state => state.isAuthenticated);
+    const { isAuthenticated, isProfileLoading } = useAppStore();
+    
+    // Si estamos cargando el perfil, mostramos el spinner
+    if (isProfileLoading) return <LoadingFallback />;
+    
     return isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" replace />;
 };
 
 const AdminRoute = () => {
-    const { isAuthenticated, profile } = useAppStore();
-    // Validación de Admin robusta (case-insensitive)
+    const { isAuthenticated, profile, isProfileLoading } = useAppStore();
+    
+    // Si estamos cargando, esperamos antes de redirigir
+    if (isProfileLoading) return <LoadingFallback />;
+    
     const isAdmin = profile?.role?.toLowerCase() === 'admin';
     
     if (!isAuthenticated) return <Navigate to="/auth/login" replace />;
@@ -132,6 +141,12 @@ const MainLayout = () => {
 };
 
 function App() {
+    const { initializeAuth } = useAppStore();
+    
+    useEffect(() => {
+        initializeAuth();
+    }, [initializeAuth]);
+
     return (
         <GoogleOAuthProvider clientId="457438236235-n2s8q6nvcjm32u0o3ut2lksd8po8gfqf.apps.googleusercontent.com">
             <HashRouter>

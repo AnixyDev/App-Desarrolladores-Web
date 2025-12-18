@@ -1,9 +1,9 @@
+
 import { StateCreator } from 'zustand';
 import { AppState } from '../useAppStore';
 import { Profile } from '../../types';
 import { supabase } from '../../lib/supabaseClient';
 
-// FIX: Added missing 'role' property to satisfy the Profile interface requirement.
 const initialProfile: Profile = {
     id: '',
     full_name: '',
@@ -29,6 +29,7 @@ const initialProfile: Profile = {
 
 export interface AuthSlice {
   isAuthenticated: boolean;
+  isProfileLoading: boolean; // Nuevo estado para control de rutas
   profile: Profile;
   login: (email: string, password?: string) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -43,57 +44,90 @@ export interface AuthSlice {
 
 export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, get) => ({
     isAuthenticated: false,
+    isProfileLoading: true, // Empezamos cargando por defecto
     profile: initialProfile,
     
     refreshProfile: async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-            const { data: profileData } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-            
-            if (profileData) {
-                set({ profile: profileData as Profile });
+        set({ isProfileLoading: true });
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                const { data: profileData, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+                
+                if (!error && profileData) {
+                    set({ profile: profileData as Profile, isAuthenticated: true });
+                }
+            } else {
+                set({ isAuthenticated: false, profile: initialProfile });
             }
+        } catch (error) {
+            console.error("Error refreshing profile:", error);
+        } finally {
+            set({ isProfileLoading: false });
         }
     },
 
     initializeAuth: async () => {
+        set({ isProfileLoading: true });
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
-                set({ isAuthenticated: true });
-                await get().refreshProfile();
+                // Primero cargamos el perfil para tener el rol
+                const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+                
+                if (profileData) {
+                    set({ profile: profileData as Profile, isAuthenticated: true });
+                }
+
+                // Cargamos el resto de datos en segundo plano
                 await Promise.all([
                     get().fetchClients(),
                     get().fetchProjects(),
                     get().fetchTasks(),
                     get().fetchTimeEntries()
                 ]);
+            } else {
+                set({ isAuthenticated: false });
             }
         } catch (error) {
             console.error("Error initializing auth:", error);
+        } finally {
+            set({ isProfileLoading: false });
         }
     },
 
     login: async (email, password) => {
+        set({ isProfileLoading: true });
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password: password || '' });
+            const { data, error } = await supabase.auth.signInWithPassword({ 
+                email, 
+                password: password || '' 
+            });
+            
             if (!error && data.user) {
+                // Forzamos la inicialización completa y esperamos a que termine
                 await get().initializeAuth();
                 return true;
             }
         } catch (error) {
             console.error("Supabase login failed", error);
+        } finally {
+            set({ isProfileLoading: false });
         }
         return false;
     },
 
     logout: async () => {
         await supabase.auth.signOut();
-        set({ isAuthenticated: false, profile: initialProfile });
+        set({ isAuthenticated: false, profile: initialProfile, isProfileLoading: false });
     },
 
     register: async (name, email, password) => {
@@ -126,15 +160,12 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
         const { profile } = get();
         if (!profile.id) return false;
 
-        // Utilizamos un RPC (Remote Procedure Call) de Supabase para una actualización atómica segura.
-        // Esto previene que si el usuario tiene 1 crédito y hace 2 clics rápidos, el saldo sea negativo.
         const { data: success, error } = await supabase.rpc('consume_credits_atomic', { 
             user_id: profile.id, 
             amount_to_consume: amount 
         });
 
         if (!error && success) {
-            // Sincronizamos el estado local tras la deducción exitosa en el servidor
             set(state => ({ 
                 profile: { 
                     ...state.profile, 
@@ -143,8 +174,6 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
             }));
             return true;
         }
-        
-        console.error("Error al consumir créditos:", error);
         return false;
     },
 });
