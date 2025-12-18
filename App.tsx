@@ -1,5 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useSearchParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, Outlet, useSearchParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAppStore } from './hooks/useAppStore';
 import { useToast } from './hooks/useToast';
@@ -117,10 +117,8 @@ const MainLayout = () => {
                     <Suspense fallback={<LoadingFallback />}>
                         <Outlet />
                     </Suspense>
-                    {/* Public Footer inside private layout for convenience */}
                     <footer className="mt-12 py-8 border-t border-gray-900 text-center">
                         <div className="flex justify-center gap-6 text-sm text-gray-500">
-                             {/* Added missing Link import to fix module errors */}
                              <Link to="/politica-de-privacidad" className="hover:text-gray-300">Privacidad</Link>
                              <Link to="/condiciones-de-servicio" className="hover:text-gray-300">Condiciones</Link>
                              <span>© 2024 DevFreelancer</span>
@@ -138,7 +136,7 @@ function App() {
 
     return (
         <GoogleOAuthProvider clientId="457438236235-n2s8q6nvcjm32u0o3ut2lksd8po8gfqf.apps.googleusercontent.com">
-            <BrowserRouter>
+            <HashRouter>
                 <AuthListener />
                 <ToastContainer />
                 <PaymentHandler />
@@ -155,10 +153,11 @@ function App() {
                     </Route>
                     <Route path="/politica-de-privacidad" element={<PrivacyPolicyPage />} />
                     <Route path="/condiciones-de-servicio" element={<TermsOfService />} />
-                    <Route path="/privacy-policy" element={<Navigate to="/politica-de-privacidad" replace />} />
+                    
+                    {/* Private Routes Wrapper */}
                     <Route path="/" element={<PrivateRoute />}>
                         <Route index element={<DashboardPage />} />
-                        <Route path="clients/*" element={<ClientsPage />} />
+                        <Route path="clients" element={<ClientsPage />} />
                         <Route path="clients/:clientId" element={<ClientDetailPage />} />
                         <Route path="projects" element={<ProjectsPage />} />
                         <Route path="projects/:projectId" element={<ProjectDetailPage />} />
@@ -189,10 +188,12 @@ function App() {
                         <Route path="affiliate" element={<AffiliateProgramPage />} />
                         <Route path="billing" element={<BillingPage />} />
                         <Route path="settings" element={<SettingsPage />} />
-                        <Route path="*" element={<Navigate to="/" replace />} />
                     </Route>
+
+                    {/* Global Catch-all to avoid 'No routes matched' error */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
-            </BrowserRouter>
+            </HashRouter>
         </GoogleOAuthProvider>
     );
 }
