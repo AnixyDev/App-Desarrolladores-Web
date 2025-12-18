@@ -1,5 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useSearchParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAppStore } from './hooks/useAppStore';
 import { useToast } from './hooks/useToast';
@@ -14,6 +14,7 @@ import AuthLayout from './pages/auth/AuthLayout';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfService from './pages/TermsOfService';
 
 // Lazy Loaded Components (Performance optimization)
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
@@ -115,6 +116,15 @@ const MainLayout = () => {
                     <Suspense fallback={<LoadingFallback />}>
                         <Outlet />
                     </Suspense>
+                    {/* Public Footer inside private layout for convenience */}
+                    <footer className="mt-12 py-8 border-t border-gray-900 text-center">
+                        <div className="flex justify-center gap-6 text-sm text-gray-500">
+                             {/* Added missing Link import to fix module errors */}
+                             <Link to="/politica-de-privacidad" className="hover:text-gray-300">Privacidad</Link>
+                             <Link to="/condiciones-de-servicio" className="hover:text-gray-300">Condiciones</Link>
+                             <span>© 2024 DevFreelancer</span>
+                        </div>
+                    </footer>
                 </main>
             </div>
         </div>
@@ -141,7 +151,9 @@ function App() {
                         <Route path="dashboard/:clientId" element={<PortalDashboardPage />} />
                         <Route path="invoice/:invoiceId" element={<PortalInvoiceViewPage />} />
                     </Route>
-                    <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                    <Route path="/politica-de-privacidad" element={<PrivacyPolicyPage />} />
+                    <Route path="/condiciones-de-servicio" element={<TermsOfService />} />
+                    <Route path="/privacy-policy" element={<Navigate to="/politica-de-privacidad" replace />} />
                     <Route path="/" element={<PrivateRoute />}>
                         <Route index element={<DashboardPage />} />
                         <Route path="clients/*" element={<ClientsPage />} />
