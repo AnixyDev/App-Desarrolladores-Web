@@ -8,6 +8,7 @@ import { supabase } from './lib/supabaseClient';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import ToastContainer from './components/ui/Toast';
+import CookieBanner from './components/ui/CookieBanner';
 
 // Auth & Public
 import AuthLayout from './pages/auth/AuthLayout';
@@ -141,6 +142,7 @@ function App() {
                 <AuthListener />
                 <ToastContainer />
                 <PaymentHandler />
+                <CookieBanner />
                 <Routes>
                     <Route path="/auth" element={<AuthLayout />}>
                         <Route path="login" element={<LoginPage />} />
