@@ -84,11 +84,14 @@ const ProjectsPage: React.FC = () => {
         addToast('Proyecto añadido con éxito.', 'success');
     };
 
-    const handleClientSubmit = (e: React.FormEvent) => {
+    // FIX: Made handleClientSubmit async and awaited addClient to correctly access 'id' from the result.
+    const handleClientSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newClient.name && newClient.email) {
-            const createdClient = addClient(newClient);
-            setNewProject(prev => ({ ...prev, client_id: createdClient.id }));
+            const createdClient = await addClient(newClient);
+            if (createdClient) {
+                setNewProject(prev => ({ ...prev, client_id: createdClient.id }));
+            }
             setIsClientModalOpen(false);
             setNewClient(initialClientState);
             addToast('Cliente añadido. Ahora puedes seleccionarlo.', 'success');

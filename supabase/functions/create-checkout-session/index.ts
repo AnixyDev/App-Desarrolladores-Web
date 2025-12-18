@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno'
@@ -27,21 +26,14 @@ serve(async (req) => {
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
     
-    // Obtener usuario autenticado
     const { data: { user } } = await supabaseClient.auth.getUser()
-    
-    // NOTA: Para el portal de clientes (pagar factura), a veces el usuario NO está logueado en la app principal.
-    // En un caso real, deberíamos permitir pagos sin auth si tenemos un token seguro de factura.
-    // Por simplicidad aquí, asumimos que si hay un user lo usamos, si no, creamos un cliente "guest" o pedimos email en el checkout.
-    
-    const { priceId, mode, metadata, amount, productName } = await req.json()
+    const { priceId, mode, metadata, amount, productName, customOrigin } = await req.json()
+
+    // Determinamos el origen: prioridad al enviado por el cliente (getURL), luego al header
+    const origin = customOrigin || req.headers.get('origin') || 'https://app-desarrolladores-web-anixydevs.vercel.app';
 
     let customerId;
-    let customerEmail;
-
     if (user) {
-        customerEmail = user.email;
-        // Obtener perfil para ver si ya tiene customer_id
         const { data: profile } = await supabaseClient
           .from('profiles')
           .select('stripe_customer_id, full_name')
@@ -49,78 +41,43 @@ serve(async (req) => {
           .single()
 
         customerId = profile?.stripe_customer_id
-
-        // Crear cliente en Stripe si no existe y es usuario registrado
         if (!customerId) {
           const customer = await stripe.customers.create({
             email: user.email,
-            name: profile?.full_name,
+            name: profile?.full_name || user.user_metadata?.full_name,
             metadata: { supabase_user_id: user.id },
           })
           customerId = customer.id
-          
-          const supabaseAdmin = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '', 
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-          )
+          const supabaseAdmin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
           await supabaseAdmin.from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id)
         }
     }
 
-    // Construir line_items
-    let line_items;
-    if (priceId) {
-        // Producto predefinido (Suscripción o Créditos)
-        line_items = [{ price: priceId, quantity: 1 }];
-    } else if (amount && productName) {
-        // Precio dinámico (Factura)
-        line_items = [{
-            price_data: {
-                currency: 'eur',
-                product_data: {
-                    name: productName,
-                },
-                unit_amount: amount, // en céntimos
-            },
-            quantity: 1,
-        }];
-    } else {
-        throw new Error('Falta priceId o amount/productName');
-    }
+    let line_items = priceId ? [{ price: priceId, quantity: 1 }] : [{
+        price_data: {
+            currency: 'eur',
+            product_data: { name: productName || 'Pago DevFreelancer' },
+            unit_amount: amount,
+        },
+        quantity: 1,
+    }];
 
-    const sessionConfig: any = {
-      line_items: line_items,
-      mode: mode,
-      success_url: `${req.headers.get('origin')}/?payment=success&session_id={CHECKOUT_SESSION_ID}&item=${metadata.itemKey}${metadata.invoice_id ? `&invoice_id=${metadata.invoice_id}` : ''}`,
-      cancel_url: `${req.headers.get('origin')}/?payment=cancelled`,
-      metadata: { 
-          supabase_user_id: user?.id, // Puede ser undefined si es guest
-          ...metadata 
-      },
-      allow_promotion_codes: mode === 'subscription', // Solo permitir cupones en suscripciones
-    };
-
-    if (customerId) {
-        sessionConfig.customer = customerId;
-    } else {
-        // Si no es cliente registrado, Stripe recolectará el email o usará customer_email si lo pasamos
-        sessionConfig.customer_creation = 'if_required'; 
-    }
-    
-    // Configuración fiscal
-    if (mode === 'subscription' || amount) {
-        sessionConfig.billing_address_collection = 'required';
-        sessionConfig.tax_id_collection = { enabled: true };
-    }
-
-    const session = await stripe.checkout.sessions.create(sessionConfig);
+    const session = await stripe.checkout.sessions.create({
+      line_items,
+      mode,
+      customer: customerId,
+      success_url: `${origin}/?payment=success&session_id={CHECKOUT_SESSION_ID}&item=${metadata.itemKey}${metadata.invoice_id ? `&invoice_id=${metadata.invoice_id}` : ''}`,
+      cancel_url: `${origin}/?payment=cancelled`,
+      metadata: { supabase_user_id: user?.id, ...metadata },
+      allow_promotion_codes: mode === 'subscription',
+      billing_address_collection: (mode === 'subscription' || amount) ? 'required' : 'auto',
+    });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
   } catch (error: any) {
-    console.error(error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

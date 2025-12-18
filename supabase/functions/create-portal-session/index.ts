@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno'
@@ -27,11 +26,11 @@ serve(async (req) => {
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
 
-    // 1. Get the user
     const { data: { user } } = await supabaseClient.auth.getUser()
     if (!user) throw new Error('Usuario no autenticado')
 
-    // 2. Get the customer ID from the profile
+    const { return_url } = await req.json()
+
     const { data: profile } = await supabaseClient
       .from('profiles')
       .select('stripe_customer_id')
@@ -42,10 +41,10 @@ serve(async (req) => {
       throw new Error('No se encontró un cliente de Stripe asociado a este usuario.')
     }
 
-    // 3. Create the Portal Session
+    // Usamos el return_url dinámico enviado por el cliente
     const session = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
-      return_url: `${req.headers.get('origin')}/#/billing`, 
+      return_url: return_url || `${req.headers.get('origin')}/#/billing`, 
     })
 
     return new Response(JSON.stringify({ url: session.url }), {

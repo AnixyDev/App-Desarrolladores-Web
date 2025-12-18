@@ -4,7 +4,7 @@ import AuthCard from '../../components/auth/AuthCard';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { useAppStore } from '../../hooks/useAppStore';
-import { supabase } from '../../lib/supabaseClient'; // Importamos tu cliente corregido
+import { supabase, getURL } from '../../lib/supabaseClient';
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
@@ -14,14 +14,12 @@ const LoginPage: React.FC = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // FUNCIÓN CORREGIDA PARA GOOGLE
     const handleGoogleLogin = async () => {
         try {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    // Importante: Sin el punto extra que tenías antes
-                    redirectTo: 'https://devfreelancer.app',
+                    redirectTo: getURL(), // Usa la URL detectada automáticamente
                 },
             });
             if (error) throw error;
@@ -84,12 +82,11 @@ const LoginPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* BOTÓN DE GOOGLE CORREGIDO USANDO TU COMPONENTE BUTTON */}
             <div className='flex justify-center'>
                  <Button 
                     type="button"
-                    variant="outline"
-                    className="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-200"
+                    variant="secondary"
+                    className="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-200 border-none"
                     onClick={handleGoogleLogin}
                 >
                     <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />

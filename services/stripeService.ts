@@ -1,8 +1,14 @@
-
-import { supabase } from '../lib/supabaseClient';
+import { supabase, getURL } from '../lib/supabaseClient';
 import { loadStripe } from '@stripe/stripe-js';
 
-// Helper para obtener variables de entorno
+/**
+ * IMPORTANTE PARA PRODUCCIÓN:
+ * 1. Ve al Dashboard de Stripe (Modo Real).
+ * 2. Crea tus productos (Planes y Créditos).
+ * 3. Copia los IDs de precio (price_...) y pégalos abajo.
+ * 4. Asegúrate de que VITE_STRIPE_PUBLIC_KEY en Vercel sea tu clave pk_live_...
+ */
+
 const getEnv = (key: string): string => {
     if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
         return (import.meta as any).env[key] || '';
@@ -13,55 +19,51 @@ const getEnv = (key: string): string => {
     return '';
 };
 
-// Intenta obtener la clave de las variables de entorno. 
-// Aceptamos VITE_, NEXT_PUBLIC_ y el formato estándar PUBLISHABLE_KEY
-const STRIPE_PUBLIC_KEY = 
-    getEnv('VITE_STRIPE_PUBLIC_KEY') || 
-    getEnv('NEXT_PUBLIC_STRIPE_PUBLIC_KEY') || 
-    getEnv('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY') || // Añadido para compatibilidad con Vercel
-    'pk_test_placeholder'; 
+const STRIPE_PUBLIC_KEY = getEnv('VITE_STRIPE_PUBLIC_KEY');
 
 export const getStripe = () => {
+    if (!STRIPE_PUBLIC_KEY || STRIPE_PUBLIC_KEY.startsWith('pk_test')) {
+        console.warn('Advertencia: No se ha detectado una clave pública de Stripe para Producción (pk_live).');
+    }
     return loadStripe(STRIPE_PUBLIC_KEY);
 };
 
-// Definición de ítems mapeados a IDs de precios reales en Stripe
 export const STRIPE_ITEMS = {
     proPlan: {
-        priceId: 'price_1SOgUF8oC5awQy15dOEM5jGS', 
+        priceId: 'price_LIVE_CAMBIAR_AQUI', // Reemplazar con ID Real de Stripe Live
         mode: 'subscription' as const,
         name: 'Pro Plan',
     },
     teamsPlan: {
-        priceId: 'price_1SOggV8oC5awQy15YW1wAgcg', 
+        priceId: 'price_LIVE_CAMBIAR_AQUI', // Reemplazar con ID Real de Stripe Live
         mode: 'subscription' as const,
         name: 'Plan de equipos',
     },
     teamsPlanYearly: {
-        priceId: 'price_1SOggV8oC5awQy15Ppz7bUj0', 
+        priceId: 'price_LIVE_CAMBIAR_AQUI', // Reemplazar con ID Real de Stripe Live
         mode: 'subscription' as const,
         name: 'Plan de equipos (Anual)',
     },
     aiCredits100: {
-        priceId: 'price_1SOgpy8oC5awQy15TW22fBot',
+        priceId: 'price_LIVE_CAMBIAR_AQUI', // Reemplazar con ID Real de Stripe Live
         mode: 'payment' as const,
         name: '100 Créditos de IA',
         credits: 100
     },
     aiCredits500: {
-        priceId: 'price_1SOgr18oC5awQy15o1gTM2VM', 
+        priceId: 'price_LIVE_CAMBIAR_AQUI', // Reemplazar con ID Real de Stripe Live
         mode: 'payment' as const,
         name: '500 Créditos de IA',
         credits: 500
     },
     aiCredits1000: {
-        priceId: 'price_1SOguC8oC5awQy15LGchpkVG', 
+        priceId: 'price_LIVE_CAMBIAR_AQUI', // Reemplazar con ID Real de Stripe Live
         mode: 'payment' as const,
         name: '1000 Créditos de IA',
         credits: 1000
     },
     featuredJobPost: {
-        priceId: 'price_1SOlOv8oC5awQy15Q2aXoEg7', 
+        priceId: 'price_LIVE_CAMBIAR_AQUI', // Reemplazar con ID Real de Stripe Live
         mode: 'payment' as const,
         name: 'Oferta de empleo destacada',
     },
@@ -74,68 +76,57 @@ export const STRIPE_ITEMS = {
 
 export type StripeItemKey = keyof typeof STRIPE_ITEMS;
 
-// Función antigua para Checkout Redirect (Mantener si se usa para suscripciones)
 export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Record<string, any> = {}) => {
     const item = STRIPE_ITEMS[itemKey];
     if (!item) throw new Error('El artículo de compra no es válido.');
 
+    const currentUrl = getURL();
+
+    // Llamada a la Edge Function de Supabase
     const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: {
             priceId: item.priceId,
             mode: item.mode,
             amount: itemKey === 'invoicePayment' ? extraParams.amount_cents : undefined,
             productName: itemKey === 'invoicePayment' ? `Factura ${extraParams.invoice_number}` : undefined,
-            metadata: { ...extraParams, itemKey }
+            customOrigin: currentUrl,
+            metadata: { 
+                ...extraParams, 
+                itemKey, 
+                origin: currentUrl 
+            }
         }
     });
 
     if (error) {
-        console.error('Error Edge Function:', error);
+        console.error('Error al invocar función de pago:', error);
         throw new Error('Error al conectar con la pasarela de pago.');
     }
-
+    
     if (data?.url) {
         window.location.href = data.url;
     } else {
-        throw new Error('No se recibió URL de pago.');
+        throw new Error('No se pudo generar la sesión de pago.');
     }
 };
 
-// 1. Lógica para llamar a payment-sheet (Single Payment Flow - Embedded)
+export const redirectToCustomerPortal = async () => {
+    const currentUrl = getURL();
+    const { data, error } = await supabase.functions.invoke('create-portal-session', {
+        body: { return_url: `${currentUrl}/#/billing` }
+    });
+    if (error) throw new Error('Error al abrir el portal de facturación.');
+    if (data?.url) window.location.href = data.url;
+};
+
 export const createPaymentSheet = async (amountCents: number, description: string, metadata: any = {}) => {
     const { data, error } = await supabase.functions.invoke('payment-sheet', {
         body: { 
             amount: amountCents,
             description,
-            metadata
+            metadata: { ...metadata, origin: getURL() }
         }
     });
-
-    if (error) {
-        console.error('Error creating payment sheet:', error);
-        throw new Error('No se pudo inicializar el pago.');
-    }
-
+    if (error) throw new Error('Error al inicializar la pasarela de pago.');
     return data.paymentIntentClientSecret;
-};
-
-// 2. Lógica para llamar a create-portal-session (Billing Management)
-export const redirectToCustomerPortal = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-        throw new Error("Debes iniciar sesión.");
-    }
-    
-    const { data, error } = await supabase.functions.invoke('create-portal-session');
-    
-    if (error) {
-        console.error('Error portal session:', error);
-        throw new Error('Error al abrir el portal de facturación. Asegúrate de tener una suscripción activa.');
-    }
-    
-    if (data?.url) {
-        window.location.href = data.url;
-    } else {
-        throw new Error('URL del portal no recibida.');
-    }
 };

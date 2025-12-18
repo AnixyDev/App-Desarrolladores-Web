@@ -81,7 +81,8 @@ export const createJobSlice: StateCreator<AppState, [], [], JobSlice> = (set, ge
                 jobId: data.job_id,
                 userId: data.applicant_id,
                 applicantName: profile.full_name, // Optimistic
-                jobTitle: job.title,
+                // FIX: Changed job.title to job.titulo to match Job interface definition in types.ts
+                jobTitle: job.titulo,
                 proposalText: data.proposal_text,
                 status: data.status,
                 appliedAt: data.created_at

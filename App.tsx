@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -8,18 +7,17 @@ import { STRIPE_ITEMS } from './services/stripeService';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import ToastContainer from './components/ui/Toast';
-import { RefreshCwIcon } from './components/icons/Icon';
 
 // Layouts
 import AuthLayout from './pages/auth/AuthLayout';
 import PortalLayout from './pages/portal/PortalLayout';
 
-// Auth Pages
+// Auth Pages - Unificado en subcarpeta auth
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 
-// Main App Pages
+// Main App Pages - Cargados de forma diferida (Lazy)
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ClientsPage = lazy(() => import('./pages/ClientsPage'));
 const ClientDetailPage = lazy(() => import('./pages/ClientDetailPage'));
@@ -115,19 +113,19 @@ const PaymentHandler = () => {
                             addToast('¡Felicidades! Has actualizado al Plan Pro.', 'success');
                         } else if (typeof itemKey === 'string' && itemKey.includes('teams')) {
                             upgradePlan('Teams');
-                            addToast('¡Bienvenido a Teams! Ya puedes invitar a tu equipo.', 'success');
+                            addToast('¡Bienvenido a Teams! Ya puedes colaborar con tu equipo.', 'success');
                         }
                     } else if (item.mode === 'payment' && 'credits' in item) {
                         purchaseCredits(item.credits);
-                        addToast(`¡Has comprado ${item.credits} créditos de IA!`, 'success');
+                        addToast(`¡Has recargado ${item.credits} créditos de IA con éxito!`, 'success');
                     } else if (itemKey === 'featuredJobPost') {
-                        addToast('¡Tu oferta ha sido destacada y publicada con éxito!', 'success');
+                        addToast('¡Tu oferta ha sido destacada correctamente!', 'success');
                     }
                 }
                 searchParams.delete('item');
             } else if (invoiceId) {
                 markInvoiceAsPaid(invoiceId);
-                addToast('¡Pago recibido! La factura ha sido marcada como pagada.', 'success');
+                addToast('¡Pago de factura completado! Gracias.', 'success');
                 searchParams.delete('invoice_id');
             }
              searchParams.delete('payment');
@@ -135,14 +133,11 @@ const PaymentHandler = () => {
 
         } else if (paymentStatus === 'cancelled') {
             addToast('El proceso de pago fue cancelado.', 'info');
-            // Clean up all payment-related URL params
             searchParams.delete('payment');
             searchParams.delete('invoice_id');
             searchParams.delete('item');
             setSearchParams(searchParams, { replace: true });
         }
-        // This effect should only run once on mount
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return null;
@@ -153,7 +148,6 @@ function App() {
     const { isAuthenticated, checkInvoiceStatuses, initializeAuth } = useAppStore();
 
     useEffect(() => {
-        // Initialize auth session from Supabase on mount
         initializeAuth();
     }, [initializeAuth]);
 
