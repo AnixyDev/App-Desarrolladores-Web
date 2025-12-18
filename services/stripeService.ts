@@ -70,6 +70,7 @@ export type StripeItemKey = keyof typeof STRIPE_ITEMS;
 
 /**
  * Redirige a Stripe Checkout (Usa Edge Functions de Supabase)
+ * Se limpian las URLs de éxito y cancelación para usar rutas sin hash.
  */
 export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Record<string, any> = {}) => {
     const item = STRIPE_ITEMS[itemKey];
@@ -98,7 +99,6 @@ export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Re
 
 /**
  * Crea un PaymentIntent llamando al endpoint local de Next.js /api/checkout.
- * Los campos userId e itemKey son OBLIGATORIOS para la trazabilidad en el webhook.
  */
 export const createPaymentIntent = async (amountCents: number, userId: string, itemKey: string, metadata: Record<string, any> = {}) => {
     if (!userId) throw new Error("Se requiere el ID de usuario para procesar el pago.");
@@ -111,7 +111,7 @@ export const createPaymentIntent = async (amountCents: number, userId: string, i
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            amount: Math.round(amountCents), // Aseguramos que sea entero (céntimos)
+            amount: Math.round(amountCents),
             userId,
             itemKey,
             metadata 
@@ -127,10 +127,13 @@ export const createPaymentIntent = async (amountCents: number, userId: string, i
     return data.clientSecret;
 };
 
+/**
+ * Redirige al portal de Stripe eliminando el símbolo de hash.
+ */
 export const redirectToCustomerPortal = async () => {
     const currentUrl = getURL();
     const { data, error } = await supabase.functions.invoke('create-portal-session', {
-        body: { return_url: `${currentUrl}/#/billing` }
+        body: { return_url: `${currentUrl}/billing` }
     });
     if (error) throw new Error('Error al abrir el portal de facturación.');
     if (data?.url) window.location.href = data.url;

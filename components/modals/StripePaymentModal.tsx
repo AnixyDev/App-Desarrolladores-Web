@@ -30,10 +30,11 @@ const CheckoutForm: React.FC<{ amount: number; onSuccess: () => void }> = ({ amo
 
         setIsLoading(true);
 
+        // Se especifica una URL de retorno limpia sin hashfragments.
         const { error, paymentIntent } = await stripe.confirmPayment({
             elements,
             confirmParams: {
-                return_url: `${window.location.origin}/?payment=success`,
+                return_url: `${window.location.origin}/billing?payment=success`,
             },
             redirect: 'if_required'
         });
@@ -74,7 +75,6 @@ const StripePaymentModal: React.FC<StripePaymentModalProps> = ({ isOpen, onClose
     useEffect(() => {
         if (isOpen && amountCents > 0) {
             const initializePayment = async () => {
-                // Validación crítica: el userId es obligatorio para identificar al cliente tras el pago
                 if (!profile?.id) {
                     setInitError("Debes iniciar sesión para realizar un pago.");
                     return;
@@ -84,7 +84,6 @@ const StripePaymentModal: React.FC<StripePaymentModalProps> = ({ isOpen, onClose
                     setInitError(null);
                     setClientSecret(null);
                     
-                    // Llamada al servicio que a su vez llama a /api/checkout
                     const secret = await createPaymentIntent(
                         amountCents, 
                         profile.id, 

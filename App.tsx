@@ -1,5 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { HashRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAppStore } from './hooks/useAppStore';
 import { useToast } from './hooks/useToast';
@@ -12,12 +12,12 @@ import ToastContainer from './components/ui/Toast';
 import AuthLayout from './pages/auth/AuthLayout';
 import PortalLayout from './pages/portal/PortalLayout';
 
-// Auth Pages - Unificado en subcarpeta auth
+// Auth Pages
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 
-// Main App Pages - Cargados de forma diferida (Lazy)
+// Main App Pages
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ClientsPage = lazy(() => import('./pages/ClientsPage'));
 const ClientDetailPage = lazy(() => import('./pages/ClientDetailPage'));
@@ -59,7 +59,6 @@ const PortalInvoiceViewPage = lazy(() => import('./pages/portal/PortalInvoiceVie
 const PortalBudgetViewPage = lazy(() => import('./pages/portal/PortalBudgetViewPage'));
 const PortalProposalViewPage = lazy(() => import('./pages/portal/PortalProposalViewPage'));
 const PortalContractViewPage = lazy(() => import('./pages/portal/PortalContractViewPage'));
-
 
 const GOOGLE_CLIENT_ID = "457438236235-n2s8q6nvcjm32u0o3ut2lksd8po8gfqf.apps.googleusercontent.com";
 
@@ -138,11 +137,10 @@ const PaymentHandler = () => {
             searchParams.delete('item');
             setSearchParams(searchParams, { replace: true });
         }
-    }, []);
+    }, [searchParams, setSearchParams, addToast, upgradePlan, purchaseCredits, markInvoiceAsPaid]);
 
     return null;
 }
-
 
 function App() {
     const { isAuthenticated, checkInvoiceStatuses, initializeAuth } = useAppStore();
@@ -159,7 +157,7 @@ function App() {
 
     return (
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-            <HashRouter>
+            <BrowserRouter>
                 <ToastContainer />
                 <PaymentHandler />
                 <Routes>
@@ -220,7 +218,7 @@ function App() {
                         <Route path="*" element={<Navigate to="/" />} />
                     </Route>
                 </Routes>
-            </HashRouter>
+            </BrowserRouter>
         </GoogleOAuthProvider>
     );
 }

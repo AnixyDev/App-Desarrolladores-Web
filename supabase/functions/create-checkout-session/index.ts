@@ -29,8 +29,8 @@ serve(async (req) => {
     const { data: { user } } = await supabaseClient.auth.getUser()
     const { priceId, mode, metadata, amount, productName, customOrigin } = await req.json()
 
-    // Determinamos el origen: prioridad al enviado por el cliente (getURL), luego al header
-    const origin = customOrigin || req.headers.get('origin') || 'https://app-desarrolladores-web-anixydevs.vercel.app';
+    // Determinamos el origen limpio. Prioridad a devfreelancer.app
+    const origin = 'https://devfreelancer.app';
 
     let customerId;
     if (user) {
@@ -66,8 +66,9 @@ serve(async (req) => {
       line_items,
       mode,
       customer: customerId,
-      success_url: `${origin}/?payment=success&session_id={CHECKOUT_SESSION_ID}&item=${metadata.itemKey}${metadata.invoice_id ? `&invoice_id=${metadata.invoice_id}` : ''}`,
-      cancel_url: `${origin}/?payment=cancelled`,
+      // Se eliminan los fragmentos de hash (#) para evitar duplicación de rutas
+      success_url: `${origin}/billing?payment=success&session_id={CHECKOUT_SESSION_ID}&item=${metadata.itemKey}${metadata.invoice_id ? `&invoice_id=${metadata.invoice_id}` : ''}`,
+      cancel_url: `${origin}/billing?payment=cancelled`,
       metadata: { supabase_user_id: user?.id, ...metadata },
       allow_promotion_codes: mode === 'subscription',
       billing_address_collection: (mode === 'subscription' || amount) ? 'required' : 'auto',
