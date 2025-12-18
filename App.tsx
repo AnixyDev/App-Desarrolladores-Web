@@ -53,7 +53,6 @@ const BillingPage = lazy(() => import('./pages/BillingPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
-// FIX: Added missing Portal component lazy imports to resolve route errors
 const PortalLayout = lazy(() => import('./pages/portal/PortalLayout'));
 const PortalLoginPage = lazy(() => import('./pages/portal/PortalLoginPage'));
 const PortalDashboardPage = lazy(() => import('./pages/portal/PortalDashboardPage'));
@@ -66,41 +65,31 @@ const LoadingFallback = () => (
 );
 
 const AuthListener = () => {
-    const { initializeAuth } = useAppStore();
+    const { initializeAuth, isAuthenticated } = useAppStore();
+    const navigate = useNavigate();
+    const location = useLocation();
+
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (session) {
+                // Si venimos de un flujo OAuth (hash con access_token), limpiamos la URL
                 if (window.location.hash.includes('access_token')) {
                     window.history.replaceState(null, '', window.location.pathname);
                 }
+                
                 await initializeAuth();
+                
+                // Si el usuario está en la página de login y ya tiene sesión, redirigir al inicio
+                if (location.pathname.includes('/auth/login')) {
+                    navigate('/');
+                }
             }
         });
         return () => subscription.unsubscribe();
-    }, [initializeAuth]);
+    }, [initializeAuth, navigate, location.pathname]);
+
     return null;
 };
-
-const PaymentHandler = () => {
-    const [searchParams, setSearchParams] = useSearchParams();
-    const { addToast } = useToast();
-    const { refreshProfile } = useAppStore();
-
-    useEffect(() => {
-        const status = searchParams.get('payment');
-        if (status === 'success') {
-            refreshProfile().then(() => {
-                addToast('¡Pago procesado con éxito! Tu cuenta ha sido actualizada.', 'success');
-            });
-            searchParams.delete('payment');
-            searchParams.delete('item');
-            searchParams.delete('session_id');
-            setSearchParams(searchParams, { replace: true });
-        }
-    }, [searchParams, setSearchParams, addToast, refreshProfile]);
-
-    return null;
-}
 
 const PrivateRoute = () => {
     const isAuthenticated = useAppStore(state => state.isAuthenticated);
@@ -109,7 +98,7 @@ const PrivateRoute = () => {
 
 const AdminRoute = () => {
     const { isAuthenticated, profile } = useAppStore();
-    // Normalizamos la validación del rol para que coincida con la DB
+    // Validación de Admin robusta (case-insensitive)
     const isAdmin = profile?.role?.toLowerCase() === 'admin';
     
     if (!isAuthenticated) return <Navigate to="/auth/login" replace />;
@@ -143,15 +132,11 @@ const MainLayout = () => {
 };
 
 function App() {
-    const { initializeAuth } = useAppStore();
-    useEffect(() => { initializeAuth(); }, [initializeAuth]);
-
     return (
         <GoogleOAuthProvider clientId="457438236235-n2s8q6nvcjm32u0o3ut2lksd8po8gfqf.apps.googleusercontent.com">
             <HashRouter>
                 <AuthListener />
                 <ToastContainer />
-                <PaymentHandler />
                 <CookieBanner />
                 <Routes>
                     <Route path="/auth" element={<AuthLayout />}>
@@ -166,7 +151,6 @@ function App() {
                     <Route path="/politica-de-privacidad" element={<PrivacyPolicyPage />} />
                     <Route path="/condiciones-de-servicio" element={<TermsOfService />} />
                     
-                    {/* Private Routes Wrapper */}
                     <Route path="/" element={<PrivateRoute />}>
                         <Route index element={<DashboardPage />} />
                         <Route path="clients" element={<ClientsPage />} />
@@ -201,13 +185,10 @@ function App() {
                         <Route path="billing" element={<BillingPage />} />
                         <Route path="settings" element={<SettingsPage />} />
 
-                        {/* Admin Dashboard Protected Route */}
                         <Route path="admin" element={<AdminRoute />}>
                             <Route index element={<AdminDashboard />} />
                         </Route>
                     </Route>
-
-                    {/* Global Catch-all */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </HashRouter>
