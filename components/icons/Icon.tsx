@@ -1,3 +1,4 @@
+
 // components/icons/Icon.tsx
 export {
   LayoutDashboard,
@@ -54,4 +55,6 @@ export {
   ShoppingBag,
   CreditCard,
   Filter,
+  // FIX: Added missing Activity icon for AdminDashboard
+  Activity as ActivityIcon,
 } from 'lucide-react';

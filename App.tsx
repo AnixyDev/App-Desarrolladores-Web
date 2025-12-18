@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, Outlet, useSearchParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -17,7 +18,7 @@ import RegisterPage from './pages/auth/RegisterPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfService from './pages/TermsOfService';
 
-// Lazy Loaded Components (Performance optimization)
+// Lazy Loaded Components
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ClientsPage = lazy(() => import('./pages/ClientsPage'));
 const ClientDetailPage = lazy(() => import('./pages/ClientDetailPage'));
@@ -50,8 +51,9 @@ const ForecastingPage = lazy(() => import('./pages/ForecastingPage'));
 const AffiliateProgramPage = lazy(() => import('./pages/AffiliateProgramPage'));
 const BillingPage = lazy(() => import('./pages/BillingPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
-// Client Portal Pages
+// FIX: Added missing Portal component lazy imports to resolve route errors
 const PortalLayout = lazy(() => import('./pages/portal/PortalLayout'));
 const PortalLoginPage = lazy(() => import('./pages/portal/PortalLoginPage'));
 const PortalDashboardPage = lazy(() => import('./pages/portal/PortalDashboardPage'));
@@ -64,7 +66,6 @@ const LoadingFallback = () => (
 );
 
 const AuthListener = () => {
-    const navigate = useNavigate();
     const { initializeAuth } = useAppStore();
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -104,6 +105,17 @@ const PaymentHandler = () => {
 const PrivateRoute = () => {
     const isAuthenticated = useAppStore(state => state.isAuthenticated);
     return isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" replace />;
+};
+
+const AdminRoute = () => {
+    const { isAuthenticated, profile } = useAppStore();
+    // Verificamos si es Admin. El store mapea el rol desde la tabla profiles de Supabase.
+    const isAdmin = profile?.role === 'Admin';
+    
+    if (!isAuthenticated) return <Navigate to="/auth/login" replace />;
+    if (!isAdmin) return <Navigate to="/" replace />;
+    
+    return <Outlet />;
 };
 
 const MainLayout = () => {
@@ -188,9 +200,14 @@ function App() {
                         <Route path="affiliate" element={<AffiliateProgramPage />} />
                         <Route path="billing" element={<BillingPage />} />
                         <Route path="settings" element={<SettingsPage />} />
+
+                        {/* Admin Dashboard Protected Route */}
+                        <Route path="admin" element={<AdminRoute />}>
+                            <Route index element={<AdminDashboard />} />
+                        </Route>
                     </Route>
 
-                    {/* Global Catch-all to avoid 'No routes matched' error */}
+                    {/* Global Catch-all */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </HashRouter>
