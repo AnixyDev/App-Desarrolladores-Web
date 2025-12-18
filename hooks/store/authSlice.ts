@@ -1,4 +1,3 @@
-
 import { StateCreator } from 'zustand';
 import { AppState } from '../useAppStore';
 import { Profile } from '../../types';
@@ -12,7 +11,7 @@ const initialProfile: Profile = {
     tax_id: '',
     avatar_url: '',
     plan: 'Free',
-    role: '',
+    role: 'Developer',
     ai_credits: 10,
     hourly_rate_cents: 0,
     pdf_color: '#d9009f',
@@ -49,23 +48,48 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
     
     refreshProfile: async () => {
         set({ isProfileLoading: true });
+        
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
-                const { data: profileData, error } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
-                
-                if (!error && profileData) {
-                    set({ profile: profileData as Profile, isAuthenticated: true });
-                }
-            } else {
+            
+            if (!session?.user) {
                 set({ isAuthenticated: false, profile: initialProfile });
+                return;
+            }
+
+            // Intentar obtener el perfil existente
+            const { data: profileData, error: fetchError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+            
+            if (fetchError || !profileData) {
+                // Gestión resiliente: Si no existe, realizar Upsert automático
+                const newProfile = {
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Usuario',
+                    plan: 'Free',
+                    role: 'Developer',
+                    ai_credits: 10
+                };
+
+                const { data: upsertedProfile, error: upsertError } = await supabase
+                    .from('profiles')
+                    .upsert(newProfile)
+                    .select()
+                    .single();
+
+                if (upsertError) throw upsertError;
+                set({ profile: upsertedProfile as Profile, isAuthenticated: true });
+            } else {
+                set({ profile: profileData as Profile, isAuthenticated: true });
             }
         } catch (error) {
-            console.error("Error refreshing profile:", error);
+            console.error("Auth Exception:", error);
+            // Fallback preventivo para no bloquear al usuario
+            set({ isAuthenticated: true, profile: { ...initialProfile, role: 'Developer' } });
         } finally {
             set({ isProfileLoading: false });
         }
@@ -73,31 +97,33 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
 
     initializeAuth: async () => {
         set({ isProfileLoading: true });
+
+        // Safety Timeout (5s): Fuerza el desbloqueo de la UI en caso de fallo catastrófico de red
+        const safetyTimeout = setTimeout(() => {
+            if (get().isProfileLoading) {
+                set({ isProfileLoading: false });
+            }
+        }, 5000);
+
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
-                const { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
+                await get().refreshProfile();
                 
-                if (profileData) {
-                    set({ profile: profileData as Profile, isAuthenticated: true });
-                }
-
-                await Promise.all([
+                // Cargas asíncronas no bloqueantes
+                Promise.all([
                     get().fetchClients(),
                     get().fetchProjects(),
                     get().fetchTasks(),
                     get().fetchTimeEntries()
-                ]);
+                ]).catch(() => null);
             } else {
                 set({ isAuthenticated: false });
             }
         } catch (error) {
-            console.error("Error initializing auth:", error);
+            console.error("Auth Initialization Failure:", error);
         } finally {
+            clearTimeout(safetyTimeout);
             set({ isProfileLoading: false });
         }
     },
@@ -109,26 +135,25 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
                 email, 
                 password: password || '' 
             });
-            
-            if (!error && data.user) {
-                await get().initializeAuth();
+            if (error) throw error;
+            if (data.user) {
+                await get().refreshProfile();
                 return true;
             }
-        } catch (error) {
-            console.error("Supabase login failed", error);
+        } catch (error: any) {
+            console.error("Login Failure:", error.message);
         } finally {
-            // Solo quitamos el loading si falló el login, 
-            // si tuvo éxito, initializeAuth ya lo habrá puesto en false
-            if (!get().isAuthenticated) {
-                set({ isProfileLoading: false });
-            }
+            set({ isProfileLoading: false });
         }
         return false;
     },
 
     logout: async () => {
-        await supabase.auth.signOut();
-        set({ isAuthenticated: false, profile: initialProfile, isProfileLoading: false });
+        try {
+            await supabase.auth.signOut();
+        } finally {
+            set({ isAuthenticated: false, profile: initialProfile, isProfileLoading: false });
+        }
     },
 
     register: async (name, email, password) => {

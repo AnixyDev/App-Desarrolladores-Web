@@ -1,10 +1,7 @@
-
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { HashRouter, Routes, Route, Navigate, Outlet, useSearchParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAppStore } from './hooks/useAppStore';
-import { useToast } from './hooks/useToast';
-import { STRIPE_ITEMS } from './services/stripeService';
 import { supabase } from './lib/supabaseClient';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
@@ -59,10 +56,10 @@ const PortalDashboardPage = lazy(() => import('./pages/portal/PortalDashboardPag
 const PortalInvoiceViewPage = lazy(() => import('./pages/portal/PortalInvoiceViewPage'));
 
 const LoadingFallback = () => (
-    <div className="flex h-screen items-center justify-center bg-gray-950">
-        <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 rounded-full border-4 border-primary-500 border-t-transparent animate-spin"></div>
-            <p className="text-gray-400 text-sm font-medium animate-pulse">Sincronizando acceso seguro...</p>
+    <div className="flex h-screen w-full items-center justify-center bg-gray-950">
+        <div className="relative flex flex-col items-center">
+            <div className="w-8 h-8 border-[2px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
+            <div className="absolute top-0 w-8 h-8 border-[2px] border-transparent border-b-purple-500 rounded-full animate-spin-slow"></div>
         </div>
     </div>
 );
@@ -74,17 +71,13 @@ const AuthListener = () => {
 
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (session) {
-                if (window.location.hash.includes('access_token')) {
-                    window.history.replaceState(null, '', window.location.pathname);
-                }
-                
-                // Disparamos la carga del perfil inmediatamente al detectar sesión
+            if (session && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
                 await refreshProfile();
-                
-                if (location.pathname.includes('/auth/login')) {
-                    navigate('/');
+                if (location.pathname.startsWith('/auth/')) {
+                    navigate('/', { replace: true });
                 }
+            } else if (event === 'SIGNED_OUT') {
+                navigate('/auth/login', { replace: true });
             }
         });
         return () => subscription.unsubscribe();
@@ -95,19 +88,15 @@ const AuthListener = () => {
 
 const PrivateRoute = () => {
     const { isAuthenticated, isProfileLoading } = useAppStore();
-    
     if (isProfileLoading) return <LoadingFallback />;
-    
     return isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" replace />;
 };
 
 const AdminRoute = () => {
     const { isAuthenticated, profile, isProfileLoading } = useAppStore();
-    
     if (isProfileLoading) return <LoadingFallback />;
     
     const isAdmin = profile?.role?.toLowerCase() === 'admin';
-    
     if (!isAuthenticated) return <Navigate to="/auth/login" replace />;
     if (!isAdmin) return <Navigate to="/" replace />;
     
@@ -117,7 +106,7 @@ const AdminRoute = () => {
 const MainLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     return (
-        <div className="flex h-screen bg-gray-950 text-gray-100 overflow-hidden">
+        <div className="flex h-screen bg-gray-950 text-gray-100 overflow-hidden font-sans selection:bg-primary-500/30">
             <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
             <div className="flex-1 flex flex-col min-w-0">
                 <Header setSidebarOpen={setSidebarOpen} />
@@ -125,11 +114,11 @@ const MainLayout = () => {
                     <Suspense fallback={<LoadingFallback />}>
                         <Outlet />
                     </Suspense>
-                    <footer className="mt-12 py-8 border-t border-gray-900 text-center">
-                        <div className="flex justify-center gap-6 text-sm text-gray-500">
-                             <Link to="/politica-de-privacidad" className="hover:text-gray-300">Privacidad</Link>
-                             <Link to="/condiciones-de-servicio" className="hover:text-gray-300">Condiciones</Link>
-                             <span>© 2025 DevFreelancer</span>
+                    <footer className="mt-12 py-8 border-t border-gray-900/50 text-center">
+                        <div className="flex justify-center gap-8 text-[11px] font-bold uppercase tracking-widest text-gray-600">
+                             <Link to="/politica-de-privacidad" className="hover:text-primary-400 transition-colors">Privacidad</Link>
+                             <Link to="/condiciones-de-servicio" className="hover:text-primary-400 transition-colors">Condiciones</Link>
+                             <span className="cursor-default">© 2025 DevFreelancer</span>
                         </div>
                     </footer>
                 </main>
@@ -205,6 +194,15 @@ function App() {
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </HashRouter>
+            <style>{`
+                @keyframes spin-slow {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(-360deg); }
+                }
+                .animate-spin-slow {
+                    animation: spin-slow 2s linear infinite;
+                }
+            `}</style>
         </GoogleOAuthProvider>
     );
 }
