@@ -62,13 +62,13 @@ const LoadingFallback = () => (
     <div className="flex h-screen items-center justify-center bg-gray-950">
         <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 rounded-full border-4 border-primary-500 border-t-transparent animate-spin"></div>
-            <p className="text-gray-400 text-sm font-medium animate-pulse">Sincronizando sesión segura...</p>
+            <p className="text-gray-400 text-sm font-medium animate-pulse">Sincronizando acceso seguro...</p>
         </div>
     </div>
 );
 
 const AuthListener = () => {
-    const { initializeAuth, refreshProfile } = useAppStore();
+    const { refreshProfile } = useAppStore();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -79,7 +79,7 @@ const AuthListener = () => {
                     window.history.replaceState(null, '', window.location.pathname);
                 }
                 
-                // Disparamos la carga del perfil inmediatamente
+                // Disparamos la carga del perfil inmediatamente al detectar sesión
                 await refreshProfile();
                 
                 if (location.pathname.includes('/auth/login')) {
@@ -96,7 +96,6 @@ const AuthListener = () => {
 const PrivateRoute = () => {
     const { isAuthenticated, isProfileLoading } = useAppStore();
     
-    // Si estamos cargando el perfil, mostramos el spinner
     if (isProfileLoading) return <LoadingFallback />;
     
     return isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" replace />;
@@ -105,7 +104,6 @@ const PrivateRoute = () => {
 const AdminRoute = () => {
     const { isAuthenticated, profile, isProfileLoading } = useAppStore();
     
-    // Si estamos cargando, esperamos antes de redirigir
     if (isProfileLoading) return <LoadingFallback />;
     
     const isAdmin = profile?.role?.toLowerCase() === 'admin';

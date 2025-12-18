@@ -29,7 +29,7 @@ const initialProfile: Profile = {
 
 export interface AuthSlice {
   isAuthenticated: boolean;
-  isProfileLoading: boolean; // Nuevo estado para control de rutas
+  isProfileLoading: boolean; 
   profile: Profile;
   login: (email: string, password?: string) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -44,7 +44,7 @@ export interface AuthSlice {
 
 export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, get) => ({
     isAuthenticated: false,
-    isProfileLoading: true, // Empezamos cargando por defecto
+    isProfileLoading: true, 
     profile: initialProfile,
     
     refreshProfile: async () => {
@@ -76,7 +76,6 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
-                // Primero cargamos el perfil para tener el rol
                 const { data: profileData } = await supabase
                     .from('profiles')
                     .select('*')
@@ -87,7 +86,6 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
                     set({ profile: profileData as Profile, isAuthenticated: true });
                 }
 
-                // Cargamos el resto de datos en segundo plano
                 await Promise.all([
                     get().fetchClients(),
                     get().fetchProjects(),
@@ -113,14 +111,17 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
             });
             
             if (!error && data.user) {
-                // Forzamos la inicialización completa y esperamos a que termine
                 await get().initializeAuth();
                 return true;
             }
         } catch (error) {
             console.error("Supabase login failed", error);
         } finally {
-            set({ isProfileLoading: false });
+            // Solo quitamos el loading si falló el login, 
+            // si tuvo éxito, initializeAuth ya lo habrá puesto en false
+            if (!get().isAuthenticated) {
+                set({ isProfileLoading: false });
+            }
         }
         return false;
     },
