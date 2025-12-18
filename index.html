@@ -1,91 +1,51 @@
-
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DevFreelancer - Gestión Integral para Freelancers</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>DevFreelancer - Gestión Pro para Desarrolladores</title>
+    
+    <!-- SEO & Performance Optimization -->
+    <meta name="description" content="SaaS integral para freelancers con IA, facturación AEAT y gestión de proyectos.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://umqsjycqypxvhbhmidma.supabase.co">
     
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImxvZ29HcmFkaWVudCIgeDE9IjAiIHkxPSIwIiB4Mj0iMzIiIHkyPSIzMiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIHN0b3AtY29sb3I9IiNGMDAwQjgiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM5RDAwRkYiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48dGV4dCB4PSI1MCUiIHk9IjUyJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMiIgZm9udC1mYW1pbHk9IkludGVyLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iODAwIiBmaWxsPSJ1cmwoI2xvZ29HcmFkaWVudCkiPkRGPC90ZXh0Pjwvc3ZnPg==">
 
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Stripe.js (Required for some client-side operations) -->
-    <script src="https://js.stripe.com/v3/"></script>
+    <!-- Stripe.js (External dependency for secure elements) -->
+    <script src="https://js.stripe.com/v3/" async></script>
 
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS (Optimizado vía CDN para prototipado rápido, se recomienda PostCSS en build final) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
-                        gray: {
-                            900: '#111827',
-                            950: '#030712',
-                        },
-                        primary: {
-                            50: '#fdf4ff',
-                            100: '#fae8ff',
-                            200: '#f5d0fe',
-                            300: '#f0abfc',
-                            400: '#e879f9',
-                            500: '#d946ef',
-                            600: '#c026d3',
-                            700: '#a21caf',
-                            800: '#86198f',
-                            900: '#701a75',
-                            950: '#4a044e',
-                        },
+                        gray: { 900: '#111827', 950: '#030712' },
+                        primary: { 50: '#fdf4ff', 500: '#d946ef', 600: '#c026d3', 700: '#a21caf' },
                     }
                 }
             }
         }
     </script>
 
-    <!-- Estilos Base Globales -->
     <style>
-      body {
-        font-family: 'Inter', sans-serif;
-        background-color: #030712; /* bg-gray-950 */
-        color: #f9fafb;
-        margin: 0;
-        padding: 0;
-      }
-      
-      /* Animaciones utilitarias */
-      @keyframes fade-in-up {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .animate-fade-in-up {
-        animation: fade-in-up 0.5s ease-out forwards;
-      }
-      
-      /* Custom Scrollbar for dark theme */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #111827; 
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #374151; 
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #4b5563; 
-      }
+      :root { color-scheme: dark; }
+      body { background-color: #030712; color: #f9fafb; scroll-behavior: smooth; }
+      .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
+      .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
+
 <script type="importmap">
 {
   "imports": {
@@ -112,7 +72,7 @@
 }
 </script>
 </head>
-<body>
+<body class="bg-gray-950 text-white selection:bg-primary-500/30">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 </body>
