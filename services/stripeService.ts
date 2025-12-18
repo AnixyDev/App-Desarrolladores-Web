@@ -68,6 +68,9 @@ export const STRIPE_ITEMS = {
 
 export type StripeItemKey = keyof typeof STRIPE_ITEMS;
 
+/**
+ * Redirige a Stripe Checkout (Usa Edge Functions de Supabase)
+ */
 export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Record<string, any> = {}) => {
     const item = STRIPE_ITEMS[itemKey];
     if (!item) throw new Error('El artículo de compra no es válido.');
@@ -94,26 +97,30 @@ export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Re
 };
 
 /**
- * Llama a la API Route local de Next.js /api/checkout
- * Updated to support optional metadata object.
+ * Crea un PaymentIntent llamando al endpoint local de Next.js /api/checkout.
+ * Los campos userId e itemKey son OBLIGATORIOS para la trazabilidad en el webhook.
  */
-export const createPaymentIntent = async (amount: number, userId: string, itemKey: string, metadata?: Record<string, any>) => {
+export const createPaymentIntent = async (amountCents: number, userId: string, itemKey: string, metadata: Record<string, any> = {}) => {
+    if (!userId) throw new Error("Se requiere el ID de usuario para procesar el pago.");
+    if (!itemKey) throw new Error("Se requiere el tipo de producto (itemKey) para procesar el pago.");
+    if (!amountCents || amountCents <= 0) throw new Error("El importe del pago no es válido.");
+
     const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            amount,
+            amount: Math.round(amountCents), // Aseguramos que sea entero (céntimos)
             userId,
             itemKey,
-            metadata // Pass custom metadata through to the API route.
+            metadata 
         }),
     });
 
     if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al crear el intento de pago.');
+        throw new Error(errorData.error || 'Error en el servidor de pagos.');
     }
 
     const data = await response.json();

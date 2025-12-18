@@ -13,7 +13,6 @@ interface StripePaymentModalProps {
     amountCents: number;
     description: string;
     itemKey?: string;
-    // Added metadata property to the props interface to support invoice tracking and other context.
     metadata?: Record<string, any>;
     onPaymentSuccess: () => void;
 }
@@ -73,17 +72,30 @@ const StripePaymentModal: React.FC<StripePaymentModalProps> = ({ isOpen, onClose
     const { profile } = useAppStore();
 
     useEffect(() => {
-        if (isOpen && amountCents > 0 && profile?.id) {
+        if (isOpen && amountCents > 0) {
             const initializePayment = async () => {
+                // Validación crítica: el userId es obligatorio para identificar al cliente tras el pago
+                if (!profile?.id) {
+                    setInitError("Debes iniciar sesión para realizar un pago.");
+                    return;
+                }
+
                 try {
                     setInitError(null);
                     setClientSecret(null);
-                    // Pass the metadata to createPaymentIntent so it can be stored in the Stripe PaymentIntent.
-                    const secret = await createPaymentIntent(amountCents, profile.id, itemKey, metadata);
+                    
+                    // Llamada al servicio que a su vez llama a /api/checkout
+                    const secret = await createPaymentIntent(
+                        amountCents, 
+                        profile.id, 
+                        itemKey, 
+                        metadata || {}
+                    );
+                    
                     setClientSecret(secret);
-                } catch (error) {
+                } catch (error: any) {
                     console.error("Stripe initialization error:", error);
-                    setInitError("No se pudo iniciar la sesión de pago segura. Verifica tu conexión.");
+                    setInitError(error.message || "Error al conectar con la pasarela de pago segura.");
                 }
             };
             initializePayment();
@@ -114,7 +126,8 @@ const StripePaymentModal: React.FC<StripePaymentModalProps> = ({ isOpen, onClose
                 </div>
 
                 {initError && (
-                    <div className="bg-red-900/20 border border-red-900/50 p-4 rounded-lg text-red-400 text-center text-sm">
+                    <div className="bg-red-900/20 border border-red-900/50 p-4 rounded-lg text-red-400 text-center text-sm flex items-center justify-center">
+                        <AlertTriangleIcon className="w-4 h-4 mr-2" />
                         {initError}
                     </div>
                 )}
