@@ -5,7 +5,8 @@ import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
+  // Actualiza esto a la versión 2025-12-15.clover o la que decidas marcar como predeterminada
+  apiVersion: '2025-12-15.clover', 
 });
 
 // Admin Client (Service Role) para saltar RLS y actualizar datos de usuario
