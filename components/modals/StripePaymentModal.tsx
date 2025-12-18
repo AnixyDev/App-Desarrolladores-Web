@@ -1,17 +1,19 @@
-
 import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { getStripe, createPaymentSheet } from '../../services/stripeService';
+import { getStripe, createPaymentIntent } from '../../services/stripeService';
+import { useAppStore } from '../../hooks/useAppStore';
 import Button from '../ui/Button';
 import { formatCurrency } from '../../lib/utils';
-import { RefreshCwIcon, AlertTriangleIcon, CheckCircleIcon } from '../icons/Icon';
+import { RefreshCwIcon, AlertTriangleIcon } from '../icons/Icon';
 
 interface StripePaymentModalProps {
     isOpen: boolean;
     onClose: () => void;
     amountCents: number;
     description: string;
+    itemKey?: string;
+    // Added metadata property to the props interface to support invoice tracking and other context.
     metadata?: Record<string, any>;
     onPaymentSuccess: () => void;
 }
@@ -25,16 +27,13 @@ const CheckoutForm: React.FC<{ amount: number; onSuccess: () => void }> = ({ amo
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!stripe || !elements) {
-            return;
-        }
+        if (!stripe || !elements) return;
 
         setIsLoading(true);
 
         const { error, paymentIntent } = await stripe.confirmPayment({
             elements,
             confirmParams: {
-                // Return URL is mandatory, but with redirect: 'if_required', it might not be used if logic completes here.
                 return_url: `${window.location.origin}/?payment=success`,
             },
             redirect: 'if_required'
@@ -68,23 +67,28 @@ const CheckoutForm: React.FC<{ amount: number; onSuccess: () => void }> = ({ amo
     );
 };
 
-const StripePaymentModal: React.FC<StripePaymentModalProps> = ({ isOpen, onClose, amountCents, description, metadata, onPaymentSuccess }) => {
+const StripePaymentModal: React.FC<StripePaymentModalProps> = ({ isOpen, onClose, amountCents, description, itemKey = 'invoicePayment', metadata, onPaymentSuccess }) => {
     const [clientSecret, setClientSecret] = useState<string | null>(null);
     const [initError, setInitError] = useState<string | null>(null);
+    const { profile } = useAppStore();
 
     useEffect(() => {
-        if (isOpen && amountCents > 0) {
+        if (isOpen && amountCents > 0 && profile?.id) {
             const initializePayment = async () => {
                 try {
-                    const secret = await createPaymentSheet(amountCents, description, metadata);
+                    setInitError(null);
+                    setClientSecret(null);
+                    // Pass the metadata to createPaymentIntent so it can be stored in the Stripe PaymentIntent.
+                    const secret = await createPaymentIntent(amountCents, profile.id, itemKey, metadata);
                     setClientSecret(secret);
                 } catch (error) {
-                    setInitError("No se pudo iniciar la sesión de pago segura.");
+                    console.error("Stripe initialization error:", error);
+                    setInitError("No se pudo iniciar la sesión de pago segura. Verifica tu conexión.");
                 }
             };
             initializePayment();
         }
-    }, [isOpen, amountCents, description, metadata]);
+    }, [isOpen, amountCents, profile?.id, itemKey, metadata]);
 
     const handleSuccess = () => {
         onPaymentSuccess();
@@ -99,12 +103,20 @@ const StripePaymentModal: React.FC<StripePaymentModalProps> = ({ isOpen, onClose
         <Modal isOpen={isOpen} onClose={onClose} title="Pago Seguro con Tarjeta">
             <div className="space-y-4">
                 <div className="bg-gray-800 p-4 rounded-lg flex justify-between items-center border border-gray-700">
-                    <span className="text-gray-300">{description}</span>
-                    <span className="text-xl font-bold text-white">{formatCurrency(amountCents)}</span>
+                    <div className="flex flex-col">
+                        <span className="text-gray-400 text-xs uppercase font-semibold">Concepto</span>
+                        <span className="text-gray-200">{description}</span>
+                    </div>
+                    <div className="text-right">
+                        <span className="text-gray-400 text-xs uppercase font-semibold block">Importe</span>
+                        <span className="text-xl font-bold text-white">{formatCurrency(amountCents)}</span>
+                    </div>
                 </div>
 
                 {initError && (
-                    <div className="text-red-400 text-center text-sm">{initError}</div>
+                    <div className="bg-red-900/20 border border-red-900/50 p-4 rounded-lg text-red-400 text-center text-sm">
+                        {initError}
+                    </div>
                 )}
 
                 {clientSecret ? (
@@ -112,8 +124,9 @@ const StripePaymentModal: React.FC<StripePaymentModalProps> = ({ isOpen, onClose
                         <CheckoutForm amount={amountCents} onSuccess={handleSuccess} />
                     </Elements>
                 ) : !initError ? (
-                    <div className="flex justify-center py-12">
+                    <div className="flex flex-col items-center justify-center py-12 space-y-3">
                         <RefreshCwIcon className="w-8 h-8 text-primary-500 animate-spin" />
+                        <p className="text-gray-500 text-sm animate-pulse">Cargando pasarela segura...</p>
                     </div>
                 ) : null}
             </div>

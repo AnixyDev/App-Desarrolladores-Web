@@ -7,7 +7,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(req: Request) {
   try {
-    const { amount, userId, itemKey } = await req.json();
+    // Extract metadata from the request body to allow custom data like invoice_id to be stored in Stripe.
+    const { amount, userId, itemKey, metadata } = await req.json();
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount, // en céntimos
@@ -15,6 +16,7 @@ export async function POST(req: Request) {
       metadata: {
         supabase_user_id: userId,
         itemKey: itemKey,
+        ...metadata, // Merge custom metadata into the Stripe object.
       },
       automatic_payment_methods: { enabled: true },
     });
