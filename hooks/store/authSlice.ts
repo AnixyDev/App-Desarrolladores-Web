@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
 import { AppState } from '../useAppStore';
-import { Profile, GoogleJwtPayload } from '../../types';
+import { Profile } from '../../types';
 import { supabase } from '../../lib/supabaseClient';
 
 const initialProfile: Profile = {
@@ -35,7 +35,7 @@ export interface AuthSlice {
   refreshProfile: () => Promise<void>;
   upgradePlan: (plan: 'Pro' | 'Teams') => void;
   purchaseCredits: (amount: number) => void;
-  consumeCredits: (amount: number) => boolean;
+  consumeCredits: (amount: number) => Promise<boolean>;
   initializeAuth: () => Promise<void>;
 }
 
@@ -54,7 +54,6 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
             
             if (profileData) {
                 set({ profile: profileData as Profile });
-                console.log("Perfil sincronizado con Supabase.");
             }
         }
     },
@@ -65,8 +64,6 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
             if (session?.user) {
                 set({ isAuthenticated: true });
                 await get().refreshProfile();
-                
-                // Carga paralela para máxima performance
                 await Promise.all([
                     get().fetchClients(),
                     get().fetchProjects(),
@@ -122,11 +119,30 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
 
     upgradePlan: (plan) => get().updateProfile({ plan }),
     purchaseCredits: (amount) => get().updateProfile({ ai_credits: (get().profile.ai_credits || 0) + amount }),
-    consumeCredits: (amount) => {
-        if (get().profile.ai_credits >= amount) {
-            get().updateProfile({ ai_credits: get().profile.ai_credits - amount });
+    
+    consumeCredits: async (amount) => {
+        const { profile } = get();
+        if (!profile.id) return false;
+
+        // Utilizamos un RPC (Remote Procedure Call) de Supabase para una actualización atómica segura.
+        // Esto previene que si el usuario tiene 1 crédito y hace 2 clics rápidos, el saldo sea negativo.
+        const { data: success, error } = await supabase.rpc('consume_credits_atomic', { 
+            user_id: profile.id, 
+            amount_to_consume: amount 
+        });
+
+        if (!error && success) {
+            // Sincronizamos el estado local tras la deducción exitosa en el servidor
+            set(state => ({ 
+                profile: { 
+                    ...state.profile, 
+                    ai_credits: (state.profile.ai_credits || 0) - amount 
+                } as Profile 
+            }));
             return true;
         }
+        
+        console.error("Error al consumir créditos:", error);
         return false;
     },
 });

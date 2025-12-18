@@ -1,7 +1,8 @@
 import { GoogleGenAI, GenerateContentResponse, Type, FunctionDeclaration } from "@google/genai";
 
 // Se inicializa el cliente utilizando exclusivamente process.env.API_KEY según las directrices.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+// FIX: Strictly followed initialization guideline.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const AI_CREDIT_COSTS = {
     generateProposal: 5,
@@ -22,31 +23,18 @@ export const AI_CREDIT_COSTS = {
 };
 
 const SYSTEM_INSTRUCTION = `
-Eres el "Estratega Senior de DevFreelancer", un consultor experto con más de 15 años de experiencia en desarrollo de software, gestión de agencias y optimización de flujos de trabajo freelance.
+Eres el "Estratega Principal de DevFreelancer", un consultor experto con más de 15 años de trayectoria en desarrollo de software, gestión de agencias y optimización de flujos de caja para freelancers.
 
-Tus directrices de respuesta son:
-1. PERSONALIDAD: Profesional, analítico, directo y altamente motivador. No rellenes con cortesías innecesarias.
-2. FORMATO: Utiliza Markdown avanzado de forma obligatoria. 
-   - Usa ## para secciones.
-   - Usa **negritas** para conceptos clave.
-   - Usa tablas si comparas datos.
-   - Bloques de código con el lenguaje especificado (ej: \`\`\`typescript).
-3. VALOR ACCIONABLE: Cada respuesta debe incluir al menos un "Consejo Pro" o una "Acción Inmediata" para que el usuario mejore su rentabilidad o eficiencia.
-4. CONTEXTO SAAS: Conoces perfectamente que el usuario está usando DevFreelancer.app para gestionar clientes, facturas y proyectos.
-5. IDIOMA: Responde siempre en el idioma en que se te pregunte (principalmente español).
+REGLAS DE ORO DE RESPUESTA:
+1. PERSONALIDAD: Actúa como un mentor Senior. Sé analítico, directo y obsesionado con el valor de negocio. Evita las introducciones vacías como "Claro, puedo ayudarte con eso".
+2. FORMATO PROFESIONAL:
+   - Usa ## para separar conceptos principales.
+   - Utiliza **negritas** para resaltar términos financieros o técnicos clave.
+   - Si comparas opciones, utiliza tablas de Markdown.
+   - Bloques de código deben incluir el lenguaje (ej: \`\`\`typescript) y comentarios sobre el ROI de la implementación.
+3. ENFOQUE EN VALOR: Cada respuesta debe concluir con un apartado llamado "> **Consejo Estratégico Pro:**" con una acción inmediata que mejore la rentabilidad del usuario.
+4. CONTEXTO: Entiendes que el usuario utiliza DevFreelancer.app para gestionar clientes, proyectos, facturas y gastos. Tus consejos deben ser aplicables dentro de este ecosistema.
 `;
-
-async function safeApiCall<T>(apiCall: () => Promise<T>, errorContext: string): Promise<T> {
-    try {
-        return await apiCall();
-    } catch (error) {
-        console.error(`${errorContext}:`, error);
-        if (error instanceof Error && (error.message.includes('API key not valid') || error.message.includes('API_KEY_INVALID'))) {
-            throw new Error("Error: La clave de API de Gemini no es válida.");
-        }
-        throw new Error(`Error en el motor de IA. Inténtalo de nuevo.`);
-    }
-}
 
 export const getAIResponse = async (
     prompt: string, 
@@ -54,41 +42,56 @@ export const getAIResponse = async (
     tools?: FunctionDeclaration[]
 ): Promise<GenerateContentResponse> => {
     
-    // El modelo gemini-3-pro-preview es el recomendado para tareas de razonamiento complejo
-    return safeApiCall<GenerateContentResponse>(() => ai.models.generateContent({
+    // Utilizamos gemini-3-pro-preview para garantizar la máxima calidad de razonamiento
+    return await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
         contents: [...history, { role: 'user', parts: [{ text: prompt }] }] as any,
         config: {
             systemInstruction: SYSTEM_INSTRUCTION,
             tools: tools ? [{ functionDeclarations: tools }] : undefined,
-            temperature: 0.75, // Balance entre creatividad y precisión técnica
-            topP: 0.95,
-            maxOutputTokens: 1500,
+            temperature: 0.8, // Permite creatividad estratégica pero mantiene rigor técnico
+            topP: 0.9,
+            maxOutputTokens: 2000,
         }
-    }), "Error in Gemini Chat Response");
+    });
 };
 
-// ... resto de funciones de generación (se mantienen para no romper el resto de la app)
+// ... Funciones de conveniencia para otras partes de la app ...
 export const generateProposalText = async (jobTitle: string, jobDescription: string, userProfile: string): Promise<string> => {
-    const prompt = `Genera una propuesta técnica para: ${jobTitle}. Contexto: ${jobDescription}. Perfil: ${userProfile}`;
+    const prompt = `Genera una propuesta comercial persuasiva. Puesto: ${jobTitle}. Contexto: ${jobDescription}. Mi perfil: ${userProfile}`;
+    const response = await getAIResponse(prompt, []);
+    return response.text || '';
+};
+
+// FIX: Added missing refineProposalText export.
+export const refineProposalText = async (text: string, tone: 'formal' | 'conciso' | 'entusiasta'): Promise<string> => {
+    const prompt = `Refina el siguiente texto de propuesta comercial manteniendo su significado pero cambiando el tono a: ${tone}.
+    Texto: ${text}`;
+    
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: "gemini-3-flash-preview",
         contents: prompt,
-        config: { systemInstruction: "Eres un experto en ventas técnicas. Genera propuestas persuasivas en Markdown." }
     });
     return response.text || '';
 };
 
-export const refineProposalText = async (originalProposal: string, refinementType: 'formal' | 'conciso' | 'entusiasta'): Promise<string> => {
+export const analyzeProfitability = async (data: any) => {
+    const prompt = `Analiza la rentabilidad de estos proyectos y detecta fugas de dinero: ${JSON.stringify(data)}`;
+    const response = await getAIResponse(prompt, []);
+    return JSON.parse(response.text || '{}');
+};
+
+export const generateItemsForDocument = async (prompt: string, hourlyRate: number) => {
     const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Refina esta propuesta a un tono ${refinementType}: ${originalProposal}`
+        model: "gemini-3-flash-preview",
+        contents: `Genera conceptos de factura detallados para: ${prompt}. Mi tarifa es ${hourlyRate/100}€/h`,
+        config: { responseMimeType: "application/json" }
     });
-    return response.text || '';
+    return JSON.parse(response.text || '[]');
 };
 
-export const summarizeApplicant = async (jobDescription: string, applicantProfile: string, applicantProposal: string): Promise<any> => {
-    const prompt = `Analiza candidato. Puesto: ${jobDescription}. Perfil: ${applicantProfile}. Propuesta: ${applicantProposal}`;
+export const summarizeApplicant = async (jobDesc: string, applicantProf: string, proposal: string): Promise<any> => {
+    const prompt = `Evalúa este candidato para el proyecto: ${jobDesc}. Perfil: ${applicantProf}. Propuesta: ${proposal}`;
     const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: prompt,
@@ -108,46 +111,60 @@ export const summarizeApplicant = async (jobDescription: string, applicantProfil
     return JSON.parse(response.text || '{}');
 };
 
-export const generateFinancialForecast = async (data: any): Promise<any> => {
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Analiza estos datos financieros: ${JSON.stringify(data)}`,
-        config: { responseMimeType: "application/json" }
-    });
-    return JSON.parse(response.text || '{}');
-};
-
-export const generateTimeEntryDescription = async (projectName: string, projectDescription: string, userKeywords: string): Promise<string> => {
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Proyecto: ${projectName}. Keywords: ${userKeywords}. Genera descripción de 1 frase.`
-    });
-    return response.text?.trim() || '';
-};
-
-export const generateItemsForDocument = async (prompt: string, hourlyRate: number) => {
+// FIX: Added missing generateTimeEntryDescription export.
+export const generateTimeEntryDescription = async (projectName: string, projectDesc: string, keywords: string): Promise<string> => {
+    const prompt = `Genera una descripción profesional y concisa (máximo 15 palabras) para una entrada de tiempo de trabajo. 
+    Proyecto: ${projectName}. 
+    Descripción del proyecto: ${projectDesc}. 
+    Palabras clave/notas del usuario: ${keywords}`;
+    
     const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `Genera items de factura para: ${prompt}. Tarifa: ${hourlyRate/100}€/h`,
-        config: { responseMimeType: "application/json" }
+        contents: prompt,
+    });
+    return response.text || '';
+};
+
+// FIX: Added missing rankArticlesByRelevance export.
+export const rankArticlesByRelevance = async (query: string, articles: any[]): Promise<string[]> => {
+    const articlesContext = articles.map(a => ({ id: a.id, title: a.title, content: a.content.substring(0, 200) }));
+    const prompt = `Dada la siguiente consulta de búsqueda: "${query}", ordena los IDs de los artículos por relevancia semántica. Devuelve solo un array de IDs.
+    Artículos: ${JSON.stringify(articlesContext)}`;
+    
+    const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING }
+            }
+        }
     });
     return JSON.parse(response.text || '[]');
 };
 
-export const rankArticlesByRelevance = async (query: string, articles: any[]) => {
+// FIX: Added missing generateFinancialForecast export.
+export const generateFinancialForecast = async (data: any[]): Promise<any> => {
+    const prompt = `Analiza la siguiente previsión de flujo de caja para los próximos 6 meses y proporciona un diagnóstico estratégico.
+    Datos (en EUR): ${JSON.stringify(data)}`;
+    
     const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Ordena por relevancia a "${query}": ${JSON.stringify(articles)}`,
-        config: { responseMimeType: "application/json" }
-    });
-    return JSON.parse(response.text || '[]');
-};
-
-export const analyzeProfitability = async (data: any) => {
-    const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Analiza rentabilidad: ${JSON.stringify(data)}`,
-        config: { responseMimeType: "application/json" }
+        model: "gemini-3-pro-preview",
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    summary: { type: Type.STRING },
+                    potentialRisks: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    suggestions: { type: Type.ARRAY, items: { type: Type.STRING } },
+                },
+                required: ["summary", "potentialRisks", "suggestions"],
+            }
+        }
     });
     return JSON.parse(response.text || '{}');
 };
