@@ -1,5 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAppStore } from './hooks/useAppStore';
 import { useToast } from './hooks/useToast';
@@ -63,13 +63,57 @@ const PortalContractViewPage = lazy(() => import('./pages/portal/PortalContractV
 
 const GOOGLE_CLIENT_ID = "457438236235-n2s8q6nvcjm32u0o3ut2lksd8po8gfqf.apps.googleusercontent.com";
 
+/**
+ * AuthListener: Gestiona el "handshake" final de la autenticación.
+ * Limpia la URL de fragmentos de Google y fuerza la redirección al Dashboard.
+ */
+const AuthListener = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const { initializeAuth } = useAppStore();
+
+    useEffect(() => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log(`Supabase Auth Event: ${event}`);
+            
+            if (session) {
+                console.log("Sesión activa encontrada:", session.user?.email);
+                
+                // Si hay un access_token en la URL, lo limpiamos para evitar bucles
+                if (window.location.hash.includes('access_token')) {
+                    console.log("Limpiando fragmentos de URL de Google...");
+                    window.history.replaceState(null, '', window.location.pathname);
+                }
+
+                // Si estamos en login o register pero ya tenemos sesión, forzamos salida al dashboard
+                if (location.pathname.startsWith('/auth/')) {
+                    await initializeAuth();
+                    navigate('/', { replace: true });
+                }
+            }
+        });
+
+        // Manejo de errores de OAuth directos en la URL
+        const params = new URLSearchParams(window.location.search);
+        const error = params.get('error_description') || params.get('error');
+        if (error) {
+            console.error("Error de Autenticación detectado en URL:", error);
+            // Limpiamos la URL de error y nos quedamos en login
+            window.history.replaceState(null, '', '/auth/login');
+        }
+
+        return () => subscription.unsubscribe();
+    }, [navigate, location.pathname, initializeAuth]);
+
+    return null;
+};
+
 const PrivateRoute = () => {
     const isAuthenticated = useAppStore(state => state.isAuthenticated);
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
     useEffect(() => {
-        // Breve retraso para permitir que Supabase recupere la sesión
-        const timer = setTimeout(() => setIsCheckingAuth(false), 500);
+        const timer = setTimeout(() => setIsCheckingAuth(false), 800);
         return () => clearTimeout(timer);
     }, []);
 
@@ -77,7 +121,7 @@ const PrivateRoute = () => {
         return (
             <div className="flex flex-col items-center justify-center h-screen bg-gray-950">
                 <div className="w-12 h-12 rounded-full border-4 border-primary-500 border-t-transparent animate-spin"></div>
-                <p className="mt-4 text-gray-400">Verificando sesión...</p>
+                <p className="mt-4 text-gray-400 font-medium">Cargando aplicación...</p>
             </div>
         );
     }
@@ -121,21 +165,16 @@ const PaymentHandler = () => {
                 const item = STRIPE_ITEMS[itemKey];
                 if (item) {
                     if (item.mode === 'subscription') {
-                        if (itemKey === 'proPlan') {
-                            upgradePlan('Pro');
-                            addToast('¡Felicidades! Has actualizado al Plan Pro.', 'success');
-                        } else if (typeof itemKey === 'string' && itemKey.includes('teams')) {
-                            upgradePlan('Teams');
-                            addToast('¡Bienvenido a Teams! Ya puedes colaborar con tu equipo.', 'success');
-                        }
+                        upgradePlan(itemKey.includes('teams') ? 'Teams' : 'Pro');
+                        addToast(`¡Bienvenido al plan ${item.name}!`, 'success');
                     } else if (item.mode === 'payment' && 'credits' in item) {
                         purchaseCredits(item.credits);
-                        addToast(`¡Has recargado ${item.credits} créditos de IA con éxito!`, 'success');
+                        addToast(`¡Has recargado ${item.credits} créditos con éxito!`, 'success');
                     }
                 }
             } else if (invoiceId) {
                 markInvoiceAsPaid(invoiceId);
-                addToast('¡Pago de factura completado! Gracias.', 'success');
+                addToast('¡Factura pagada correctamente!', 'success');
             }
              searchParams.delete('payment');
              searchParams.delete('item');
@@ -151,26 +190,7 @@ function App() {
     const { isAuthenticated, checkInvoiceStatuses, initializeAuth } = useAppStore();
 
     useEffect(() => {
-        // Inicialización robusta con escucha de eventos de Auth
         initializeAuth();
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            console.log(`Auth event: ${event}`);
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                initializeAuth();
-            } else if (event === 'SIGNED_OUT') {
-                // El store gestiona el logout internamente
-            }
-        });
-
-        // Debug de errores en URL (OAuth Callback)
-        const params = new URLSearchParams(window.location.search);
-        const error = params.get('error_description') || params.get('error');
-        if (error) {
-            console.error("Supabase Auth URL Error:", error);
-        }
-
-        return () => subscription.unsubscribe();
     }, [initializeAuth]);
 
     useEffect(() => {
@@ -182,6 +202,7 @@ function App() {
     return (
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
             <BrowserRouter>
+                <AuthListener />
                 <ToastContainer />
                 <PaymentHandler />
                 <Routes>
