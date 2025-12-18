@@ -5,7 +5,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 /**
  * Devuelve la URL base oficial del proyecto.
- * Obliga al uso de HTTPS y al dominio de producción para evitar errores de redirección.
+ * Forzamos la raíz de producción para asegurar que el login con Google vuelva al Dashboard.
  */
 export const getURL = () => {
   return 'https://devfreelancer.app';

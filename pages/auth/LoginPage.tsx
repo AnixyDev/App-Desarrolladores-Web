@@ -16,10 +16,12 @@ const LoginPage: React.FC = () => {
 
     const handleGoogleLogin = async () => {
         try {
+            setError('');
+            // Usamos estrictamente la URL base de la app para evitar el error Cannot GET /auth/login
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: getURL(), // Usa la URL detectada automáticamente
+                    redirectTo: getURL(), 
                 },
             });
             if (error) throw error;
