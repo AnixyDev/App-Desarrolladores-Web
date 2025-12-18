@@ -22,40 +22,40 @@ export const getStripe = () => {
 
 export const STRIPE_ITEMS = {
     proPlan: {
-        priceId: 'price_1Q...', // ID de Stripe Pro
+        priceId: 'price_1SOgUF8oC5awQy15dOEM5jGS', // ID de Stripe Pro
         mode: 'subscription' as const,
         name: 'Pro Plan',
     },
     teamsPlan: {
-        priceId: 'price_1Q...', // ID de Stripe Teams
+        priceId: 'price_1SOggV8oC5awQy15YW1wAgcg', // ID de Stripe Teams
         mode: 'subscription' as const,
         name: 'Plan de equipos',
     },
     teamsPlanYearly: {
-        priceId: 'price_1Q...', // ID de Stripe Teams Anual
+        priceId: 'price_1SOggV8oC5awQy15Ppz7bUj0', // ID de Stripe Teams Anual
         mode: 'subscription' as const,
         name: 'Plan de equipos (Anual)',
     },
     aiCredits100: {
-        priceId: 'price_1Q...', 
+        priceId: 'price_1SOgpy8oC5awQy15TW22fBot', 
         mode: 'payment' as const,
         name: '100 Créditos de IA',
         credits: 100
     },
     aiCredits500: {
-        priceId: 'price_1Q...',
+        priceId: 'price_1SOgr18oC5awQy15o1gTM2VM',
         mode: 'payment' as const,
         name: '500 Créditos de IA',
         credits: 500
     },
     aiCredits1000: {
-        priceId: 'price_1Q...',
+        priceId: 'price_1SOguC8oC5awQy15LGchpkVG',
         mode: 'payment' as const,
         name: '1000 Créditos de IA',
         credits: 1000
     },
     featuredJobPost: {
-        priceId: 'price_1Q...',
+        priceId: 'price_1SOlOv8oC5awQy15Q2aXoEg7',
         mode: 'payment' as const,
         name: 'Oferta de empleo destacada',
     },
