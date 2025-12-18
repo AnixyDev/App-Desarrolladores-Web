@@ -1,7 +1,11 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import Stripe from 'https://esm.sh/stripe@13.10.0?target=deno' // Versión actualizada
+import Stripe from 'https://esm.sh/stripe@13.10.0?target=deno'
 
+// Fix for "Cannot find name 'Deno'" in Supabase Edge Functions environment
+declare const Deno: any;
+
+// Configuración de encabezados CORS
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -9,74 +13,106 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Manejo de Preflight (CORS)
+  // 1. Manejo de peticiones Preflight (OPTIONS)
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { 
+      status: 200, 
+      headers: corsHeaders 
+    })
   }
 
   try {
-    // Inicialización de Stripe (SIN httpClient para evitar el error de Deno v2)
+    // Inicialización de Stripe optimizada para Deno
+    // Se elimina httpClient: Stripe.createFetchHttpClient() para corregir el error de Microtasks
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
-      apiVersion: '2022-11-15',
+      apiVersion: '2023-10-16',
     })
 
+    // Inicialización del cliente Supabase con el token del usuario
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
     
+    // Obtener el usuario autenticado
     const { data: { user } } = await supabaseClient.auth.getUser()
-    if (!user) throw new Error('No autenticado')
+    if (!user) throw new Error('Usuario no autenticado')
 
-    const { priceId, mode, metadata, amount, productName } = await req.json()
+    // Extraer datos del cuerpo de la petición
+    const body = await req.json()
+    const { priceId, mode, amount, productName } = body
+    
+    // Validación de metadatos para prevenir errores de acceso a propiedades de undefined
+    const metadata = body.metadata || {}
+
+    // Origen oficial de la aplicación
     const origin = 'https://devfreelancer.app'
 
-    // Obtener perfil para el Customer ID
+    // Obtener o crear el Customer ID de Stripe
+    let customerId;
     const { data: profile } = await supabaseClient
       .from('profiles')
-      .select('stripe_customer_id')
+      .select('stripe_customer_id, full_name')
       .eq('id', user.id)
       .single()
 
-    let customerId = profile?.stripe_customer_id
-
+    customerId = profile?.stripe_customer_id
+    
     if (!customerId) {
+      // Crear cliente en Stripe si no existe
       const customer = await stripe.customers.create({
         email: user.email,
+        name: profile?.full_name || user.user_metadata?.full_name,
         metadata: { supabase_user_id: user.id },
       })
       customerId = customer.id
       
+      // Actualizar el perfil usando Service Role para bypass de RLS
       const supabaseAdmin = createClient(
         Deno.env.get('SUPABASE_URL')!, 
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
       )
-      await supabaseAdmin.from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id)
+      await supabaseAdmin
+        .from('profiles')
+        .update({ stripe_customer_id: customerId })
+        .eq('id', user.id)
     }
 
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      line_items: priceId ? [{ price: priceId, quantity: 1 }] : [{
+    // Configurar los items del checkout
+    const line_items = priceId ? [{ price: priceId, quantity: 1 }] : [{
         price_data: {
-          currency: 'eur',
-          product_data: { name: productName || 'Servicio' },
-          unit_amount: amount,
+            currency: 'eur',
+            product_data: { name: productName || 'Servicio DevFreelancer' },
+            unit_amount: amount,
         },
         quantity: 1,
-      }],
-      mode: mode || 'payment',
-      success_url: `${origin}/billing?payment=success`,
+    }]
+
+    // Crear la sesión de Checkout de Stripe
+    const session = await stripe.checkout.sessions.create({
+      line_items,
+      mode,
+      customer: customerId,
+      success_url: `${origin}/billing?payment=success&session_id={CHECKOUT_SESSION_ID}&item=${metadata.itemKey || ''}${metadata.invoice_id ? `&invoice_id=${metadata.invoice_id}` : ''}`,
       cancel_url: `${origin}/billing?payment=cancelled`,
-      metadata: { supabase_user_id: user.id, ...metadata },
+      metadata: { 
+        supabase_user_id: user.id,
+        ...metadata 
+      },
+      allow_promotion_codes: mode === 'subscription',
+      billing_address_collection: 'required',
     })
 
+    // Respuesta de éxito con encabezados CORS
     return new Response(JSON.stringify({ url: session.url }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
   } catch (error: any) {
+    console.error('Checkout Error:', error.message)
+    // Es crítico devolver los encabezados CORS incluso en el error para que el frontend pueda procesarlo
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

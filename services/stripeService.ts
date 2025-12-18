@@ -22,40 +22,40 @@ export const getStripe = () => {
 
 export const STRIPE_ITEMS = {
     proPlan: {
-        priceId: 'price_LIVE_CAMBIAR_AQUI',
+        priceId: 'price_1Q...', // ID de Stripe Pro
         mode: 'subscription' as const,
         name: 'Pro Plan',
     },
     teamsPlan: {
-        priceId: 'price_LIVE_CAMBIAR_AQUI',
+        priceId: 'price_1Q...', // ID de Stripe Teams
         mode: 'subscription' as const,
         name: 'Plan de equipos',
     },
     teamsPlanYearly: {
-        priceId: 'price_LIVE_CAMBIAR_AQUI',
+        priceId: 'price_1Q...', // ID de Stripe Teams Anual
         mode: 'subscription' as const,
         name: 'Plan de equipos (Anual)',
     },
     aiCredits100: {
-        priceId: 'price_LIVE_CAMBIAR_AQUI',
+        priceId: 'price_1Q...', 
         mode: 'payment' as const,
         name: '100 Créditos de IA',
         credits: 100
     },
     aiCredits500: {
-        priceId: 'price_LIVE_CAMBIAR_AQUI',
+        priceId: 'price_1Q...',
         mode: 'payment' as const,
         name: '500 Créditos de IA',
         credits: 500
     },
     aiCredits1000: {
-        priceId: 'price_LIVE_CAMBIAR_AQUI',
+        priceId: 'price_1Q...',
         mode: 'payment' as const,
         name: '1000 Créditos de IA',
         credits: 1000
     },
     featuredJobPost: {
-        priceId: 'price_LIVE_CAMBIAR_AQUI',
+        priceId: 'price_1Q...',
         mode: 'payment' as const,
         name: 'Oferta de empleo destacada',
     },
@@ -70,7 +70,7 @@ export type StripeItemKey = keyof typeof STRIPE_ITEMS;
 
 /**
  * Redirige a Stripe Checkout (Usa Edge Functions de Supabase)
- * Se limpian las URLs de éxito y cancelación para usar rutas sin hash.
+ * Conecta con: https://umqsjycqypxvhbhmidma.supabase.co/functions/v1/create-checkout-session
  */
 export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Record<string, any> = {}) => {
     const item = STRIPE_ITEMS[itemKey];
@@ -78,23 +78,35 @@ export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Re
 
     const currentUrl = getURL();
 
-    const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: {
-            priceId: item.priceId,
-            mode: item.mode,
-            amount: itemKey === 'invoicePayment' ? extraParams.amount_cents : undefined,
-            productName: itemKey === 'invoicePayment' ? `Factura ${extraParams.invoice_number}` : undefined,
-            customOrigin: currentUrl,
-            metadata: { 
-                ...extraParams, 
-                itemKey, 
-                origin: currentUrl 
-            }
+    // 2. Cuerpo de la Petición: Estructura requerida por la Edge Function
+    const bodyPayload = {
+        priceId: item.priceId || undefined,
+        mode: item.mode,
+        amount: itemKey === 'invoicePayment' ? extraParams.amount_cents : undefined,
+        productName: itemKey === 'invoicePayment' ? `Factura ${extraParams.invoice_number}` : undefined,
+        metadata: { 
+            ...extraParams, 
+            itemKey, 
+            origin: currentUrl 
         }
+    };
+
+    // 1. URL de la Función: invoke() apunta automáticamente al subdominio del proyecto
+    const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        body: bodyPayload
     });
 
-    if (error) throw new Error('Error al conectar con la pasarela de pago.');
-    if (data?.url) window.location.href = data.url;
+    if (error) {
+        console.error('Supabase Function Invoke Error:', error);
+        throw new Error('No se pudo iniciar la sesión de pago. Inténtalo de nuevo.');
+    }
+
+    // 3. Manejo de Respuesta: Redirección mediante assign para mejor compatibilidad
+    if (data?.url) {
+        window.location.assign(data.url);
+    } else {
+        throw new Error('La pasarela de pago no devolvió una URL válida.');
+    }
 };
 
 /**
@@ -102,27 +114,15 @@ export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Re
  */
 export const createPaymentIntent = async (amountCents: number, userId: string, itemKey: string, metadata: Record<string, any> = {}) => {
     if (!userId) throw new Error("Se requiere el ID de usuario para procesar el pago.");
-    if (!itemKey) throw new Error("Se requiere el tipo de producto (itemKey) para procesar el pago.");
-    if (!amountCents || amountCents <= 0) throw new Error("El importe del pago no es válido.");
-
     const response = await fetch('/api/checkout', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            amount: Math.round(amountCents),
-            userId,
-            itemKey,
-            metadata 
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: Math.round(amountCents), userId, itemKey, metadata }),
     });
-
     if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Error en el servidor de pagos.');
     }
-
     const data = await response.json();
     return data.clientSecret;
 };
@@ -136,5 +136,5 @@ export const redirectToCustomerPortal = async () => {
         body: { return_url: `${currentUrl}/billing` }
     });
     if (error) throw new Error('Error al abrir el portal de facturación.');
-    if (data?.url) window.location.href = data.url;
+    if (data?.url) window.location.assign(data.url);
 };
