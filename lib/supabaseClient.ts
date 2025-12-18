@@ -5,7 +5,6 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 /**
  * Devuelve la URL base oficial del proyecto.
- * Forzamos la raíz de producción para asegurar que el login con Google vuelva al Dashboard.
  */
 export const getURL = () => {
   return 'https://devfreelancer.app';
@@ -13,9 +12,10 @@ export const getURL = () => {
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
+        storageKey: 'devfreelancer-auth-token-v2', // Clave única para evitar conflictos de cookies
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        flowType: 'pkce'
+        flowType: 'pkce' // Estándar moderno de autenticación para SPAs
     }
 });

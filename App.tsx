@@ -4,6 +4,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAppStore } from './hooks/useAppStore';
 import { useToast } from './hooks/useToast';
 import { STRIPE_ITEMS } from './services/stripeService';
+import { supabase } from './lib/supabaseClient';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import ToastContainer from './components/ui/Toast';
@@ -64,7 +65,24 @@ const GOOGLE_CLIENT_ID = "457438236235-n2s8q6nvcjm32u0o3ut2lksd8po8gfqf.apps.goo
 
 const PrivateRoute = () => {
     const isAuthenticated = useAppStore(state => state.isAuthenticated);
-    return isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" />;
+    const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+    useEffect(() => {
+        // Breve retraso para permitir que Supabase recupere la sesión
+        const timer = setTimeout(() => setIsCheckingAuth(false), 500);
+        return () => clearTimeout(timer);
+    }, []);
+
+    if (isCheckingAuth) {
+        return (
+            <div className="flex flex-col items-center justify-center h-screen bg-gray-950">
+                <div className="w-12 h-12 rounded-full border-4 border-primary-500 border-t-transparent animate-spin"></div>
+                <p className="mt-4 text-gray-400">Verificando sesión...</p>
+            </div>
+        );
+    }
+
+    return isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" replace />;
 };
 
 const MainLayout = () => {
@@ -77,11 +95,7 @@ const MainLayout = () => {
                 <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 lg:p-8">
                     <Suspense fallback={
                         <div className="flex flex-col items-center justify-center h-full min-h-[50vh]">
-                            <div className="relative">
-                                <div className="w-12 h-12 rounded-full border-4 border-gray-800"></div>
-                                <div className="w-12 h-12 rounded-full border-4 border-primary-500 border-t-transparent animate-spin absolute top-0 left-0"></div>
-                            </div>
-                            <p className="mt-4 text-gray-400 font-medium animate-pulse">Cargando...</p>
+                            <div className="w-12 h-12 rounded-full border-4 border-primary-500 border-t-transparent animate-spin"></div>
                         </div>
                     }>
                         <Outlet />
@@ -117,25 +131,16 @@ const PaymentHandler = () => {
                     } else if (item.mode === 'payment' && 'credits' in item) {
                         purchaseCredits(item.credits);
                         addToast(`¡Has recargado ${item.credits} créditos de IA con éxito!`, 'success');
-                    } else if (itemKey === 'featuredJobPost') {
-                        addToast('¡Tu oferta ha sido destacada correctamente!', 'success');
                     }
                 }
-                searchParams.delete('item');
             } else if (invoiceId) {
                 markInvoiceAsPaid(invoiceId);
                 addToast('¡Pago de factura completado! Gracias.', 'success');
-                searchParams.delete('invoice_id');
             }
              searchParams.delete('payment');
+             searchParams.delete('item');
+             searchParams.delete('invoice_id');
              setSearchParams(searchParams, { replace: true });
-
-        } else if (paymentStatus === 'cancelled') {
-            addToast('El proceso de pago fue cancelado.', 'info');
-            searchParams.delete('payment');
-            searchParams.delete('invoice_id');
-            searchParams.delete('item');
-            setSearchParams(searchParams, { replace: true });
         }
     }, [searchParams, setSearchParams, addToast, upgradePlan, purchaseCredits, markInvoiceAsPaid]);
 
@@ -146,7 +151,26 @@ function App() {
     const { isAuthenticated, checkInvoiceStatuses, initializeAuth } = useAppStore();
 
     useEffect(() => {
+        // Inicialización robusta con escucha de eventos de Auth
         initializeAuth();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log(`Auth event: ${event}`);
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                initializeAuth();
+            } else if (event === 'SIGNED_OUT') {
+                // El store gestiona el logout internamente
+            }
+        });
+
+        // Debug de errores en URL (OAuth Callback)
+        const params = new URLSearchParams(window.location.search);
+        const error = params.get('error_description') || params.get('error');
+        if (error) {
+            console.error("Supabase Auth URL Error:", error);
+        }
+
+        return () => subscription.unsubscribe();
     }, [initializeAuth]);
 
     useEffect(() => {
@@ -194,7 +218,6 @@ function App() {
                         <Route path="reports/profitability" element={<ProfitabilityReportPage />} />
                         <Route path="tax-ledger" element={<TaxLedgerPage />} />
                         <Route path="ai-assistant" element={<AIAssistantPage />} />
-
                         <Route path="job-market" element={<JobMarketDashboard />} />
                         <Route path="job-market/:jobId" element={<JobDetailPage />} />
                         <Route path="post-job" element={<JobPostForm />} />
@@ -203,19 +226,16 @@ function App() {
                         <Route path="public-profile" element={<PublicProfilePage />} />
                         <Route path="my-applications" element={<MyApplicationsPage />} />
                         <Route path="saved-jobs" element={<SavedJobsPage />} />
-
                         <Route path="team" element={<TeamManagementDashboard />} />
                         <Route path="my-timesheet" element={<MyTeamTimesheet />} />
                         <Route path="knowledge-base" element={<KnowledgeBase />} />
                         <Route path="roles" element={<RoleManagement />} />
-                        
                         <Route path="integrations" element={<IntegrationsManager />} />
                         <Route path="forecasting" element={<ForecastingPage />} />
                         <Route path="affiliate" element={<AffiliateProgramPage />} />
                         <Route path="billing" element={<BillingPage />} />
                         <Route path="settings" element={<SettingsPage />} />
-                        
-                        <Route path="*" element={<Navigate to="/" />} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
                     </Route>
                 </Routes>
             </BrowserRouter>
