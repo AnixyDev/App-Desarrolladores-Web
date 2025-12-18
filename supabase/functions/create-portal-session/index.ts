@@ -1,13 +1,6 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno'
-
-declare const Deno: any;
-
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') as string, {
-  apiVersion: '2022-11-15',
-  httpClient: Stripe.createFetchHttpClient(),
-})
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import Stripe from 'https://esm.sh/stripe@13.10.0?target=deno'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,11 +8,13 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
+      apiVersion: '2022-11-15',
+    })
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -27,10 +22,9 @@ serve(async (req) => {
     )
 
     const { data: { user } } = await supabaseClient.auth.getUser()
-    if (!user) throw new Error('Usuario no autenticado')
+    if (!user) throw new Error('No autenticado')
 
-    const { return_url } = await req.json()
-
+    // Obtener el stripe_customer_id del perfil
     const { data: profile } = await supabaseClient
       .from('profiles')
       .select('stripe_customer_id')
@@ -38,19 +32,26 @@ serve(async (req) => {
       .single()
 
     if (!profile?.stripe_customer_id) {
-      throw new Error('No se encontró un cliente de Stripe asociado a este usuario.')
+      throw new Error('El usuario no tiene un historial de pagos activo.')
     }
 
-    // Usamos el return_url dinámico enviado por el cliente
+    // Crear la sesión del portal
     const session = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
-      return_url: return_url || `${req.headers.get('origin')}/#/billing`, 
+      return_url: 'https://devfreelancer.app/billing',
     })
 
     return new Response(JSON.stringify({ url: session.url }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
-
+  } catch (error: any) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+})
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
