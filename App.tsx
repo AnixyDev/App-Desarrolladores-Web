@@ -110,7 +110,7 @@ const PrivateRoute = () => {
 const AdminRoute = () => {
     const { isAuthenticated, profile } = useAppStore();
     // Verificamos si es Admin. El store mapea el rol desde la tabla profiles de Supabase.
-    const isAdmin = profile?.role === 'Admin';
+    const isAdmin = profile?.role === '@dmin';
     
     if (!isAuthenticated) return <Navigate to="/auth/login" replace />;
     if (!isAdmin) return <Navigate to="/" replace />;
@@ -133,7 +133,7 @@ const MainLayout = () => {
                         <div className="flex justify-center gap-6 text-sm text-gray-500">
                              <Link to="/politica-de-privacidad" className="hover:text-gray-300">Privacidad</Link>
                              <Link to="/condiciones-de-servicio" className="hover:text-gray-300">Condiciones</Link>
-                             <span>© 2024 DevFreelancer</span>
+                             <span>© 2025 DevFreelancer</span>
                         </div>
                     </footer>
                 </main>
@@ -202,7 +202,7 @@ function App() {
                         <Route path="settings" element={<SettingsPage />} />
 
                         {/* Admin Dashboard Protected Route */}
-                        <Route path="admin" element={<AdminRoute />}>
+                        <Route path="@dmin" element={<AdminRoute />}>
                             <Route index element={<AdminDashboard />} />
                         </Route>
                     </Route>
