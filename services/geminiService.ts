@@ -16,7 +16,8 @@ REGLAS DE ORO DE RESPUESTA:
 // 1. Unificamos los costes de créditos
 export const AI_CREDIT_COSTS = {
     chatMessage: 1,
-    generateProposal: 2 // Añadido para que ProposalsPage lo encuentre
+    generateProposal: 2, // Añadido para que ProposalsPage lo encuentre
+    enhanceTimeEntry: 1  // <--- AÑADE ESTA LÍNEA
 };
 
 /**
@@ -70,5 +71,31 @@ export const generateProposalText = async (title: string, context: string, profi
   } catch (error) {
     console.error("Error en Gemini Service (generateProposalText):", error);
     throw new Error("No se pudo generar la propuesta.");
+  }
+};
+/**
+ * Genera una descripción profesional para una entrada de tiempo
+ */
+export const generateTimeEntryDescription = async (taskName: string, notes: string): Promise<string> => {
+  try {
+    const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        systemInstruction: "Eres un asistente experto en productividad para freelancers."
+    });
+
+    const prompt = `
+      Crea una descripción profesional y concisa para un registro de tiempo.
+      Tarea: ${taskName}
+      Notas adicionales: ${notes}
+      
+      La respuesta debe ser una sola frase profesional que resuma el trabajo realizado.
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text().trim();
+  } catch (error) {
+    console.error("Error en generateTimeEntryDescription:", error);
+    return taskName; // Fallback: devolvemos el nombre de la tarea si falla
   }
 };
