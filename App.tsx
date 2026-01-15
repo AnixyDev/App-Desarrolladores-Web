@@ -69,31 +69,10 @@ const PortalDashboardPage = safeLazy(() => import('./pages/portal/PortalDashboar
 const PortalInvoiceViewPage = safeLazy(() => import('./pages/portal/PortalInvoiceViewPage'));
 
 const LoadingFallback = () => (
-    <div className="flex h-full w-full min-h-[400px] items-center justify-center">
-        <div className="w-10 h-10 border-[3px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
+    <div className="flex h-screen w-full items-center justify-center bg-gray-950">
+        <div className="w-12 h-12 border-[3px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
     </div>
 );
-
-const AuthListener = () => {
-    const { refreshProfile, isProfileLoading } = useAppStore();
-    const navigate = useNavigate();
-    const location = useLocation();
-
-    useEffect(() => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (session && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
-                if (!isProfileLoading) await refreshProfile();
-            } else if (event === 'SIGNED_OUT') {
-                if (!location.pathname.includes('/auth/') && !location.pathname.includes('/portal/')) {
-                    navigate('/auth/login', { replace: true });
-                }
-            }
-        });
-        return () => subscription.unsubscribe();
-    }, [refreshProfile, navigate, location.pathname, isProfileLoading]);
-
-    return null;
-};
 
 const MainLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -103,7 +82,7 @@ const MainLayout = () => {
             <div className="flex-1 flex flex-col min-w-0">
                 <Header setSidebarOpen={setSidebarOpen} />
                 <main className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-8 animate-fade-in">
-                    <Suspense fallback={<LoadingFallback />}>
+                    <Suspense fallback={<div className="flex justify-center py-10"><div className="w-8 h-8 border-2 border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div></div>}>
                         <Outlet />
                     </Suspense>
                 </main>
@@ -119,33 +98,32 @@ function App() {
         initializeAuth();
     }, [initializeAuth]);
 
-    if (isProfileLoading) return (
-        <div className="flex h-screen w-full items-center justify-center bg-gray-950">
-            <div className="w-12 h-12 border-[3px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
-        </div>
-    );
+    if (isProfileLoading) return <LoadingFallback />;
 
     return (
         <GoogleOAuthProvider clientId="457438236235-n2s8q6nvcjm32u0o3ut2lksd8po8gfqf.apps.googleusercontent.com">
             <Router>
-                <AuthListener />
                 <ToastContainer />
                 <CookieBanner />
                 <Routes>
+                    {/* Public Routes */}
                     <Route path="/auth" element={<AuthLayout />}>
                         <Route path="login" element={<LoginPage />} />
                         <Route path="register" element={<RegisterPage />} />
                     </Route>
                     
+                    {/* Portal Routes */}
                     <Route path="/portal" element={<Suspense fallback={<LoadingFallback />}><PortalLayout /></Suspense>}>
                         <Route path="login" element={<PortalLoginPage />} />
                         <Route path="dashboard/:clientId" element={<PortalDashboardPage />} />
                         <Route path="invoice/:invoiceId" element={<PortalInvoiceViewPage />} />
                     </Route>
 
+                    {/* Legal Routes */}
                     <Route path="/politica-de-privacidad" element={<PrivacyPolicyPage />} />
                     <Route path="/condiciones-de-servicio" element={<TermsOfService />} />
                     
+                    {/* Protected Private Routes */}
                     <Route path="/" element={isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" replace />}>
                         <Route index element={<DashboardPage />} />
                         <Route path="clients" element={<ClientsPage />} />

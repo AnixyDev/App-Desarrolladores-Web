@@ -32,7 +32,6 @@ export interface AuthSlice {
   isProfileLoading: boolean; 
   profile: Profile;
   login: (email: string, password?: string) => Promise<boolean>;
-  // FIX: Added missing loginWithGoogle to interface
   loginWithGoogle: (payload: GoogleJwtPayload) => Promise<void>;
   logout: () => Promise<void>;
   register: (name: string, email: string, password?: string) => Promise<boolean>;
@@ -50,13 +49,11 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
     profile: initialProfile,
     
     refreshProfile: async () => {
-        set({ isProfileLoading: true });
-        
         try {
             const { data: { session } } = await supabase.auth.getSession();
             
             if (!session?.user) {
-                set({ isAuthenticated: false, profile: initialProfile });
+                set({ isAuthenticated: false, profile: initialProfile, isProfileLoading: false });
                 return;
             }
 
@@ -64,38 +61,36 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
                 .from('profiles')
                 .select('*')
                 .eq('id', session.user.id)
-                .single();
+                .maybeSingle(); // Usamos maybeSingle para evitar errores si no existe
             
             if (fetchError || !profileData) {
+                // Si el perfil no existe en la tabla de BD pero sí en Auth, lo creamos
                 const fallbackProfile = {
                     id: session.user.id,
                     email: session.user.email || '',
                     full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Usuario',
                     plan: 'Free',
                     role: 'Developer',
-                    ai_credits: 10
+                    ai_credits: 10,
+                    avatar_url: session.user.user_metadata?.avatar_url || ''
                 };
 
-                // Intento de Upsert silencioso
                 const { data: newProfile, error: upsertError } = await supabase
                     .from('profiles')
-                    .upsert(fallbackProfile)
+                    .upsert(fallbackProfile, { onConflict: 'id' })
                     .select()
                     .single();
 
                 if (!upsertError && newProfile) {
                     set({ profile: newProfile as Profile, isAuthenticated: true });
                 } else {
-                    // Fallback local absoluto para garantizar operatividad
                     set({ profile: { ...initialProfile, ...fallbackProfile } as Profile, isAuthenticated: true });
                 }
             } else {
                 set({ profile: profileData as Profile, isAuthenticated: true });
             }
         } catch (error) {
-            if (process.env.NODE_ENV === 'development') {
-                console.error("Auth context refresh error:", error);
-            }
+            console.error("RefreshProfile Error:", error);
         } finally {
             set({ isProfileLoading: false });
         }
@@ -104,30 +99,28 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
     initializeAuth: async () => {
         set({ isProfileLoading: true });
 
-        const safetyTimeout = setTimeout(() => {
-            if (get().isProfileLoading) {
-                set({ isProfileLoading: false });
-            }
-        }, 5000);
-
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
+        // Listener de Supabase para cambios de estado de autenticación globales
+        supabase.auth.onAuthStateChange(async (event, session) => {
+            if (session) {
                 await get().refreshProfile();
-                
-                // Prefetch de datos en paralelo
-                get().fetchClients().catch(() => null);
-                get().fetchProjects().catch(() => null);
-                get().fetchTasks().catch(() => null);
-                get().fetchTimeEntries().catch(() => null);
-                get().fetchFinanceData().catch(() => null);
             } else {
-                set({ isAuthenticated: false });
+                set({ isAuthenticated: false, profile: initialProfile, isProfileLoading: false });
             }
-        } catch (error) {
-            // Silencioso en producción
-        } finally {
-            clearTimeout(safetyTimeout);
+        });
+
+        // Verificación inicial
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            await get().refreshProfile();
+            // Cargar datos del usuario
+            Promise.all([
+                get().fetchClients(),
+                get().fetchProjects(),
+                get().fetchTasks(),
+                get().fetchTimeEntries(),
+                get().fetchFinanceData()
+            ]).catch(console.error);
+        } else {
             set({ isProfileLoading: false });
         }
     },
@@ -142,27 +135,17 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
                 return true;
             }
         } catch (error: any) {
-            console.error("Auth: sign_in_error", error.message);
+            console.error("Login Error:", error.message);
         } finally {
             set({ isProfileLoading: false });
         }
         return false;
     },
 
-    // FIX: Added missing implementation for loginWithGoogle
     loginWithGoogle: async (payload) => {
-        set({ isProfileLoading: true });
-        try {
-            // Since the OAuth callback usually handles the session automatically via Supabase Auth listener,
-            // this manual update is primarily for cases where we decode a JWT directly (like one-tap/button).
-            // In a mock/simulated environment or manual JWT flow:
-            await get().refreshProfile();
-            set({ isAuthenticated: true });
-        } catch (error) {
-            console.error("Auth: google_login_error", error);
-        } finally {
-            set({ isProfileLoading: false });
-        }
+        // La lógica real de Google OAuth es manejada por el redireccionamiento de Supabase
+        // Este método se mantiene por compatibilidad de interfaz
+        await get().refreshProfile();
     },
 
     logout: async () => {
@@ -170,6 +153,7 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
             await supabase.auth.signOut();
         } finally {
             set({ isAuthenticated: false, profile: initialProfile, isProfileLoading: false });
+            localStorage.clear(); // Limpiar caché para evitar conflictos de plan
         }
     },
 
@@ -188,11 +172,22 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
 
     updateProfile: async (profileData) => {
         const { profile } = get();
-        if (profile.id) {
-            const { error } = await supabase.from('profiles').update(profileData).eq('id', profile.id);
-            if (!error) {
-                set(state => ({ profile: { ...state.profile, ...profileData } as Profile }));
-            }
+        if (!profile.id) return;
+        
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update(profileData)
+                .eq('id', profile.id);
+
+            if (error) throw error;
+            
+            set(state => ({ 
+                profile: { ...state.profile, ...profileData } as Profile 
+            }));
+        } catch (err) {
+            console.error("Error updating profile:", err);
+            throw err;
         }
     },
 
