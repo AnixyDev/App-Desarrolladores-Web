@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+// Usamos import.meta.env para Vite o process.env para Next.js según tu config
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 const SYSTEM_INSTRUCTION = `
@@ -12,10 +13,15 @@ REGLAS DE ORO DE RESPUESTA:
 3. ENFOQUE EN VALOR: Cada respuesta debe concluir con "> **Consejo Estratégico Pro:**".
 4. CONTEXTO: Ayudas en la gestión de clientes, proyectos, facturas y gastos dentro de DevFreelancer.app.`;
 
+// 1. Unificamos los costes de créditos
 export const AI_CREDIT_COSTS = {
-    chatMessage: 1
+    chatMessage: 1,
+    generateProposal: 2 // Añadido para que ProposalsPage lo encuentre
 };
 
+/**
+ * Chat general con el "Estratega"
+ */
 export const getAIResponse = async (prompt: string, history: any[] = []) => {
   try {
     const model = genAI.getGenerativeModel({ 
@@ -33,7 +39,36 @@ export const getAIResponse = async (prompt: string, history: any[] = []) => {
     const result = await chat.sendMessage(prompt);
     return result.response; 
   } catch (error) {
-    console.error("Error en Gemini Service:", error);
+    console.error("Error en Gemini Service (getAIResponse):", error);
     throw error;
+  }
+};
+
+/**
+ * 2. FUNCIÓN EXPORTADA QUE FALTABA: Generación de Propuestas
+ */
+export const generateProposalText = async (title: string, context: string, profileSummary: string): Promise<string> => {
+  try {
+    const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        systemInstruction: "Eres un experto en redactar propuestas comerciales persuasivas para freelancers."
+    });
+
+    const prompt = `
+      Genera una propuesta profesional detallada:
+      
+      PROYECTO: ${title}
+      CONTEXTO ADICIONAL: ${context}
+      MI PERFIL: ${profileSummary}
+      
+      Escribe una propuesta con estructura clara: Introducción, Análisis de Necesidades, Solución Propuesta y Cierre. Usa un tono que inspire confianza.
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error("Error en Gemini Service (generateProposalText):", error);
+    throw new Error("No se pudo generar la propuesta.");
   }
 };
