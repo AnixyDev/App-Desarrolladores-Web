@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { HashRouter, Routes, Route, Navigate, Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAppStore } from './hooks/useAppStore';
 import { supabase } from './lib/supabaseClient';
@@ -9,25 +9,29 @@ import Header from './components/layout/Header';
 import ToastContainer from './components/ui/Toast';
 import CookieBanner from './components/ui/CookieBanner';
 
-// Auth & Public (Importación directa para máxima estabilidad)
+// Auth & Public (Importación directa para evitar lazy en rutas críticas)
 import AuthLayout from './pages/auth/AuthLayout';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfService from './pages/TermsOfService';
 
-// --- Cargador robusto para componentes Lazy ---
-// Esta función intenta recargar la página una vez si falla la descarga del archivo JS
+/**
+ * Cargador Robusto: Si un "chunk" (fragmento de código) falla al descargar 
+ * (común tras un deploy), forzamos una recarga limpia del navegador.
+ */
 const safeLazy = (importFn: () => Promise<any>) => {
   return lazy(async () => {
     try {
       return await importFn();
     } catch (error) {
-      console.error("Error cargando el módulo, reintentando...", error);
-      // Solo reintenta una vez para evitar bucles infinitos
-      const hasRetried = window.sessionStorage.getItem('retry-' + importFn.toString());
+      console.error("Fallo crítico de carga de módulo. Reintentando...", error);
+      // Evitamos bucles infinitos usando un flag en sessionStorage
+      const storageKey = 'retry-lazy-' + importFn.toString().slice(0, 50);
+      const hasRetried = window.sessionStorage.getItem(storageKey);
+      
       if (!hasRetried) {
-        window.sessionStorage.setItem('retry-' + importFn.toString(), 'true');
+        window.sessionStorage.setItem(storageKey, 'true');
         window.location.reload();
       }
       throw error;
@@ -35,7 +39,7 @@ const safeLazy = (importFn: () => Promise<any>) => {
   });
 };
 
-// Lazy Loaded Components con el cargador seguro
+// Lazy Loaded Components
 const DashboardPage = safeLazy(() => import('./pages/DashboardPage'));
 const ClientsPage = safeLazy(() => import('./pages/ClientsPage'));
 const ClientDetailPage = safeLazy(() => import('./pages/ClientDetailPage'));
@@ -79,16 +83,14 @@ const LoadingFallback = () => (
     <div className="flex h-full w-full min-h-[400px] items-center justify-center">
         <div className="relative flex flex-col items-center">
             <div className="w-12 h-12 border-[3px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
-            <p className="mt-4 text-xs font-bold uppercase tracking-widest text-gray-500">Cargando módulo...</p>
+            <p className="mt-4 text-xs font-bold uppercase tracking-widest text-gray-500">Cargando...</p>
         </div>
     </div>
 );
 
 const FullPageLoader = () => (
     <div className="flex h-screen w-full items-center justify-center bg-gray-950">
-        <div className="relative flex flex-col items-center">
-            <div className="w-16 h-16 border-[3px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
-        </div>
+        <div className="w-16 h-16 border-[3px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
     </div>
 );
 
@@ -102,9 +104,6 @@ const AuthListener = () => {
             if (session && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
                 if (!isProfileLoading) {
                     await refreshProfile();
-                    if (location.pathname.startsWith('/auth/')) {
-                        navigate('/', { replace: true });
-                    }
                 }
             } else if (event === 'SIGNED_OUT') {
                 if (!location.pathname.startsWith('/auth/') && !location.pathname.startsWith('/portal/')) {
@@ -120,12 +119,20 @@ const AuthListener = () => {
 
 const MainLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const location = useLocation();
+
+    // Scroll al principio en cada cambio de ruta
+    useEffect(() => {
+        const mainContent = document.getElementById('main-content');
+        if (mainContent) mainContent.scrollTo(0, 0);
+    }, [location.pathname]);
+
     return (
         <div className="flex h-screen bg-gray-950 text-gray-100 overflow-hidden font-sans selection:bg-primary-500/30">
             <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
             <div className="flex-1 flex flex-col min-w-0">
                 <Header setSidebarOpen={setSidebarOpen} />
-                <main className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-8 animate-fade-in">
+                <main id="main-content" className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-8 animate-fade-in">
                     <Suspense fallback={<LoadingFallback />}>
                         <Outlet />
                     </Suspense>
@@ -146,12 +153,11 @@ function App() {
 
     return (
         <GoogleOAuthProvider clientId="457438236235-n2s8q6nvcjm32u0o3ut2lksd8po8gfqf.apps.googleusercontent.com">
-            <HashRouter>
+            <BrowserRouter>
                 <AuthListener />
                 <ToastContainer />
                 <CookieBanner />
                 <Routes>
-                    {/* Public Routes */}
                     <Route path="/auth" element={<AuthLayout />}>
                         <Route path="login" element={<LoginPage />} />
                         <Route path="register" element={<RegisterPage />} />
@@ -166,7 +172,6 @@ function App() {
                     <Route path="/politica-de-privacidad" element={<PrivacyPolicyPage />} />
                     <Route path="/condiciones-de-servicio" element={<TermsOfService />} />
                     
-                    {/* Protected Routes Area */}
                     <Route path="/" element={isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" replace />}>
                         <Route index element={<DashboardPage />} />
                         <Route path="clients" element={<ClientsPage />} />
@@ -203,10 +208,9 @@ function App() {
                         <Route path="admin" element={<AdminDashboard />} />
                     </Route>
 
-                    {/* Catch all */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
-            </HashRouter>
+            </BrowserRouter>
         </GoogleOAuthProvider>
     );
 }

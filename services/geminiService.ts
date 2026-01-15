@@ -1,8 +1,26 @@
+
 import { GoogleGenAI, GenerateContentResponse, Type, FunctionDeclaration } from "@google/genai";
 
-// Se inicializa el cliente utilizando exclusivamente process.env.API_KEY según las directrices.
-// FIX: Strictly followed initialization guideline.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Función para obtener la API KEY de forma segura en el navegador
+const getApiKey = () => {
+    // Intentar obtener de las variables inyectadas por el entorno de desarrollo/Aistudio
+    const key = (import.meta as any).env?.VITE_GEMINI_API_KEY || (process as any).env?.API_KEY || "";
+    return key;
+};
+
+// Inicialización perezosa (Lazy initialization) para evitar errores de carga de módulo
+let aiInstance: GoogleGenAI | null = null;
+
+const getAiInstance = () => {
+    if (!aiInstance) {
+        const apiKey = getApiKey();
+        if (!apiKey) {
+            console.error("CRITICAL: Gemini API Key not found in environment variables.");
+        }
+        aiInstance = new GoogleGenAI({ apiKey });
+    }
+    return aiInstance;
+};
 
 export const AI_CREDIT_COSTS = {
     generateProposal: 5,
@@ -41,30 +59,29 @@ export const getAIResponse = async (
     history: { role: string, parts: any }[],
     tools?: FunctionDeclaration[]
 ): Promise<GenerateContentResponse> => {
+    const ai = getAiInstance();
     
-    // Utilizamos gemini-3-pro-preview para garantizar la máxima calidad de razonamiento
     return await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
         contents: [...history, { role: 'user', parts: [{ text: prompt }] }] as any,
         config: {
             systemInstruction: SYSTEM_INSTRUCTION,
             tools: tools ? [{ functionDeclarations: tools }] : undefined,
-            temperature: 0.8, // Permite creatividad estratégica pero mantiene rigor técnico
+            temperature: 0.8,
             topP: 0.9,
             maxOutputTokens: 2000,
         }
     });
 };
 
-// ... Funciones de conveniencia para otras partes de la app ...
 export const generateProposalText = async (jobTitle: string, jobDescription: string, userProfile: string): Promise<string> => {
     const prompt = `Genera una propuesta comercial persuasiva. Puesto: ${jobTitle}. Contexto: ${jobDescription}. Mi perfil: ${userProfile}`;
     const response = await getAIResponse(prompt, []);
     return response.text || '';
 };
 
-// FIX: Added missing refineProposalText export.
 export const refineProposalText = async (text: string, tone: 'formal' | 'conciso' | 'entusiasta'): Promise<string> => {
+    const ai = getAiInstance();
     const prompt = `Refina el siguiente texto de propuesta comercial manteniendo su significado pero cambiando el tono a: ${tone}.
     Texto: ${text}`;
     
@@ -82,6 +99,7 @@ export const analyzeProfitability = async (data: any) => {
 };
 
 export const generateItemsForDocument = async (prompt: string, hourlyRate: number) => {
+    const ai = getAiInstance();
     const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `Genera conceptos de factura detallados para: ${prompt}. Mi tarifa es ${hourlyRate/100}€/h`,
@@ -91,6 +109,7 @@ export const generateItemsForDocument = async (prompt: string, hourlyRate: numbe
 };
 
 export const summarizeApplicant = async (jobDesc: string, applicantProf: string, proposal: string): Promise<any> => {
+    const ai = getAiInstance();
     const prompt = `Evalúa este candidato para el proyecto: ${jobDesc}. Perfil: ${applicantProf}. Propuesta: ${proposal}`;
     const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -111,8 +130,8 @@ export const summarizeApplicant = async (jobDesc: string, applicantProf: string,
     return JSON.parse(response.text || '{}');
 };
 
-// FIX: Added missing generateTimeEntryDescription export.
 export const generateTimeEntryDescription = async (projectName: string, projectDesc: string, keywords: string): Promise<string> => {
+    const ai = getAiInstance();
     const prompt = `Genera una descripción profesional y concisa (máximo 15 palabras) para una entrada de tiempo de trabajo. 
     Proyecto: ${projectName}. 
     Descripción del proyecto: ${projectDesc}. 
@@ -125,8 +144,8 @@ export const generateTimeEntryDescription = async (projectName: string, projectD
     return response.text || '';
 };
 
-// FIX: Added missing rankArticlesByRelevance export.
 export const rankArticlesByRelevance = async (query: string, articles: any[]): Promise<string[]> => {
+    const ai = getAiInstance();
     const articlesContext = articles.map(a => ({ id: a.id, title: a.title, content: a.content.substring(0, 200) }));
     const prompt = `Dada la siguiente consulta de búsqueda: "${query}", ordena los IDs de los artículos por relevancia semántica. Devuelve solo un array de IDs.
     Artículos: ${JSON.stringify(articlesContext)}`;
@@ -145,8 +164,8 @@ export const rankArticlesByRelevance = async (query: string, articles: any[]): P
     return JSON.parse(response.text || '[]');
 };
 
-// FIX: Added missing generateFinancialForecast export.
 export const generateFinancialForecast = async (data: any[]): Promise<any> => {
+    const ai = getAiInstance();
     const prompt = `Analiza la siguiente previsión de flujo de caja para los próximos 6 meses y proporciona un diagnóstico estratégico.
     Datos (en EUR): ${JSON.stringify(data)}`;
     
