@@ -16,7 +16,7 @@ import RegisterPage from './pages/auth/RegisterPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfService from './pages/TermsOfService';
 
-// Lazy Loaded Components
+// Lazy Loaded Components - Definición robusta para evitar fallos de carga
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ClientsPage = lazy(() => import('./pages/ClientsPage'));
 const ClientDetailPage = lazy(() => import('./pages/ClientDetailPage'));
@@ -56,11 +56,21 @@ const PortalLoginPage = lazy(() => import('./pages/portal/PortalLoginPage'));
 const PortalDashboardPage = lazy(() => import('./pages/portal/PortalDashboardPage'));
 const PortalInvoiceViewPage = lazy(() => import('./pages/portal/PortalInvoiceViewPage'));
 
+// Spinner Premium de alta fidelidad para transiciones de página
 const LoadingFallback = () => (
+    <div className="flex h-full w-full min-h-[400px] items-center justify-center">
+        <div className="relative flex flex-col items-center">
+            <div className="w-12 h-12 border-[3px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
+            <p className="mt-4 text-xs font-bold uppercase tracking-widest text-gray-500 animate-pulse">Cargando Módulo...</p>
+        </div>
+    </div>
+);
+
+const FullPageLoader = () => (
     <div className="flex h-screen w-full items-center justify-center bg-gray-950">
         <div className="relative flex flex-col items-center">
-            <div className="w-8 h-8 border-[2px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
-            <div className="absolute top-0 w-8 h-8 border-[2px] border-transparent border-b-purple-500 rounded-full animate-spin-slow"></div>
+            <div className="w-16 h-16 border-[3px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
+            <div className="absolute top-0 w-16 h-16 border-[3px] border-transparent border-b-purple-500 rounded-full animate-spin-slow"></div>
         </div>
     </div>
 );
@@ -73,7 +83,6 @@ const AuthListener = () => {
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (session && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
-                // Solo refrescar si no estamos ya cargando para evitar bucles
                 if (!isProfileLoading) {
                     await refreshProfile();
                     if (location.pathname.startsWith('/auth/')) {
@@ -94,13 +103,15 @@ const AuthListener = () => {
 
 const PrivateRoute = () => {
     const { isAuthenticated, isProfileLoading } = useAppStore();
-    if (isProfileLoading) return <LoadingFallback />;
+    
+    if (isProfileLoading) return <FullPageLoader />;
+    
     return isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" state={{ from: useLocation() }} replace />;
 };
 
 const AdminRoute = () => {
     const { isAuthenticated, profile, isProfileLoading } = useAppStore();
-    if (isProfileLoading) return <LoadingFallback />;
+    if (isProfileLoading) return <FullPageLoader />;
     
     const isAdmin = profile?.role?.toLowerCase() === 'admin';
     if (!isAuthenticated) return <Navigate to="/auth/login" replace />;
@@ -117,6 +128,7 @@ const MainLayout = () => {
             <div className="flex-1 flex flex-col min-w-0">
                 <Header setSidebarOpen={setSidebarOpen} />
                 <main className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-8 animate-fade-in">
+                    {/* El Suspense aquí es CLAVE: Maneja la carga de los componentes lazy dentro del layout */}
                     <Suspense fallback={<LoadingFallback />}>
                         <Outlet />
                     </Suspense>
@@ -151,14 +163,17 @@ function App() {
                         <Route path="login" element={<LoginPage />} />
                         <Route path="register" element={<RegisterPage />} />
                     </Route>
-                    <Route path="/portal" element={<PortalLayout />}>
+                    
+                    <Route path="/portal" element={<Suspense fallback={<FullPageLoader />}><PortalLayout /></Suspense>}>
                         <Route path="login" element={<PortalLoginPage />} />
                         <Route path="dashboard/:clientId" element={<PortalDashboardPage />} />
                         <Route path="invoice/:invoiceId" element={<PortalInvoiceViewPage />} />
                     </Route>
+
                     <Route path="/politica-de-privacidad" element={<PrivacyPolicyPage />} />
                     <Route path="/condiciones-de-servicio" element={<TermsOfService />} />
                     
+                    {/* Todas las rutas privadas se cargan bajo este wrapper */}
                     <Route path="/" element={<PrivateRoute />}>
                         <Route index element={<DashboardPage />} />
                         <Route path="clients" element={<ClientsPage />} />
