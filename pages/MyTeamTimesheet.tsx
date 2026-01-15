@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Clock, CheckCircle, ListTodo, Calendar, Pause, Play, Plus, GitBranch } from 'lucide-react';
-import { useAppStore } from '../hooks/useAppStore.tsx';
-import { useToast } from '../hooks/useToast.ts';
-import { TimeEntry, Task } from '../types.ts';
-
+import { useAppStore } from '../hooks/useAppStore';
+import { useToast } from '../hooks/useToast';
+import { TimeEntry, Task } from '../types';
 
 interface ManualEntry {
     project_id: string;
@@ -31,7 +30,6 @@ const MyTeamTimesheet: React.FC = () => {
   const [manualEntry, setManualEntry] = useState<ManualEntry>(initialManualEntry);
   
   const relevantTasks = useMemo(() => {
-    // En una app real, aquí se filtrarían las tareas asignadas al usuario actual
     return tasks;
   }, [tasks]);
 
