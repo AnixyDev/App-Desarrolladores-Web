@@ -9,59 +9,77 @@ import Header from './components/layout/Header';
 import ToastContainer from './components/ui/Toast';
 import CookieBanner from './components/ui/CookieBanner';
 
-// Auth & Public
+// Auth & Public (Importación directa para máxima estabilidad)
 import AuthLayout from './pages/auth/AuthLayout';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfService from './pages/TermsOfService';
 
-// Lazy Loaded Components - Definición robusta para evitar fallos de carga
-const DashboardPage = lazy(() => import('./pages/DashboardPage'));
-const ClientsPage = lazy(() => import('./pages/ClientsPage'));
-const ClientDetailPage = lazy(() => import('./pages/ClientDetailPage'));
-const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
-const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'));
-const InvoicesPage = lazy(() => import('./pages/InvoicesPage'));
-const CreateInvoicePage = lazy(() => import('./pages/CreateInvoicePage'));
-const ExpensesPage = lazy(() => import('./pages/ExpensesPage'));
-const BudgetsPage = lazy(() => import('./pages/BudgetsPage'));
-const ProposalsPage = lazy(() => import('./pages/ProposalsPage'));
-const ContractsPage = lazy(() => import('./pages/ContractsPage'));
-const TimeTrackingPage = lazy(() => import('./pages/TimeTrackingPage'));
-const ReportsPage = lazy(() => import('./pages/ReportsPage'));
-const ProfitabilityReportPage = lazy(() => import('./pages/ProfitabilityReportPage'));
-const TaxLedgerPage = lazy(() => import('./pages/TaxLedgerPage'));
-const AIAssistantPage = lazy(() => import('./pages/AIAssistantPage'));
-const JobMarketDashboard = lazy(() => import('./pages/JobMarketDashboard'));
-const JobDetailPage = lazy(() => import('./pages/JobDetailPage'));
-const JobPostForm = lazy(() => import('./pages/JobPostForm'));
-const MyJobPostsPage = lazy(() => import('./pages/MyJobPostsPage'));
-const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
-const MyApplicationsPage = lazy(() => import('./pages/MyApplicationsPage'));
-const SavedJobsPage = lazy(() => import('./pages/SavedJobsPage'));
-const TeamManagementDashboard = lazy(() => import('./pages/TeamManagementDashboard'));
-const MyTeamTimesheet = lazy(() => import('./pages/MyTeamTimesheet'));
-const KnowledgeBase = lazy(() => import('./pages/KnowledgeBase'));
-const RoleManagement = lazy(() => import('./pages/RoleManagement'));
-const IntegrationsManager = lazy(() => import('./pages/IntegrationsManager'));
-const ForecastingPage = lazy(() => import('./pages/ForecastingPage'));
-const AffiliateProgramPage = lazy(() => import('./pages/AffiliateProgramPage'));
-const BillingPage = lazy(() => import('./pages/BillingPage'));
-const SettingsPage = lazy(() => import('./pages/SettingsPage'));
-const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+// --- Cargador robusto para componentes Lazy ---
+// Esta función intenta recargar la página una vez si falla la descarga del archivo JS
+const safeLazy = (importFn: () => Promise<any>) => {
+  return lazy(async () => {
+    try {
+      return await importFn();
+    } catch (error) {
+      console.error("Error cargando el módulo, reintentando...", error);
+      // Solo reintenta una vez para evitar bucles infinitos
+      const hasRetried = window.sessionStorage.getItem('retry-' + importFn.toString());
+      if (!hasRetried) {
+        window.sessionStorage.setItem('retry-' + importFn.toString(), 'true');
+        window.location.reload();
+      }
+      throw error;
+    }
+  });
+};
 
-const PortalLayout = lazy(() => import('./pages/portal/PortalLayout'));
-const PortalLoginPage = lazy(() => import('./pages/portal/PortalLoginPage'));
-const PortalDashboardPage = lazy(() => import('./pages/portal/PortalDashboardPage'));
-const PortalInvoiceViewPage = lazy(() => import('./pages/portal/PortalInvoiceViewPage'));
+// Lazy Loaded Components con el cargador seguro
+const DashboardPage = safeLazy(() => import('./pages/DashboardPage'));
+const ClientsPage = safeLazy(() => import('./pages/ClientsPage'));
+const ClientDetailPage = safeLazy(() => import('./pages/ClientDetailPage'));
+const ProjectsPage = safeLazy(() => import('./pages/ProjectsPage'));
+const ProjectDetailPage = safeLazy(() => import('./pages/ProjectDetailPage'));
+const InvoicesPage = safeLazy(() => import('./pages/InvoicesPage'));
+const CreateInvoicePage = safeLazy(() => import('./pages/CreateInvoicePage'));
+const ExpensesPage = safeLazy(() => import('./pages/ExpensesPage'));
+const BudgetsPage = safeLazy(() => import('./pages/BudgetsPage'));
+const ProposalsPage = safeLazy(() => import('./pages/ProposalsPage'));
+const ContractsPage = safeLazy(() => import('./pages/ContractsPage'));
+const TimeTrackingPage = safeLazy(() => import('./pages/TimeTrackingPage'));
+const ReportsPage = safeLazy(() => import('./pages/ReportsPage'));
+const ProfitabilityReportPage = safeLazy(() => import('./pages/ProfitabilityReportPage'));
+const TaxLedgerPage = safeLazy(() => import('./pages/TaxLedgerPage'));
+const AIAssistantPage = safeLazy(() => import('./pages/AIAssistantPage'));
+const JobMarketDashboard = safeLazy(() => import('./pages/JobMarketDashboard'));
+const JobDetailPage = safeLazy(() => import('./pages/JobDetailPage'));
+const JobPostForm = safeLazy(() => import('./pages/JobPostForm'));
+const MyJobPostsPage = safeLazy(() => import('./pages/MyJobPostsPage'));
+const PublicProfilePage = safeLazy(() => import('./pages/PublicProfilePage'));
+const MyApplicationsPage = safeLazy(() => import('./pages/MyApplicationsPage'));
+const SavedJobsPage = safeLazy(() => import('./pages/SavedJobsPage'));
+const TeamManagementDashboard = safeLazy(() => import('./pages/TeamManagementDashboard'));
+const MyTeamTimesheet = safeLazy(() => import('./pages/MyTeamTimesheet'));
+const KnowledgeBase = safeLazy(() => import('./pages/KnowledgeBase'));
+const RoleManagement = safeLazy(() => import('./pages/RoleManagement'));
+const IntegrationsManager = safeLazy(() => import('./pages/IntegrationsManager'));
+const ForecastingPage = safeLazy(() => import('./pages/ForecastingPage'));
+const AffiliateProgramPage = safeLazy(() => import('./pages/AffiliateProgramPage'));
+const BillingPage = safeLazy(() => import('./pages/BillingPage'));
+const SettingsPage = safeLazy(() => import('./pages/SettingsPage'));
+const AdminDashboard = safeLazy(() => import('./pages/AdminDashboard'));
 
-// Spinner Premium de alta fidelidad para transiciones de página
+const PortalLayout = safeLazy(() => import('./pages/portal/PortalLayout'));
+const PortalLoginPage = safeLazy(() => import('./pages/portal/PortalLoginPage'));
+const PortalDashboardPage = safeLazy(() => import('./pages/portal/PortalDashboardPage'));
+const PortalInvoiceViewPage = safeLazy(() => import('./pages/portal/PortalInvoiceViewPage'));
+
 const LoadingFallback = () => (
     <div className="flex h-full w-full min-h-[400px] items-center justify-center">
         <div className="relative flex flex-col items-center">
             <div className="w-12 h-12 border-[3px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
-            <p className="mt-4 text-xs font-bold uppercase tracking-widest text-gray-500 animate-pulse">Cargando Módulo...</p>
+            <p className="mt-4 text-xs font-bold uppercase tracking-widest text-gray-500">Cargando módulo...</p>
         </div>
     </div>
 );
@@ -70,7 +88,6 @@ const FullPageLoader = () => (
     <div className="flex h-screen w-full items-center justify-center bg-gray-950">
         <div className="relative flex flex-col items-center">
             <div className="w-16 h-16 border-[3px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
-            <div className="absolute top-0 w-16 h-16 border-[3px] border-transparent border-b-purple-500 rounded-full animate-spin-slow"></div>
         </div>
     </div>
 );
@@ -101,25 +118,6 @@ const AuthListener = () => {
     return null;
 };
 
-const PrivateRoute = () => {
-    const { isAuthenticated, isProfileLoading } = useAppStore();
-    
-    if (isProfileLoading) return <FullPageLoader />;
-    
-    return isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" state={{ from: useLocation() }} replace />;
-};
-
-const AdminRoute = () => {
-    const { isAuthenticated, profile, isProfileLoading } = useAppStore();
-    if (isProfileLoading) return <FullPageLoader />;
-    
-    const isAdmin = profile?.role?.toLowerCase() === 'admin';
-    if (!isAuthenticated) return <Navigate to="/auth/login" replace />;
-    if (!isAdmin) return <Navigate to="/" replace />;
-    
-    return <Outlet />;
-};
-
 const MainLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     return (
@@ -128,17 +126,9 @@ const MainLayout = () => {
             <div className="flex-1 flex flex-col min-w-0">
                 <Header setSidebarOpen={setSidebarOpen} />
                 <main className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-8 animate-fade-in">
-                    {/* El Suspense aquí es CLAVE: Maneja la carga de los componentes lazy dentro del layout */}
                     <Suspense fallback={<LoadingFallback />}>
                         <Outlet />
                     </Suspense>
-                    <footer className="mt-12 py-8 border-t border-gray-900/50 text-center">
-                        <div className="flex justify-center gap-8 text-[11px] font-bold uppercase tracking-widest text-gray-600">
-                             <Link to="/politica-de-privacidad" className="hover:text-primary-400 transition-colors">Privacidad</Link>
-                             <Link to="/condiciones-de-servicio" className="hover:text-primary-400 transition-colors">Condiciones</Link>
-                             <span className="cursor-default">© 2025 DevFreelancer</span>
-                        </div>
-                    </footer>
                 </main>
             </div>
         </div>
@@ -146,11 +136,13 @@ const MainLayout = () => {
 };
 
 function App() {
-    const { initializeAuth } = useAppStore();
+    const { initializeAuth, isAuthenticated, isProfileLoading } = useAppStore();
     
     useEffect(() => {
         initializeAuth();
     }, [initializeAuth]);
+
+    if (isProfileLoading) return <FullPageLoader />;
 
     return (
         <GoogleOAuthProvider clientId="457438236235-n2s8q6nvcjm32u0o3ut2lksd8po8gfqf.apps.googleusercontent.com">
@@ -159,6 +151,7 @@ function App() {
                 <ToastContainer />
                 <CookieBanner />
                 <Routes>
+                    {/* Public Routes */}
                     <Route path="/auth" element={<AuthLayout />}>
                         <Route path="login" element={<LoginPage />} />
                         <Route path="register" element={<RegisterPage />} />
@@ -173,8 +166,8 @@ function App() {
                     <Route path="/politica-de-privacidad" element={<PrivacyPolicyPage />} />
                     <Route path="/condiciones-de-servicio" element={<TermsOfService />} />
                     
-                    {/* Todas las rutas privadas se cargan bajo este wrapper */}
-                    <Route path="/" element={<PrivateRoute />}>
+                    {/* Protected Routes Area */}
+                    <Route path="/" element={isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" replace />}>
                         <Route index element={<DashboardPage />} />
                         <Route path="clients" element={<ClientsPage />} />
                         <Route path="clients/:clientId" element={<ClientDetailPage />} />
@@ -207,23 +200,13 @@ function App() {
                         <Route path="affiliate" element={<AffiliateProgramPage />} />
                         <Route path="billing" element={<BillingPage />} />
                         <Route path="settings" element={<SettingsPage />} />
-
-                        <Route path="admin" element={<AdminRoute />}>
-                            <Route index element={<AdminDashboard />} />
-                        </Route>
+                        <Route path="admin" element={<AdminDashboard />} />
                     </Route>
+
+                    {/* Catch all */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </HashRouter>
-            <style>{`
-                @keyframes spin-slow {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(-360deg); }
-                }
-                .animate-spin-slow {
-                    animation: spin-slow 2s linear infinite;
-                }
-            `}</style>
         </GoogleOAuthProvider>
     );
 }
