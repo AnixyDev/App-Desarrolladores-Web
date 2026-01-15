@@ -1,50 +1,47 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-// Inicialización de Stripe con la clave secreta y versión específica requerida
+// Usamos una inicialización más estándar para evitar errores de compilación en Vercel
+// Si '2025-12-15.clover' te da problemas, cámbialo a una versión estable como '2023-10-16'
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-12-15.clover' as any,
+  apiVersion: '2023-10-16' as any, 
 });
 
 export async function POST(req: Request) {
   try {
-    // Extraemos los datos obligatorios del cuerpo de la petición
-    const { amount, userId, itemKey, metadata } = await req.json();
+    const body = await req.json();
+    const { amount, userId, itemKey, metadata } = body;
 
-    // Validación básica de entrada
+    // Validación rigurosa
     if (!amount || !userId || !itemKey) {
       return NextResponse.json(
-        { error: 'Faltan parámetros obligatorios (amount, userId, itemKey)' },
+        { error: 'Faltan parámetros obligatorios' },
         { status: 400 }
       );
     }
 
     // Creación del PaymentIntent
-    // 'automatic_payment_methods' permite que Stripe muestre dinámicamente métodos como Tarjeta o Revolut Pay
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount, // El valor ya viene en céntimos desde el frontend
+      amount: Math.round(amount), // Aseguramos que sea un entero
       currency: 'eur',
       metadata: {
         supabase_user_id: userId,
         itemKey: itemKey,
-        ...metadata, // Incluimos metadatos adicionales como invoice_id si existen
+        ...(metadata || {}), // Evitamos errores si metadata es null
       },
       automatic_payment_methods: { 
         enabled: true 
       },
     });
-
-    // Retornamos el clientSecret necesario para montar el PaymentElement en el cliente
     return NextResponse.json({ 
       clientSecret: paymentIntent.client_secret 
     });
 
   } catch (error: any) {
-    // Registro detallado del error en servidor y respuesta segura al cliente
     console.error('Stripe PaymentIntent Error:', error);
     return NextResponse.json(
       { error: error.message || 'Error interno al procesar el pago' }, 
       { status: 500 }
     );
   }
-}
+} 

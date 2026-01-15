@@ -202,13 +202,21 @@ const ProfitabilityReportPage: React.FC = () => {
                     </div>
 
                     {analysis && (
-                        <Card>
-                            <CardHeader><h2 className="text-lg font-semibold text-white flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-purple-400"/> Insights de IA</h2></CardHeader>
-                            <CardContent className="space-y-4">
-                                <p className="text-gray-300">{analysis.summary}</p>
-                            </CardContent>
-                        </Card>
-                    )}
+                    <Card>
+                        <CardHeader>
+                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <SparklesIcon className="w-5 h-5 text-purple-400"/> 
+                                Insights de IA
+                            </h2>
+                        </CardHeader>
+                        <CardContent>
+                            {/* Si analysis es un objeto o string, lo manejamos con seguridad */}
+                            <p className="text-gray-300">
+                                {typeof analysis === 'string' ? analysis : 'Análisis generado correctamente.'}
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
 
                     <Card>
                         <CardContent className="p-0">

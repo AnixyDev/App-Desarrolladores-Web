@@ -1,8 +1,11 @@
 
 import { StateCreator } from 'zustand';
-import { Project, NewProject, Task, TimeEntry, NewTimeEntry } from '../../types.ts';
-import { AppState } from '../useAppStore.tsx';
-import { supabase } from '../../lib/supabaseClient.ts';
+// CORRECCIÓN: Eliminado .ts
+import { Project, NewProject, Task, TimeEntry, NewTimeEntry } from '../../types';
+// CORRECCIÓN: Eliminado .tsx
+import { AppState } from '../useAppStore';
+// CORRECCIÓN: Eliminado .ts
+import { supabase } from '../../lib/supabaseClient';
 
 export interface ProjectSlice {
   projects: Project[];
@@ -49,8 +52,7 @@ export const createProjectSlice: StateCreator<AppState, [], [], ProjectSlice> = 
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const newProjectData = { ...project, user_id: user.id };
-        const { data, error } = await supabase.from('projects').insert(newProjectData).select().single();
+        const { data, error } = await supabase.from('projects').insert({ ...project, user_id: user.id }).select().single();
         
         if (!error && data) {
             set(state => ({ projects: [data as Project, ...state.projects] }));
@@ -62,15 +64,16 @@ export const createProjectSlice: StateCreator<AppState, [], [], ProjectSlice> = 
         
         if (!error) {
             const project = get().projects.find(p => p.id === id);
-            if(project) {
-                const statusMap = {
+            // Uso de comprobación segura para la notificación
+            if(project && get().addNotification) {
+                const statusMap: Record<string, string> = {
                     'planning': 'Planificación',
                     'in-progress': 'En Progreso',
                     'completed': 'Completado',
                     'on-hold': 'En Pausa'
                 };
                 get().addNotification(
-                    `El estado del proyecto "${project.name}" ha cambiado a "${statusMap[status]}".`,
+                    `El estado del proyecto "${project.name}" ha cambiado a "${statusMap[status] || status}".`,
                     `/projects/${id}`
                 );
             }
@@ -84,8 +87,7 @@ export const createProjectSlice: StateCreator<AppState, [], [], ProjectSlice> = 
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const newTaskData = { ...task, user_id: user.id, completed: false };
-        const { data, error } = await supabase.from('tasks').insert(newTaskData).select().single();
+        const { data, error } = await supabase.from('tasks').insert({ ...task, user_id: user.id, completed: false }).select().single();
 
         if (!error && data) {
             set(state => ({ tasks: [...state.tasks, data as Task] }));
@@ -97,12 +99,12 @@ export const createProjectSlice: StateCreator<AppState, [], [], ProjectSlice> = 
         if (!task) return;
 
         const newCompleted = !task.completed;
-        // Optimistic update
+        // Update optimista
         set(state => ({ tasks: state.tasks.map(t => t.id === id ? { ...t, completed: newCompleted } : t) }));
 
         const { error } = await supabase.from('tasks').update({ completed: newCompleted }).eq('id', id);
         if (error) {
-            // Revert on error
+            // Revertir si falla
             set(state => ({ tasks: state.tasks.map(t => t.id === id ? { ...t, completed: !newCompleted } : t) }));
         }
     },
@@ -120,7 +122,12 @@ export const createProjectSlice: StateCreator<AppState, [], [], ProjectSlice> = 
 
         const { data, error } = await supabase.from('time_entries').insert({ ...entry, user_id: user.id }).select().single();
         if (!error && data) {
-            set(state => ({ timeEntries: [data as TimeEntry, ...state.timeEntries].sort((a,b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime()) }));
+            set(state => {
+                const newList = [data as TimeEntry, ...state.timeEntries];
+                return { 
+                    timeEntries: newList.sort((a,b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime()) 
+                };
+            });
         }
     },
 });

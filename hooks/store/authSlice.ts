@@ -1,7 +1,7 @@
 import { StateCreator } from 'zustand';
 import { AppState } from '../useAppStore';
-import { Profile } from '../../types';
-import { supabase } from '../../lib/supabaseClient';
+import { Profile } from '../../types'; // Sin extensión .ts
+import { supabase } from '../../lib/supabaseClient'; // Sin extensión .ts
 
 const initialProfile: Profile = {
     id: '',
@@ -57,7 +57,6 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
                 return;
             }
 
-            // Intentar obtener el perfil existente
             const { data: profileData, error: fetchError } = await supabase
                 .from('profiles')
                 .select('*')
@@ -65,7 +64,6 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
                 .single();
             
             if (fetchError || !profileData) {
-                // Gestión resiliente: Si no existe, realizar Upsert automático
                 const newProfile = {
                     id: session.user.id,
                     email: session.user.email || '',
@@ -88,7 +86,6 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
             }
         } catch (error) {
             console.error("Auth Exception:", error);
-            // Fallback preventivo para no bloquear al usuario
             set({ isAuthenticated: true, profile: { ...initialProfile, role: 'Developer' } });
         } finally {
             set({ isProfileLoading: false });
@@ -98,7 +95,6 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
     initializeAuth: async () => {
         set({ isProfileLoading: true });
 
-        // Safety Timeout (5s): Fuerza el desbloqueo de la UI en caso de fallo catastrófico de red
         const safetyTimeout = setTimeout(() => {
             if (get().isProfileLoading) {
                 set({ isProfileLoading: false });
@@ -110,13 +106,14 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
             if (session?.user) {
                 await get().refreshProfile();
                 
-                // Cargas asíncronas no bloqueantes
+                // Cargas asíncronas seguras con comprobación de existencia
+                const store = get();
                 Promise.all([
-                    get().fetchClients(),
-                    get().fetchProjects(),
-                    get().fetchTasks(),
-                    get().fetchTimeEntries()
-                ]).catch(() => null);
+                    store.fetchClients?.(),
+                    store.fetchProjects?.(),
+                    store.fetchTasks?.(),
+                    store.fetchTimeEntries?.()
+                ].filter(Boolean)).catch(() => null);
             } else {
                 set({ isAuthenticated: false });
             }
@@ -186,19 +183,42 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
         const { profile } = get();
         if (!profile.id) return false;
 
-        const { data: success, error } = await supabase.rpc('consume_credits_atomic', { 
-            user_id: profile.id, 
-            amount_to_consume: amount 
-        });
+        // Comprobación previa local para evitar llamadas innecesarias
+        if ((profile.ai_credits || 0) < amount) return false;
 
-        if (!error && success) {
-            set(state => ({ 
-                profile: { 
-                    ...state.profile, 
-                    ai_credits: (state.profile.ai_credits || 0) - amount 
-                } as Profile 
-            }));
-            return true;
+        try {
+            const { data: success, error } = await supabase.rpc('consume_credits_atomic', { 
+                user_id: profile.id, 
+                amount_to_consume: amount 
+            });
+
+            if (!error && success) {
+                set(state => ({ 
+                    profile: { 
+                        ...state.profile, 
+                        ai_credits: (state.profile.ai_credits || 0) - amount 
+                    } as Profile 
+                }));
+                return true;
+            }
+            
+            // Fallback: Si el RPC no existe o falla, intentar actualización manual
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ ai_credits: profile.ai_credits - amount })
+                .eq('id', profile.id);
+                
+            if (!updateError) {
+                set(state => ({ 
+                    profile: { 
+                        ...state.profile, 
+                        ai_credits: (state.profile.ai_credits || 0) - amount 
+                    } as Profile 
+                }));
+                return true;
+            }
+        } catch (e) {
+            console.error("Error consumiendo créditos:", e);
         }
         return false;
     },

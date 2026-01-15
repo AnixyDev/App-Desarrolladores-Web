@@ -3,16 +3,16 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { MOCK_DATA } from '../lib/mock-data';
 
-// Slices
-import { AuthSlice, createAuthSlice } from './store/authSlice';
-import { ClientSlice, createClientSlice } from './store/clientSlice';
-import { ProjectSlice, createProjectSlice } from './store/projectSlice';
-import { FinanceSlice, createFinanceSlice } from './store/financeSlice';
-import { TeamSlice, createTeamSlice } from './store/teamSlice';
-import { NotificationSlice, createNotificationSlice } from './store/notificationSlice';
-import { JobSlice, createJobSlice } from './store/jobSlice';
-import { PortalSlice, createPortalSlice } from './store/portalSlice';
-import { InboxSlice, createInboxSlice } from './store/inboxSlice';
+// Slices - Eliminadas extensiones .ts/.tsx para evitar errores de Rollup/Vercel
+import { createAuthSlice, type AuthSlice } from './store/authSlice';
+import { createClientSlice, type ClientSlice } from './store/clientSlice';
+import { createProjectSlice, type ProjectSlice } from './store/projectSlice';
+import { createFinanceSlice, type FinanceSlice } from './store/financeSlice';
+import { createTeamSlice, type TeamSlice } from './store/teamSlice';
+import { createNotificationSlice, type NotificationSlice } from './store/notificationSlice';
+import { createJobSlice, type JobSlice } from './store/jobSlice';
+import { createPortalSlice, type PortalSlice } from './store/portalSlice';
+import { createInboxSlice, type InboxSlice } from './store/inboxSlice';
 
 // Combine all slices into one AppState
 export type AppState = AuthSlice & ClientSlice & ProjectSlice & FinanceSlice & TeamSlice & NotificationSlice & JobSlice & PortalSlice & InboxSlice;
@@ -20,6 +20,7 @@ export type AppState = AuthSlice & ClientSlice & ProjectSlice & FinanceSlice & T
 export const useAppStore = create<AppState>()(
   persist(
     (...a) => {
+      // Creamos el store base uniendo los MOCK_DATA con los slices
       const store = {
         ...MOCK_DATA,
         ...createAuthSlice(...a),
@@ -33,19 +34,24 @@ export const useAppStore = create<AppState>()(
         ...createInboxSlice(...a),
       };
       
-      // Override initializeAuth to include new fetches
+      // Sobrescribimos initializeAuth de forma segura
       const originalInitialize = store.initializeAuth;
+      
       store.initializeAuth = async () => {
-          await originalInitialize();
-          // After auth is ready (or if session exists), fetch all data
-          // We can check isAuthenticated from the state, but inside this async flow it might be stale 
-          // relying on what originalInitialize sets.
-          // Better approach: just call fetches, they will fail silently or return empty if no user.
-          await Promise.all([
-              store.fetchFinanceData(),
-              store.fetchJobs(),
-              store.fetchApplications() // If needed for freelancer view
-          ]);
+          if (originalInitialize) {
+              await originalInitialize();
+          }
+          
+          // Solo intentamos descargar datos adicionales si el store tiene esas funciones disponibles
+          try {
+              await Promise.all([
+                  store.fetchFinanceData?.(),
+                  store.fetchJobs?.(),
+                  store.fetchApplications?.()
+              ].filter(Boolean)); // Filtramos funciones que no existan para evitar errores
+          } catch (error) {
+              console.error("Error al inicializar datos del store:", error);
+          }
       };
 
       return store;
@@ -53,13 +59,12 @@ export const useAppStore = create<AppState>()(
     {
       name: 'devfreelancer-storage',
       storage: createJSONStorage(() => localStorage),
-      // Only persist parts of the state that are purely local preferences or cache
+      // Persistencia selectiva para evitar estados corruptos tras actualizar
       partialize: (state) => ({
         savedJobIds: state.savedJobIds,
         notifiedJobIds: state.notifiedJobIds,
         notifiedEvents: state.notifiedEvents,
         monthlyGoalCents: state.monthlyGoalCents,
-        // We might want to persist 'profile' for offline support before network loads
         profile: state.profile,
         isAuthenticated: state.isAuthenticated,
       }),

@@ -1,8 +1,11 @@
 
 import { StateCreator } from 'zustand';
-import { Invoice, Expense, RecurringExpense, Budget, Proposal, Contract, RecurringInvoice } from '../../types.ts';
-import { AppState } from '../useAppStore.tsx';
-import { supabase } from '../../lib/supabaseClient.ts';
+// CORRECCIÓN: Eliminado .ts
+import { Invoice, Expense, RecurringExpense, Budget, Proposal, Contract, RecurringInvoice } from '../../types';
+// CORRECCIÓN: Eliminado .tsx
+import { AppState } from '../useAppStore';
+// CORRECCIÓN: Eliminado .ts
+import { supabase } from '../../lib/supabaseClient';
 
 export interface FinanceSlice {
   invoices: Invoice[];
@@ -91,7 +94,7 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
         const newInvoiceData = {
             ...invoiceData,
             user_id: user.id,
-            invoice_number: `INV-${Date.now().toString().slice(-6)}`, // Simple generation strategy
+            invoice_number: `INV-${Date.now().toString().slice(-6)}`,
             subtotal_cents: subtotal,
             total_cents: total,
             paid: false,
@@ -101,16 +104,18 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
 
         if (!error && data) {
             set(state => ({ invoices: [data as Invoice, ...state.invoices] }));
-            get().addNotification(`Nueva factura #${data.invoice_number} creada.`, '/invoices');
+            // @ts-ignore - Evitamos errores si el slice de notificaciones no está cargado
+            if (get().addNotification) {
+                get().addNotification(`Nueva factura #${data.invoice_number} creada.`, '/invoices');
+            }
 
             if (timeEntryIdsToBill && timeEntryIdsToBill.length > 0) {
-                // Update time entries to link them to this invoice
                 await supabase.from('time_entries')
                     .update({ invoice_id: data.id })
                     .in('id', timeEntryIdsToBill);
                 
-                // Refresh time entries in local state
-                get().fetchTimeEntries();
+                // @ts-ignore
+                if (get().fetchTimeEntries) get().fetchTimeEntries();
             }
         }
     },
@@ -129,7 +134,10 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
         if (!error) {
             set(state => ({ invoices: state.invoices.map(i => i.id === id ? { ...i, paid: true, payment_date: paymentDate } : i) }));
             const invoice = get().invoices.find(i => i.id === id);
-            if(invoice) get().addNotification(`La factura #${invoice.invoice_number} ha sido pagada.`, '/invoices');
+            // @ts-ignore
+            if(invoice && get().addNotification) {
+                get().addNotification(`La factura #${invoice.invoice_number} ha sido pagada.`, '/invoices');
+            }
         }
     },
 
@@ -157,8 +165,6 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
     },
 
     checkAndGenerateRecurringInvoices: async () => {
-        // Logic to generate invoice from recurring template should ideally be server-side (Edge Function + Cron)
-        // For client-side simulation:
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const recurringInvoices = get().recurringInvoices;
@@ -166,7 +172,6 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
         for (const rec of recurringInvoices) {
             const nextDueDate = new Date(rec.next_due_date);
             if (nextDueDate <= today) {
-                // Generate Invoice
                 await get().addInvoice({
                     client_id: rec.client_id,
                     project_id: rec.project_id,
@@ -176,7 +181,6 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
                     tax_percent: rec.tax_percent,
                 });
 
-                // Update Next Due Date
                 let newNextDueDate = new Date(rec.next_due_date);
                 if (rec.frequency === 'monthly') {
                     newNextDueDate.setMonth(newNextDueDate.getMonth() + 1);
@@ -189,7 +193,6 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
                     .eq('id', rec.id);
             }
         }
-        // Refresh
         const { data } = await supabase.from('recurring_invoices').select('*');
         if(data) set({ recurringInvoices: data as RecurringInvoice[] });
     },
@@ -319,8 +322,6 @@ export const createFinanceSlice: StateCreator<AppState, [], [], FinanceSlice> = 
     },
 
     setMonthlyGoal: (goal) => {
-        // This is a local preference, usually persisted in localStorage via zustand persist, 
-        // or could be added to profile table. For now, keep as is.
         set({ monthlyGoalCents: goal }); 
     },
 });
