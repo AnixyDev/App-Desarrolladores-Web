@@ -19,6 +19,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": ["**/*.ts", "**/*.tsx", "services/stripeService", "services/pdfService", "services/geminiService","services/emailService"],
   "exclude": ["node_modules"]
 }
