@@ -1,7 +1,8 @@
+
 import { StateCreator } from 'zustand';
 import { AppState } from '../useAppStore';
-import { Profile } from '../../types'; // Sin extensión .ts
-import { supabase } from '../../lib/supabaseClient'; // Sin extensión .ts
+import { Profile } from '../../types';
+import { supabase } from '../../lib/supabaseClient';
 
 const initialProfile: Profile = {
     id: '',
@@ -64,7 +65,7 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
                 .single();
             
             if (fetchError || !profileData) {
-                const newProfile = {
+                const fallbackProfile = {
                     id: session.user.id,
                     email: session.user.email || '',
                     full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Usuario',
@@ -73,20 +74,26 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
                     ai_credits: 10
                 };
 
-                const { data: upsertedProfile, error: upsertError } = await supabase
+                // Intento de Upsert silencioso
+                const { data: newProfile, error: upsertError } = await supabase
                     .from('profiles')
-                    .upsert(newProfile)
+                    .upsert(fallbackProfile)
                     .select()
                     .single();
 
-                if (upsertError) throw upsertError;
-                set({ profile: upsertedProfile as Profile, isAuthenticated: true });
+                if (!upsertError && newProfile) {
+                    set({ profile: newProfile as Profile, isAuthenticated: true });
+                } else {
+                    // Fallback local absoluto para garantizar operatividad
+                    set({ profile: { ...initialProfile, ...fallbackProfile } as Profile, isAuthenticated: true });
+                }
             } else {
                 set({ profile: profileData as Profile, isAuthenticated: true });
             }
         } catch (error) {
-            console.error("Auth Exception:", error);
-            set({ isAuthenticated: true, profile: { ...initialProfile, role: 'Developer' } });
+            if (process.env.NODE_ENV === 'development') {
+                console.error("Auth context refresh error:", error);
+            }
         } finally {
             set({ isProfileLoading: false });
         }
@@ -106,19 +113,17 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
             if (session?.user) {
                 await get().refreshProfile();
                 
-                // Cargas asíncronas seguras con comprobación de existencia
-                const store = get();
-                Promise.all([
-                    store.fetchClients?.(),
-                    store.fetchProjects?.(),
-                    store.fetchTasks?.(),
-                    store.fetchTimeEntries?.()
-                ].filter(Boolean)).catch(() => null);
+                // Prefetch de datos en paralelo
+                get().fetchClients().catch(() => null);
+                get().fetchProjects().catch(() => null);
+                get().fetchTasks().catch(() => null);
+                get().fetchTimeEntries().catch(() => null);
+                get().fetchFinanceData().catch(() => null);
             } else {
                 set({ isAuthenticated: false });
             }
         } catch (error) {
-            console.error("Auth Initialization Failure:", error);
+            // Silencioso en producción
         } finally {
             clearTimeout(safetyTimeout);
             set({ isProfileLoading: false });
@@ -128,17 +133,14 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
     login: async (email, password) => {
         set({ isProfileLoading: true });
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({ 
-                email, 
-                password: password || '' 
-            });
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password: password || '' });
             if (error) throw error;
             if (data.user) {
                 await get().refreshProfile();
                 return true;
             }
         } catch (error: any) {
-            console.error("Login Failure:", error.message);
+            console.error("Auth: sign_in_error", error.message);
         } finally {
             set({ isProfileLoading: false });
         }
@@ -183,42 +185,16 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
         const { profile } = get();
         if (!profile.id) return false;
 
-        // Comprobación previa local para evitar llamadas innecesarias
-        if ((profile.ai_credits || 0) < amount) return false;
+        const { data: success, error } = await supabase.rpc('consume_credits_atomic', { 
+            user_id: profile.id, 
+            amount_to_consume: amount 
+        });
 
-        try {
-            const { data: success, error } = await supabase.rpc('consume_credits_atomic', { 
-                user_id: profile.id, 
-                amount_to_consume: amount 
-            });
-
-            if (!error && success) {
-                set(state => ({ 
-                    profile: { 
-                        ...state.profile, 
-                        ai_credits: (state.profile.ai_credits || 0) - amount 
-                    } as Profile 
-                }));
-                return true;
-            }
-            
-            // Fallback: Si el RPC no existe o falla, intentar actualización manual
-            const { error: updateError } = await supabase
-                .from('profiles')
-                .update({ ai_credits: profile.ai_credits - amount })
-                .eq('id', profile.id);
-                
-            if (!updateError) {
-                set(state => ({ 
-                    profile: { 
-                        ...state.profile, 
-                        ai_credits: (state.profile.ai_credits || 0) - amount 
-                    } as Profile 
-                }));
-                return true;
-            }
-        } catch (e) {
-            console.error("Error consumiendo créditos:", e);
+        if (!error && success) {
+            set(state => ({ 
+                profile: { ...state.profile, ai_credits: (state.profile.ai_credits || 0) - amount } as Profile 
+            }));
+            return true;
         }
         return false;
     },

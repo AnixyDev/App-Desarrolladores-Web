@@ -150,8 +150,7 @@ const ReportsPage: React.FC = () => {
 
             const result = await analyzeProfitability(aiPayload);
             if (result) {
-                const parsedAnalysis = typeof result === 'string' ? JSON.parse(result) : result;
-                setAnalysis(parsedAnalysis as FinancialAnalysis);
+                setAnalysis(result);
                 consumeCredits(AI_CREDIT_COSTS.analyzeProfitability);
                 addToast("Análisis de rentabilidad completado.", "success");
             } else {

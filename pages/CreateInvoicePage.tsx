@@ -8,9 +8,9 @@ import Input from '../components/ui/Input.tsx';
 import Modal from '../components/ui/Modal.tsx';
 import { InvoiceItem } from '../types.ts';
 import { PlusIcon, TrashIcon, SparklesIcon, RepeatIcon } from '../components/icons/Icon.tsx';
-import { useToast } from '../hooks/useToast';
-import { AI_CREDIT_COSTS } from '../services/geminiService';
-import BuyCreditsModal from '../components/modals/BuyCreditsModal';
+import { useToast } from '../hooks/useToast.ts';
+import { generateItemsForDocument, AI_CREDIT_COSTS } from '../services/geminiService.ts';
+import BuyCreditsModal from '../components/modals/BuyCreditsModal.tsx';
 import { formatCurrency } from '../lib/utils.ts';
 
 
@@ -208,7 +208,7 @@ const CreateInvoicePage: React.FC = () => {
         }
         setIsAiLoading(true);
         try {
-            const items: any[] = [];
+            const items = await generateItemsForDocument(aiPrompt, profile.hourly_rate_cents);
             if (items && items.length > 0) {
                 setNewInvoice(prev => ({ ...prev, items }));
                 addToast('Conceptos generados con IA.', 'success');

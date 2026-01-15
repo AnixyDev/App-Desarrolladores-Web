@@ -1,17 +1,18 @@
+// pages/JobApplicantsPage.tsx
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useAppStore } from '../hooks/useAppStore';
-import Card, { CardContent, CardHeader } from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import Modal from '../components/ui/Modal';
+import { useAppStore } from '../hooks/useAppStore.tsx';
+import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
+import Button from '../components/ui/Button.tsx';
+import Modal from '../components/ui/Modal.tsx';
 import { Users, SparklesIcon, RefreshCwIcon, CheckCircle, AlertTriangle } from 'lucide-react';
-import { JobApplication } from '../types';
-import EmptyState from '../components/ui/EmptyState';
-import { AI_CREDIT_COSTS } from '../services/geminiService';
-import { useToast } from '../hooks/useToast';
+import { JobApplication } from '../types.ts';
+import EmptyState from '../components/ui/EmptyState.tsx';
+import { summarizeApplicant, AI_CREDIT_COSTS } from '../services/geminiService.ts';
+import { useToast } from '../hooks/useToast.ts';
 
-const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal'));
-const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal'));
+const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal.tsx'));
+const UpgradePromptModal = lazy(() => import('../components/modals/UpgradePromptModal.tsx'));
 
 interface ApplicantSummary {
     summary: string;
@@ -59,8 +60,7 @@ const JobApplicantsPage: React.FC = () => {
     }
 
     const handleGenerateSummary = async (app: JobApplication) => {
-        // Usamos chatMessage porque es la constante que definimos en el servicio
-        if (profile.ai_credits < AI_CREDIT_COSTS.chatMessage) {
+        if (profile.ai_credits < AI_CREDIT_COSTS.summarizeApplicant) {
             setIsBuyCreditsModalOpen(true);
             return;
         }
@@ -71,16 +71,14 @@ const JobApplicantsPage: React.FC = () => {
         setSummary(null);
 
         try {
-            // Simulamos el resultado mientras migramos a la nueva función getAIResponse
-            const result: ApplicantSummary = {
-                summary: "Candidato con perfil sólido. La propuesta está bien estructurada y se alinea con los requisitos del proyecto.",
-                pros: ["Experiencia previa relevante", "Buena comunicación"],
-                cons: ["Disponibilidad inmediata por confirmar"]
-            };
+            // NOTE: In a real app, we would fetch the applicant's full profile.
+            // Here we use the current user's profile as a stand-in for any applicant.
+            const applicantProfileSummary = profile.bio ? `${profile.bio}. Habilidades: ${profile.skills?.join(', ')}` : `Habilidades: ${profile.skills?.join(', ')}`;
 
+            const result = await summarizeApplicant(job.descripcionLarga || job.descripcionCorta, applicantProfileSummary, app.proposalText);
             setSummary(result);
-            consumeCredits(AI_CREDIT_COSTS.chatMessage);
-            addToast("Resumen del candidato generado (Modo Estratega).", "success");
+            consumeCredits(AI_CREDIT_COSTS.summarizeApplicant);
+            addToast("Resumen del candidato generado.", "success");
         } catch (error) {
             addToast((error as Error).message, 'error');
             setIsModalOpen(false);
@@ -113,7 +111,7 @@ const JobApplicantsPage: React.FC = () => {
             ) : (
                 <div className="space-y-4">
                     {applications.map(app => {
-                        const statusInfo = applicationStatusConfig[app.status as keyof typeof applicationStatusConfig] || applicationStatusConfig.sent;
+                        const statusInfo = applicationStatusConfig[app.status];
                         return (
                             <Card key={app.id}>
                                 <CardHeader className="flex justify-between items-start">
@@ -154,13 +152,13 @@ const JobApplicantsPage: React.FC = () => {
                             <p className="text-gray-300">{summary.summary}</p>
                         </div>
                         <div>
-                            <h3 className="font-semibold text-green-400 mb-2 flex items-center gap-2"><CheckCircle className="w-4 h-4"/> Puntos Fuertes</h3>
+                            <h3 className="font-semibold text-green-400 mb-2 flex items-center gap-2"><CheckCircle/> Puntos Fuertes</h3>
                             <ul className="list-disc list-inside space-y-1 text-gray-300">
                                 {summary.pros.map((pro, i) => <li key={i}>{pro}</li>)}
                             </ul>
                         </div>
                          <div>
-                            <h3 className="font-semibold text-yellow-400 mb-2 flex items-center gap-2"><AlertTriangle className="w-4 h-4"/> Puntos a Considerar</h3>
+                            <h3 className="font-semibold text-yellow-400 mb-2 flex items-center gap-2"><AlertTriangle/> Puntos a Considerar</h3>
                             <ul className="list-disc list-inside space-y-1 text-gray-300">
                                 {summary.cons.map((con, i) => <li key={i}>{con}</li>)}
                             </ul>

@@ -1,29 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Usamos variables de entorno para mayor seguridad y flexibilidad
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://umqsjycqypxvhbhmidma.supabase.co';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_URL = 'https://umqsjycqypxvhbhmidma.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtcXNqeWNxeXB4dmhiaG1pZG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3MTcwNTksImV4cCI6MjA3ODI5MzA1OX0.YmlHDqxoQa9DRuONwxYenmU-Rj05sVjlMstG3oyCM8I';
 
 /**
- * Detecta automáticamente si estamos en local o en producción
+ * Devuelve la URL base oficial del proyecto.
  */
 export const getURL = () => {
-  let url =
-    import.meta.env.VITE_SITE_URL ?? // Variable opcional en Vercel
-    window.location.origin ??       // Detecta la URL actual del navegador
-    'https://devfreelancer.app';
-  
-  // Asegurarse de incluir la barra final y eliminar parámetros de búsqueda
-  url = url.replace(/\/$/, '');
-  return url;
+  return 'https://devfreelancer.app';
 };
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY!, {
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
-        storageKey: 'devfreelancer-auth-token-v2',
+        storageKey: 'devfreelancer-auth-token-v2', // Clave única para evitar conflictos de cookies
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        flowType: 'pkce' 
+        flowType: 'pkce' // Estándar moderno de autenticación para SPAs
     }
 });

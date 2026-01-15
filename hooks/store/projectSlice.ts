@@ -1,11 +1,8 @@
 
 import { StateCreator } from 'zustand';
-// CORRECCIÓN: Eliminado .ts
-import { Project, NewProject, Task, TimeEntry, NewTimeEntry } from '../../types';
-// CORRECCIÓN: Eliminado .tsx
-import { AppState } from '../useAppStore';
-// CORRECCIÓN: Eliminado .ts
-import { supabase } from '../../lib/supabaseClient';
+import { Project, NewProject, Task, TimeEntry, NewTimeEntry } from '../../types.ts';
+import { AppState } from '../useAppStore.tsx';
+import { supabase } from '../../lib/supabaseClient.ts';
 
 export interface ProjectSlice {
   projects: Project[];
@@ -52,7 +49,8 @@ export const createProjectSlice: StateCreator<AppState, [], [], ProjectSlice> = 
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { data, error } = await supabase.from('projects').insert({ ...project, user_id: user.id }).select().single();
+        const newProjectData = { ...project, user_id: user.id };
+        const { data, error } = await supabase.from('projects').insert(newProjectData).select().single();
         
         if (!error && data) {
             set(state => ({ projects: [data as Project, ...state.projects] }));
@@ -64,16 +62,15 @@ export const createProjectSlice: StateCreator<AppState, [], [], ProjectSlice> = 
         
         if (!error) {
             const project = get().projects.find(p => p.id === id);
-            // Uso de comprobación segura para la notificación
-            if(project && get().addNotification) {
-                const statusMap: Record<string, string> = {
+            if(project) {
+                const statusMap = {
                     'planning': 'Planificación',
                     'in-progress': 'En Progreso',
                     'completed': 'Completado',
                     'on-hold': 'En Pausa'
                 };
                 get().addNotification(
-                    `El estado del proyecto "${project.name}" ha cambiado a "${statusMap[status] || status}".`,
+                    `El estado del proyecto "${project.name}" ha cambiado a "${statusMap[status]}".`,
                     `/projects/${id}`
                 );
             }
@@ -87,7 +84,8 @@ export const createProjectSlice: StateCreator<AppState, [], [], ProjectSlice> = 
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { data, error } = await supabase.from('tasks').insert({ ...task, user_id: user.id, completed: false }).select().single();
+        const newTaskData = { ...task, user_id: user.id, completed: false };
+        const { data, error } = await supabase.from('tasks').insert(newTaskData).select().single();
 
         if (!error && data) {
             set(state => ({ tasks: [...state.tasks, data as Task] }));
@@ -99,12 +97,12 @@ export const createProjectSlice: StateCreator<AppState, [], [], ProjectSlice> = 
         if (!task) return;
 
         const newCompleted = !task.completed;
-        // Update optimista
+        // Optimistic update
         set(state => ({ tasks: state.tasks.map(t => t.id === id ? { ...t, completed: newCompleted } : t) }));
 
         const { error } = await supabase.from('tasks').update({ completed: newCompleted }).eq('id', id);
         if (error) {
-            // Revertir si falla
+            // Revert on error
             set(state => ({ tasks: state.tasks.map(t => t.id === id ? { ...t, completed: !newCompleted } : t) }));
         }
     },
@@ -122,12 +120,7 @@ export const createProjectSlice: StateCreator<AppState, [], [], ProjectSlice> = 
 
         const { data, error } = await supabase.from('time_entries').insert({ ...entry, user_id: user.id }).select().single();
         if (!error && data) {
-            set(state => {
-                const newList = [data as TimeEntry, ...state.timeEntries];
-                return { 
-                    timeEntries: newList.sort((a,b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime()) 
-                };
-            });
+            set(state => ({ timeEntries: [data as TimeEntry, ...state.timeEntries].sort((a,b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime()) }));
         }
     },
 });

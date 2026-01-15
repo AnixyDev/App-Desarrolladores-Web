@@ -6,6 +6,7 @@ import Card, { CardContent, CardHeader } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
+import { Proposal } from '../types';
 import { formatCurrency } from '../lib/utils';
 import { Link } from 'react-router-dom';
 import StatusChip from '../components/ui/StatusChip';

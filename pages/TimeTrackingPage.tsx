@@ -21,7 +21,7 @@ interface ManualEntryForm {
     duration_hours: string; // Use string for input field
 }
 
-const TimeTrackingPage: React.FC = (): React.ReactNode => {
+const TimeTrackingPage: React.FC = () => {
     const { timeEntries, projects, getProjectById, addTimeEntry, profile, consumeCredits } = useAppStore();
     const { addToast } = useToast();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -110,17 +110,17 @@ const TimeTrackingPage: React.FC = (): React.ReactNode => {
         setIsModalOpen(true);
     };
     
-const handleAiGenerateDescription = async () => {
-    if (!formState.project_id) {
-        addToast('Por favor, selecciona un proyecto primero.', 'error');
-        return;
-    }
-    if ((profile.ai_credits || 0) < AI_CREDIT_COSTS.enhanceTimeEntry) {
-        setIsBuyCreditsModalOpen(true);
-        return;
-    }
+    const handleAiGenerateDescription = async () => {
+        if (!formState.project_id) {
+            addToast('Por favor, selecciona un proyecto primero.', 'error');
+            return;
+        }
+        if (profile.ai_credits < AI_CREDIT_COSTS.enhanceTimeEntry) {
+            setIsBuyCreditsModalOpen(true);
+            return;
+        }
 
-    setIsAiLoading(true);
+        setIsAiLoading(true);
         const selectedProject = getProjectById(formState.project_id);
         if (!selectedProject) {
             addToast('Proyecto no encontrado.', 'error');
@@ -131,7 +131,8 @@ const handleAiGenerateDescription = async () => {
         try {
             const description = await generateTimeEntryDescription(
                 selectedProject.name,
-                selectedProject.description || ''
+                selectedProject.description || '',
+                formState.description // Use current description as keywords
             );
             setFormState(prev => ({...prev, description }));
             consumeCredits(AI_CREDIT_COSTS.enhanceTimeEntry);
@@ -241,6 +242,5 @@ const handleAiGenerateDescription = async () => {
         </div>
     );
 };
-
 
 export default TimeTrackingPage;

@@ -7,7 +7,6 @@ import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import { KnowledgeArticle } from '../types';
 import { useAppStore } from '../hooks/useAppStore';
-// Usa '../' para salir de la carpeta pages y entrar en services
 import { AI_CREDIT_COSTS, rankArticlesByRelevance } from '../services/geminiService';
 import { useToast } from '../hooks/useToast';
 

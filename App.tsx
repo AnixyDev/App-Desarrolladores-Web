@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -65,23 +66,28 @@ const LoadingFallback = () => (
 );
 
 const AuthListener = () => {
-    const { refreshProfile } = useAppStore();
+    const { refreshProfile, isProfileLoading } = useAppStore();
     const navigate = useNavigate();
     const location = useLocation();
 
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (session && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
-                await refreshProfile();
-                if (location.pathname.startsWith('/auth/')) {
-                    navigate('/', { replace: true });
+                // Solo refrescar si no estamos ya cargando para evitar bucles
+                if (!isProfileLoading) {
+                    await refreshProfile();
+                    if (location.pathname.startsWith('/auth/')) {
+                        navigate('/', { replace: true });
+                    }
                 }
             } else if (event === 'SIGNED_OUT') {
-                navigate('/auth/login', { replace: true });
+                if (!location.pathname.startsWith('/auth/') && !location.pathname.startsWith('/portal/')) {
+                    navigate('/auth/login', { replace: true });
+                }
             }
         });
         return () => subscription.unsubscribe();
-    }, [refreshProfile, navigate, location.pathname]);
+    }, [refreshProfile, navigate, location.pathname, isProfileLoading]);
 
     return null;
 };
@@ -89,7 +95,7 @@ const AuthListener = () => {
 const PrivateRoute = () => {
     const { isAuthenticated, isProfileLoading } = useAppStore();
     if (isProfileLoading) return <LoadingFallback />;
-    return isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" replace />;
+    return isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" state={{ from: useLocation() }} replace />;
 };
 
 const AdminRoute = () => {

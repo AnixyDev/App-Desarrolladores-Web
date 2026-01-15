@@ -1,15 +1,16 @@
+// pages/ProfitabilityReportPage.tsx
 import React, { useMemo, useState, lazy, Suspense } from 'react';
-import { useAppStore } from '../hooks/useAppStore'; // Eliminado .tsx
-import Card, { CardContent, CardHeader } from '../components/ui/Card'; // Eliminado .tsx
-import { formatCurrency } from '../lib/utils'; // Eliminado .ts
+import { useAppStore } from '../hooks/useAppStore.tsx';
+import Card, { CardContent, CardHeader } from '../components/ui/Card.tsx';
+import { formatCurrency } from '../lib/utils.ts';
 import { Link } from 'react-router-dom';
-import { ArrowUpCircleIcon, ArrowDownCircleIcon, DollarSignIcon, TrendingUpIcon, ChevronDownIcon, ChevronUpIcon, BriefcaseIcon, SparklesIcon, RefreshCwIcon } from '../components/icons/Icon'; // Eliminado .tsx
-import EmptyState from '../components/ui/EmptyState'; // Eliminado .tsx
-import Button from '../components/ui/Button'; // Eliminado .tsx
-import { AI_CREDIT_COSTS } from '../services/geminiService';
-import { useToast } from '../hooks/useToast';
+import { ArrowUpCircleIcon, ArrowDownCircleIcon, DollarSignIcon, TrendingUpIcon, ChevronDownIcon, ChevronUpIcon, BriefcaseIcon, SparklesIcon, RefreshCwIcon } from '../components/icons/Icon.tsx';
+import EmptyState from '../components/ui/EmptyState.tsx';
+import Button from '../components/ui/Button.tsx';
+import { analyzeProfitability, AI_CREDIT_COSTS } from '../services/geminiService.ts';
+import { useToast } from '../hooks/useToast.ts';
 
-const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal')); // Eliminado .tsx
+const BuyCreditsModal = lazy(() => import('../components/modals/BuyCreditsModal.tsx'));
 
 interface ProfitabilityData {
     projectId: string;
@@ -62,6 +63,7 @@ const SortableHeader: React.FC<{
         </th>
     );
 };
+
 
 const ProfitabilityReportPage: React.FC = () => {
     const { projects, clients, invoices, expenses, timeEntries, profile, consumeCredits } = useAppStore();
@@ -151,6 +153,7 @@ const ProfitabilityReportPage: React.FC = () => {
             if (value < 40) return 'text-yellow-400';
             return 'text-green-400';
         }
+        // For effective rate
         const targetRate = (profile?.hourly_rate_cents ?? 0);
         if (value < targetRate * 0.75) return 'text-red-400';
         if (value < targetRate) return 'text-yellow-400';
@@ -158,22 +161,23 @@ const ProfitabilityReportPage: React.FC = () => {
     };
 
     const handleAiAnalysis = async () => {
-        if (profile.ai_credits < AI_CREDIT_COSTS.chatMessage) {
+        if (profile.ai_credits < AI_CREDIT_COSTS.analyzeProfitability) {
             setIsBuyCreditsModalOpen(true);
             return;
         }
         setIsAiLoading(true);
         setAnalysis(null);
         try {
-            const result: FinancialAnalysis = {
-                summary: "El análisis de rentabilidad está siendo actualizado para el Modo Estratega. Tus márgenes actuales muestran una salud financiera positiva en proyectos de larga duración.",
-                topPerformers: ["Proyectos con tasa efectiva > tarifa objetivo"],
-                areasForImprovement: ["Reducción de horas no facturables"]
-            };
-            
-            setAnalysis(result);
-            consumeCredits(AI_CREDIT_COSTS.chatMessage);
-            addToast("Análisis de rentabilidad completado.", "success");
+            // Filter out necessary data to reduce token usage and noise
+            const dataToAnalyze = profitabilityData.map(({ projectId, ...rest }) => rest);
+            const result = await analyzeProfitability({ projects: dataToAnalyze });
+            if (result) {
+                setAnalysis(result);
+                consumeCredits(AI_CREDIT_COSTS.analyzeProfitability);
+                addToast("Análisis de rentabilidad de proyectos completado.", "success");
+            } else {
+                addToast("No se pudo generar el análisis.", "error");
+            }
         } catch (error) {
             addToast((error as Error).message, 'error');
         } finally {
@@ -184,39 +188,70 @@ const ProfitabilityReportPage: React.FC = () => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-semibold text-white">Panel de Rentabilidad</h1>
+                <h1 className="text-2xl font-semibold text-white">Panel de Rentabilidad por Proyecto</h1>
                 <Button onClick={handleAiAnalysis} disabled={isAiLoading || profitabilityData.length === 0}>
                     {isAiLoading ? <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin"/> : <SparklesIcon className="w-4 h-4 mr-2" />}
-                    {isAiLoading ? 'Analizando...' : 'Analizar con IA'}
+                    {isAiLoading ? 'Analizando...' : 'Analizar Proyectos con IA'}
                 </Button>
             </div>
             
             {profitabilityData.length === 0 ? (
-                <EmptyState icon={BriefcaseIcon} title="No hay datos" message="Registra proyectos y horas." />
+                <EmptyState 
+                    icon={BriefcaseIcon}
+                    title="No hay datos para analizar"
+                    message="Registra proyectos, horas y facturas pagadas para poder analizar la rentabilidad de tu trabajo."
+                />
             ) : (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <StatCard icon={ArrowUpCircleIcon} title="Más Rentable" value={formatCurrency(summaryStats.mostProfitable?.netProfit ?? 0)} project={summaryStats.mostProfitable?.projectName} color="text-green-400" />
-                        <StatCard icon={ArrowDownCircleIcon} title="Menos Rentable" value={formatCurrency(summaryStats.leastProfitable?.netProfit ?? 0)} project={summaryStats.leastProfitable?.projectName} color="text-red-400" />
-                        <StatCard icon={DollarSignIcon} title="Tarifa Media" value={`${formatCurrency(summaryStats.avgEffectiveRate)}/h`} color="text-primary-400" />
+                        <StatCard 
+                            icon={ArrowUpCircleIcon}
+                            title="Proyecto Más Rentable"
+                            value={formatCurrency(summaryStats.mostProfitable?.netProfit ?? 0)}
+                            project={summaryStats.mostProfitable?.projectName}
+                            color="text-green-400"
+                        />
+                        <StatCard 
+                            icon={ArrowDownCircleIcon}
+                            title="Proyecto Menos Rentable"
+                            value={formatCurrency(summaryStats.leastProfitable?.netProfit ?? 0)}
+                            project={summaryStats.leastProfitable?.projectName}
+                            color="text-red-400"
+                        />
+                        <StatCard 
+                            icon={DollarSignIcon}
+                            title="Tarifa Media Efectiva"
+                            value={`${formatCurrency(summaryStats.avgEffectiveRate)}/h`}
+                            project={`Tarifa objetivo: ${formatCurrency(profile?.hourly_rate_cents ?? 0)}/h`}
+                            color="text-primary-400"
+                        />
                     </div>
 
                     {analysis && (
-                    <Card>
-                        <CardHeader>
-                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                                <SparklesIcon className="w-5 h-5 text-purple-400"/> 
-                                Insights de IA
-                            </h2>
-                        </CardHeader>
-                        <CardContent>
-                            {/* Si analysis es un objeto o string, lo manejamos con seguridad */}
-                            <p className="text-gray-300">
-                                {typeof analysis === 'string' ? analysis : 'Análisis generado correctamente.'}
-                            </p>
-                        </CardContent>
-                    </Card>
-                )}
+                        <Card>
+                            <CardHeader><h2 className="text-lg font-semibold text-white flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-purple-400"/> Insights de IA sobre Proyectos</h2></CardHeader>
+                            <CardContent className="space-y-4">
+                                <div>
+                                    <h3 className="font-semibold text-primary-400 mb-2">Evaluación Estratégica</h3>
+                                    <p className="text-gray-300">{analysis.summary}</p>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <h3 className="font-semibold text-green-400 mb-2">Top Proyectos (Alto Rendimiento)</h3>
+                                        <ul className="list-disc list-inside space-y-1 text-gray-300 text-sm">
+                                            {analysis.topPerformers.map((item, i) => <li key={i}>{item}</li>)}
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-yellow-400 mb-2">Áreas de Optimización</h3>
+                                        <ul className="list-disc list-inside space-y-1 text-gray-300 text-sm">
+                                            {analysis.areasForImprovement.map((item, i) => <li key={i}>{item}</li>)}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     <Card>
                         <CardContent className="p-0">
@@ -225,6 +260,10 @@ const ProfitabilityReportPage: React.FC = () => {
                                     <thead className="border-b border-gray-800 bg-gray-900/50">
                                         <tr>
                                             <th className="p-4">Proyecto</th>
+                                            <th className="p-4">Cliente</th>
+                                            <SortableHeader label="Ingresos" sortKey="totalIncome" sortConfig={sortConfig} requestSort={requestSort} />
+                                            <SortableHeader label="Costes" sortKey="totalCosts" sortConfig={sortConfig} requestSort={requestSort} />
+                                            <SortableHeader label="Beneficio Neto" sortKey="netProfit" sortConfig={sortConfig} requestSort={requestSort} />
                                             <SortableHeader label="Margen" sortKey="margin" sortConfig={sortConfig} requestSort={requestSort} />
                                             <SortableHeader label="Tarifa Efectiva" sortKey="effectiveHourlyRate" sortConfig={sortConfig} requestSort={requestSort} />
                                         </tr>
@@ -232,7 +271,13 @@ const ProfitabilityReportPage: React.FC = () => {
                                     <tbody>
                                         {sortedData.map(p => (
                                             <tr key={p.projectId} className="border-b border-gray-800 hover:bg-gray-800/50">
-                                                <td className="p-4 font-semibold text-white">{p.projectName}</td>
+                                                <td className="p-4 font-semibold text-white">
+                                                    <Link to={`/projects/${p.projectId}`} className="hover:text-primary-400">{p.projectName}</Link>
+                                                </td>
+                                                <td className="p-4 text-gray-400">{p.clientName}</td>
+                                                <td className="p-4 text-green-400">{formatCurrency(p.totalIncome)}</td>
+                                                <td className="p-4 text-red-400">{formatCurrency(p.totalCosts)}</td>
+                                                <td className="p-4 font-bold text-white">{formatCurrency(p.netProfit)}</td>
                                                 <td className={`p-4 font-semibold ${getMetricColor(p.margin, 'margin')}`}>{p.margin.toFixed(1)}%</td>
                                                 <td className={`p-4 font-semibold ${getMetricColor(p.effectiveHourlyRate, 'rate')}`}>{formatCurrency(p.effectiveHourlyRate)}/h</td>
                                             </tr>
