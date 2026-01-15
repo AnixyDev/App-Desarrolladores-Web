@@ -15,24 +15,26 @@ const SettingsPage: React.FC = () => {
     const [isSaving, setIsSaving] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Sincronizar formData cuando el perfil cambie (ej: después de pagar Pro)
+    // Solo sincronizar si el ID cambia para evitar bucles de renderizado
     useEffect(() => {
-        setFormData(profile);
-    }, [profile]);
+        if (profile.id) {
+            setFormData(profile);
+        }
+    }, [profile.id, profile.plan, profile.hourly_rate_cents]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
         if (type === 'checkbox') {
              const { checked } = e.target as HTMLInputElement;
-             setFormData(prev => prev ? ({ ...prev, [name]: checked }) : null);
+             setFormData(prev => ({ ...prev, [name]: checked }));
         } else {
-             setFormData(prev => prev ? ({ ...prev, [name]: value }) : null);
+             setFormData(prev => ({ ...prev, [name]: value }));
         }
     };
     
     const handleSkillsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const skillsArray = e.target.value.split(',').map(s => s.trim());
-        setFormData(prev => prev ? ({ ...prev, skills: skillsArray }) : null);
+        setFormData(prev => ({ ...prev, skills: skillsArray }));
     };
     
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,7 +46,7 @@ const SettingsPage: React.FC = () => {
             }
             const reader = new FileReader();
             reader.onloadend = () => {
-                setFormData(prev => prev ? { ...prev, avatar_url: reader.result as string } : null);
+                setFormData(prev => ({ ...prev, avatar_url: reader.result as string }));
                 addToast('Imagen cargada. Pulsa guardar para confirmar.', 'info');
             };
             reader.readAsDataURL(file);
@@ -53,12 +55,12 @@ const SettingsPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData) return;
-
         setIsSaving(true);
         try {
-            await updateProfile(formData);
-            await refreshProfile(); // Asegurar que el estado global esté fresco
+            // Limpiar datos antes de enviar
+            const dataToUpdate = { ...formData };
+            await updateProfile(dataToUpdate);
+            await refreshProfile();
             addToast('Perfil actualizado correctamente.', 'success');
         } catch (err: any) {
             addToast(err.message || 'Error al guardar cambios.', 'error');
@@ -66,8 +68,6 @@ const SettingsPage: React.FC = () => {
             setIsSaving(false);
         }
     }
-
-    if (!formData) return <div className="flex h-64 items-center justify-center text-gray-400">Cargando perfil...</div>;
 
     return (
         <div className="max-w-4xl mx-auto">
@@ -117,8 +117,8 @@ const SettingsPage: React.FC = () => {
                                 label="Tarifa por Hora (€)" 
                                 name="hourly_rate_cents" 
                                 type="number" 
-                                value={formData.hourly_rate_cents / 100} 
-                                onChange={(e) => setFormData(p => p ? {...p, hourly_rate_cents: Math.round(Number(e.target.value) * 100)} : null)} 
+                                value={(formData.hourly_rate_cents || 0) / 100} 
+                                onChange={(e) => setFormData(p => ({...p, hourly_rate_cents: Math.round(Number(e.target.value) * 100)}))} 
                             />
                         </div>
                         <Input label="Color principal para PDFs" name="pdf_color" type="color" value={formData.pdf_color} onChange={handleInputChange} wrapperClassName="flex items-center gap-4" />
@@ -149,7 +149,7 @@ const SettingsPage: React.FC = () => {
                                 <label htmlFor="payment_reminders_enabled" className="font-bold text-gray-200">Activar recordatorios</label>
                                 <p className="text-xs text-gray-500">Notificar a clientes sobre facturas pendientes.</p>
                             </div>
-                            <button type="button" onClick={() => setFormData(p => p ? {...p, payment_reminders_enabled: !p.payment_reminders_enabled} : null)} className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${formData.payment_reminders_enabled ? 'bg-primary-600' : 'bg-gray-700'}`}>
+                            <button type="button" onClick={() => setFormData(p => ({...p, payment_reminders_enabled: !p.payment_reminders_enabled}))} className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${formData.payment_reminders_enabled ? 'bg-primary-600' : 'bg-gray-700'}`}>
                                 <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.payment_reminders_enabled ? 'translate-x-5' : 'translate-x-0'}`} />
                             </button>
                         </div>

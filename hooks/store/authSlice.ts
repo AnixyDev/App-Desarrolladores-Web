@@ -61,10 +61,9 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
                 .from('profiles')
                 .select('*')
                 .eq('id', session.user.id)
-                .maybeSingle(); // Usamos maybeSingle para evitar errores si no existe
+                .maybeSingle();
             
             if (fetchError || !profileData) {
-                // Si el perfil no existe en la tabla de BD pero sí en Auth, lo creamos
                 const fallbackProfile = {
                     id: session.user.id,
                     email: session.user.email || '',
@@ -75,17 +74,13 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
                     avatar_url: session.user.user_metadata?.avatar_url || ''
                 };
 
-                const { data: newProfile, error: upsertError } = await supabase
+                const { data: newProfile } = await supabase
                     .from('profiles')
                     .upsert(fallbackProfile, { onConflict: 'id' })
                     .select()
                     .single();
 
-                if (!upsertError && newProfile) {
-                    set({ profile: newProfile as Profile, isAuthenticated: true });
-                } else {
-                    set({ profile: { ...initialProfile, ...fallbackProfile } as Profile, isAuthenticated: true });
-                }
+                set({ profile: (newProfile || fallbackProfile) as Profile, isAuthenticated: true });
             } else {
                 set({ profile: profileData as Profile, isAuthenticated: true });
             }
@@ -97,31 +92,22 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
     },
 
     initializeAuth: async () => {
+        // Evitar múltiples inicializaciones simultáneas
+        if (!get().isProfileLoading && get().isAuthenticated) return;
+
         set({ isProfileLoading: true });
 
-        // Listener de Supabase para cambios de estado de autenticación globales
-        supabase.auth.onAuthStateChange(async (event, session) => {
-            if (session) {
-                await get().refreshProfile();
-            } else {
-                set({ isAuthenticated: false, profile: initialProfile, isProfileLoading: false });
-            }
-        });
-
-        // Verificación inicial
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
             await get().refreshProfile();
-            // Cargar datos del usuario
-            Promise.all([
-                get().fetchClients(),
-                get().fetchProjects(),
-                get().fetchTasks(),
-                get().fetchTimeEntries(),
-                get().fetchFinanceData()
-            ]).catch(console.error);
+            // Carga diferida de datos para no bloquear el hilo principal
+            get().fetchClients().catch(console.error);
+            get().fetchProjects().catch(console.error);
+            get().fetchTasks().catch(console.error);
+            get().fetchTimeEntries().catch(console.error);
+            get().fetchFinanceData().catch(console.error);
         } else {
-            set({ isProfileLoading: false });
+            set({ isProfileLoading: false, isAuthenticated: false });
         }
     },
 
@@ -142,18 +128,17 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
         return false;
     },
 
-    loginWithGoogle: async (payload) => {
-        // La lógica real de Google OAuth es manejada por el redireccionamiento de Supabase
-        // Este método se mantiene por compatibilidad de interfaz
+    loginWithGoogle: async () => {
         await get().refreshProfile();
     },
 
     logout: async () => {
         try {
             await supabase.auth.signOut();
-        } finally {
             set({ isAuthenticated: false, profile: initialProfile, isProfileLoading: false });
-            localStorage.clear(); // Limpiar caché para evitar conflictos de plan
+            localStorage.removeItem('devfreelancer-storage');
+        } catch (e) {
+            console.error(e);
         }
     },
 
@@ -196,7 +181,7 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
     
     consumeCredits: async (amount) => {
         const { profile } = get();
-        if (!profile.id) return false;
+        if (!profile.id || (profile.ai_credits || 0) < amount) return false;
 
         const { data: success, error } = await supabase.rpc('consume_credits_atomic', { 
             user_id: profile.id, 

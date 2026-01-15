@@ -1,9 +1,8 @@
 
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAppStore } from './hooks/useAppStore';
-import { supabase } from './lib/supabaseClient';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import ToastContainer from './components/ui/Toast';
@@ -75,7 +74,7 @@ const LoadingFallback = () => (
 );
 
 const MainLayout = () => {
-    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = React.useState(false);
     return (
         <div className="flex h-screen bg-gray-950 text-gray-100 overflow-hidden font-sans selection:bg-primary-500/30">
             <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
@@ -96,7 +95,7 @@ function App() {
     
     useEffect(() => {
         initializeAuth();
-    }, [initializeAuth]);
+    }, []);
 
     if (isProfileLoading) return <LoadingFallback />;
 
@@ -106,24 +105,20 @@ function App() {
                 <ToastContainer />
                 <CookieBanner />
                 <Routes>
-                    {/* Public Routes */}
                     <Route path="/auth" element={<AuthLayout />}>
                         <Route path="login" element={<LoginPage />} />
                         <Route path="register" element={<RegisterPage />} />
                     </Route>
                     
-                    {/* Portal Routes */}
                     <Route path="/portal" element={<Suspense fallback={<LoadingFallback />}><PortalLayout /></Suspense>}>
                         <Route path="login" element={<PortalLoginPage />} />
                         <Route path="dashboard/:clientId" element={<PortalDashboardPage />} />
                         <Route path="invoice/:invoiceId" element={<PortalInvoiceViewPage />} />
                     </Route>
 
-                    {/* Legal Routes */}
                     <Route path="/politica-de-privacidad" element={<PrivacyPolicyPage />} />
                     <Route path="/condiciones-de-servicio" element={<TermsOfService />} />
                     
-                    {/* Protected Private Routes */}
                     <Route path="/" element={isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" replace />}>
                         <Route index element={<DashboardPage />} />
                         <Route path="clients" element={<ClientsPage />} />
