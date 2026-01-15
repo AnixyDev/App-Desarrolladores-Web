@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { HashRouter, Routes, Route, Navigate, Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAppStore } from './hooks/useAppStore';
 import { supabase } from './lib/supabaseClient';
@@ -112,6 +112,18 @@ const MainLayout = () => {
     );
 };
 
+// Componente para manejar el enrutamiento dinámico según el host
+const DynamicRouter: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    // Detectamos si estamos en el entorno de previsualización de Google
+    const isGooglePreview = window.location.hostname.includes('usercontent.goog') || 
+                           window.location.pathname.length > 20;
+
+    if (isGooglePreview) {
+        return <HashRouter>{children}</HashRouter>;
+    }
+    return <BrowserRouter>{children}</BrowserRouter>;
+};
+
 function App() {
     const { initializeAuth, isAuthenticated, isProfileLoading } = useAppStore();
     
@@ -123,7 +135,7 @@ function App() {
 
     return (
         <GoogleOAuthProvider clientId="457438236235-n2s8q6nvcjm32u0o3ut2lksd8po8gfqf.apps.googleusercontent.com">
-            <HashRouter>
+            <DynamicRouter>
                 <AuthListener />
                 <ToastContainer />
                 <CookieBanner />
@@ -180,7 +192,7 @@ function App() {
 
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
-            </HashRouter>
+            </DynamicRouter>
         </GoogleOAuthProvider>
     );
 }

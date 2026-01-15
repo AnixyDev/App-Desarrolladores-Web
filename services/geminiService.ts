@@ -1,15 +1,11 @@
 
 import { GoogleGenAI, GenerateContentResponse, Type, FunctionDeclaration } from "@google/genai";
 
-/**
- * Obtiene la API KEY de forma segura solo cuando es necesaria.
- */
 const getSafeApiKey = (): string => {
-    // Exigimos la clave de process.env como indica la instrucción de seguridad
-    const key = (process as any).env?.API_KEY;
+    const key = (process as any).env?.API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
     if (!key) {
-        console.warn("Gemini API Key missing. AI features will be disabled.");
-        return "MISSING_KEY";
+        console.warn("Gemini API Key missing in environment.");
+        return "";
     }
     return key;
 };
@@ -33,11 +29,12 @@ export const AI_CREDIT_COSTS = {
 };
 
 const SYSTEM_INSTRUCTION = `
-Eres el "Estratega Principal de DevFreelancer", un consultor experto con más de 15 años de trayectoria en desarrollo de software.
+Eres el "Estratega Principal de DevFreelancer", un consultor experto senior con 15 años de experiencia.
+Tu objetivo es ayudar a freelancers y agencias a maximizar su ROI y eficiencia.
 REGLAS:
-1. Sé analítico y directo.
-2. Formato Markdown profesional.
-3. Concluye con un "> **Consejo Estratégico Pro:**".
+1. Análisis directo y estratégico.
+2. Uso de Markdown profesional.
+3. Finaliza siempre con un "> **Consejo Estratégico Pro:**".
 `;
 
 export const getAIResponse = async (
@@ -54,15 +51,15 @@ export const getAIResponse = async (
         config: {
             systemInstruction: SYSTEM_INSTRUCTION,
             tools: tools ? [{ functionDeclarations: tools }] : undefined,
-            temperature: 0.8,
-            topP: 0.9,
-            maxOutputTokens: 2000,
+            temperature: 0.75,
+            topP: 0.95,
+            maxOutputTokens: 2500,
         }
     });
 };
 
 export const generateProposalText = async (jobTitle: string, jobDescription: string, userProfile: string): Promise<string> => {
-    const prompt = `Genera una propuesta comercial persuasiva. Puesto: ${jobTitle}. Contexto: ${jobDescription}. Mi perfil: ${userProfile}`;
+    const prompt = `Propuesta comercial para: ${jobTitle}. Contexto: ${jobDescription}. Mi perfil: ${userProfile}`;
     const response = await getAIResponse(prompt, []);
     return response.text || '';
 };
@@ -70,8 +67,7 @@ export const generateProposalText = async (jobTitle: string, jobDescription: str
 export const refineProposalText = async (text: string, tone: 'formal' | 'conciso' | 'entusiasta'): Promise<string> => {
     const apiKey = getSafeApiKey();
     const ai = new GoogleGenAI({ apiKey });
-    const prompt = `Refina el siguiente texto de propuesta comercial cambiando el tono a: ${tone}. Texto: ${text}`;
-    
+    const prompt = `Refina esta propuesta con tono ${tone}: ${text}`;
     const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: prompt,
@@ -80,7 +76,7 @@ export const refineProposalText = async (text: string, tone: 'formal' | 'conciso
 };
 
 export const analyzeProfitability = async (data: any) => {
-    const prompt = `Analiza la rentabilidad de estos proyectos y detecta fugas de dinero: ${JSON.stringify(data)}`;
+    const prompt = `Analiza rentabilidad y fugas de capital: ${JSON.stringify(data)}`;
     const response = await getAIResponse(prompt, []);
     try {
         return JSON.parse(response.text || '{}');
@@ -94,7 +90,7 @@ export const generateItemsForDocument = async (prompt: string, hourlyRate: numbe
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `Genera conceptos de factura detallados para: ${prompt}. Mi tarifa es ${hourlyRate/100}€/h`,
+        contents: `Conceptos de factura para: ${prompt}. Tarifa: ${hourlyRate/100}€/h`,
         config: { responseMimeType: "application/json" }
     });
     return JSON.parse(response.text || '[]');
@@ -103,7 +99,7 @@ export const generateItemsForDocument = async (prompt: string, hourlyRate: numbe
 export const summarizeApplicant = async (jobDesc: string, applicantProf: string, proposal: string): Promise<any> => {
     const apiKey = getSafeApiKey();
     const ai = new GoogleGenAI({ apiKey });
-    const prompt = `Evalúa este candidato para el proyecto: ${jobDesc}. Perfil: ${applicantProf}. Propuesta: ${proposal}`;
+    const prompt = `Evalúa candidato: ${jobDesc}. Perfil: ${applicantProf}. Propuesta: ${proposal}`;
     const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: prompt,
@@ -126,8 +122,7 @@ export const summarizeApplicant = async (jobDesc: string, applicantProf: string,
 export const generateTimeEntryDescription = async (projectName: string, projectDesc: string, keywords: string): Promise<string> => {
     const apiKey = getSafeApiKey();
     const ai = new GoogleGenAI({ apiKey });
-    const prompt = `Genera una descripción profesional (máximo 15 palabras). Proyecto: ${projectName}. Keywords: ${keywords}`;
-    
+    const prompt = `Descripción corta de tarea: ${projectName}. Contexto: ${keywords}`;
     const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: prompt,
@@ -138,18 +133,14 @@ export const generateTimeEntryDescription = async (projectName: string, projectD
 export const rankArticlesByRelevance = async (query: string, articles: any[]): Promise<string[]> => {
     const apiKey = getSafeApiKey();
     const ai = new GoogleGenAI({ apiKey });
-    const articlesContext = articles.map(a => ({ id: a.id, title: a.title, content: a.content.substring(0, 200) }));
-    const prompt = `Ordena los IDs por relevancia semántica para: "${query}". IDs: ${JSON.stringify(articlesContext)}`;
-    
+    const articlesContext = articles.map(a => ({ id: a.id, title: a.title, content: a.content.substring(0, 150) }));
+    const prompt = `Ordena IDs por relevancia para: "${query}". Datos: ${JSON.stringify(articlesContext)}`;
     const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
             responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING }
-            }
+            responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } }
         }
     });
     return JSON.parse(response.text || '[]');
@@ -158,8 +149,7 @@ export const rankArticlesByRelevance = async (query: string, articles: any[]): P
 export const generateFinancialForecast = async (data: any[]): Promise<any> => {
     const apiKey = getSafeApiKey();
     const ai = new GoogleGenAI({ apiKey });
-    const prompt = `Analiza la previsión financiera: ${JSON.stringify(data)}`;
-    
+    const prompt = `Predicción financiera: ${JSON.stringify(data)}`;
     const response = await ai.models.generateContent({
         model: "gemini-3-pro-preview",
         contents: prompt,

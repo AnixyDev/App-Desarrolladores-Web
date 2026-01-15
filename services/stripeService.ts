@@ -1,3 +1,4 @@
+
 import { supabase, getURL } from '../lib/supabaseClient';
 import { loadStripe } from '@stripe/stripe-js';
 
@@ -15,24 +16,24 @@ const STRIPE_PUBLIC_KEY = getEnv('VITE_STRIPE_PUBLIC_KEY');
 
 export const getStripe = () => {
     if (!STRIPE_PUBLIC_KEY || STRIPE_PUBLIC_KEY.startsWith('pk_test')) {
-        console.warn('Advertencia: No se ha detectado una clave pública de Stripe para Producción (pk_live).');
+        console.warn('Advertencia: Usando modo test de Stripe. Para producción real, configura VITE_STRIPE_PUBLIC_KEY con pk_live.');
     }
     return loadStripe(STRIPE_PUBLIC_KEY);
 };
 
 export const STRIPE_ITEMS = {
     proPlan: {
-        priceId: 'price_1SOgUF8oC5awQy15dOEM5jGS', // ID de Stripe Pro
+        priceId: 'price_1SOgUF8oC5awQy15dOEM5jGS', 
         mode: 'subscription' as const,
         name: 'Pro Plan',
     },
     teamsPlan: {
-        priceId: 'price_1SOggV8oC5awQy15YW1wAgcg', // ID de Stripe Teams
+        priceId: 'price_1SOggV8oC5awQy15YW1wAgcg', 
         mode: 'subscription' as const,
         name: 'Plan de equipos',
     },
     teamsPlanYearly: {
-        priceId: 'price_1SOggV8oC5awQy15Ppz7bUj0', // ID de Stripe Teams Anual
+        priceId: 'price_1SOggV8oC5awQy15Ppz7bUj0', 
         mode: 'subscription' as const,
         name: 'Plan de equipos (Anual)',
     },
@@ -68,17 +69,12 @@ export const STRIPE_ITEMS = {
 
 export type StripeItemKey = keyof typeof STRIPE_ITEMS;
 
-/**
- * Redirige a Stripe Checkout (Usa Edge Functions de Supabase)
- * Conecta con: https://umqsjycqypxvhbhmidma.supabase.co/functions/v1/create-checkout-session
- */
 export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Record<string, any> = {}) => {
     const item = STRIPE_ITEMS[itemKey];
     if (!item) throw new Error('El artículo de compra no es válido.');
 
     const currentUrl = getURL();
 
-    // 2. Cuerpo de la Petición: Estructura requerida por la Edge Function
     const bodyPayload = {
         priceId: item.priceId || undefined,
         mode: item.mode,
@@ -91,17 +87,15 @@ export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Re
         }
     };
 
-    // 1. URL de la Función: invoke() apunta automáticamente al subdominio del proyecto
     const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: bodyPayload
     });
 
     if (error) {
         console.error('Supabase Function Invoke Error:', error);
-        throw new Error('No se pudo iniciar la sesión de pago. Inténtalo de nuevo.');
+        throw new Error('No se pudo iniciar la sesión de pago segura.');
     }
 
-    // 3. Manejo de Respuesta: Redirección mediante assign para mejor compatibilidad
     if (data?.url) {
         window.location.assign(data.url);
     } else {
@@ -109,31 +103,24 @@ export const redirectToCheckout = async (itemKey: StripeItemKey, extraParams: Re
     }
 };
 
-/**
- * Crea un PaymentIntent llamando al endpoint local de Next.js /api/checkout.
- */
 export const createPaymentIntent = async (amountCents: number, userId: string, itemKey: string, metadata: Record<string, any> = {}) => {
-    if (!userId) throw new Error("Se requiere el ID de usuario para procesar el pago.");
+    if (!userId) throw new Error("Sesión de usuario requerida.");
     const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: Math.round(amountCents), userId, itemKey, metadata }),
     });
     if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error en el servidor de pagos.');
+        throw new Error('Error al procesar el intento de pago seguro.');
     }
     const data = await response.json();
     return data.clientSecret;
 };
 
-/**
- * Redirige al portal de Stripe eliminando el símbolo de hash.
- */
 export const redirectToCustomerPortal = async () => {
     const currentUrl = getURL();
     const { data, error } = await supabase.functions.invoke('create-portal-session', {
-        body: { return_url: `${currentUrl}/billing` }
+        body: { return_url: `${currentUrl}billing` }
     });
     if (error) throw new Error('Error al abrir el portal de facturación.');
     if (data?.url) window.location.assign(data.url);
