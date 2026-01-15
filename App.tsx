@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAppStore } from './hooks/useAppStore';
 import { supabase } from './lib/supabaseClient';
@@ -9,37 +9,26 @@ import Header from './components/layout/Header';
 import ToastContainer from './components/ui/Toast';
 import CookieBanner from './components/ui/CookieBanner';
 
-// Auth & Public (Importación directa para evitar lazy en rutas críticas)
+// Auth & Public
 import AuthLayout from './pages/auth/AuthLayout';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfService from './pages/TermsOfService';
 
-/**
- * Cargador Robusto: Si un "chunk" (fragmento de código) falla al descargar 
- * (común tras un deploy), forzamos una recarga limpia del navegador.
- */
 const safeLazy = (importFn: () => Promise<any>) => {
   return lazy(async () => {
     try {
       return await importFn();
     } catch (error) {
-      console.error("Fallo crítico de carga de módulo. Reintentando...", error);
-      // Evitamos bucles infinitos usando un flag en sessionStorage
-      const storageKey = 'retry-lazy-' + importFn.toString().slice(0, 50);
-      const hasRetried = window.sessionStorage.getItem(storageKey);
-      
-      if (!hasRetried) {
-        window.sessionStorage.setItem(storageKey, 'true');
-        window.location.reload();
-      }
+      console.error("Fallo de carga de módulo:", error);
+      window.location.reload();
       throw error;
     }
   });
 };
 
-// Lazy Loaded Components
+// Lazy Components
 const DashboardPage = safeLazy(() => import('./pages/DashboardPage'));
 const ClientsPage = safeLazy(() => import('./pages/ClientsPage'));
 const ClientDetailPage = safeLazy(() => import('./pages/ClientDetailPage'));
@@ -81,16 +70,7 @@ const PortalInvoiceViewPage = safeLazy(() => import('./pages/portal/PortalInvoic
 
 const LoadingFallback = () => (
     <div className="flex h-full w-full min-h-[400px] items-center justify-center">
-        <div className="relative flex flex-col items-center">
-            <div className="w-12 h-12 border-[3px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
-            <p className="mt-4 text-xs font-bold uppercase tracking-widest text-gray-500">Cargando...</p>
-        </div>
-    </div>
-);
-
-const FullPageLoader = () => (
-    <div className="flex h-screen w-full items-center justify-center bg-gray-950">
-        <div className="w-16 h-16 border-[3px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
+        <div className="w-10 h-10 border-[3px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
     </div>
 );
 
@@ -102,11 +82,9 @@ const AuthListener = () => {
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (session && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
-                if (!isProfileLoading) {
-                    await refreshProfile();
-                }
+                if (!isProfileLoading) await refreshProfile();
             } else if (event === 'SIGNED_OUT') {
-                if (!location.pathname.startsWith('/auth/') && !location.pathname.startsWith('/portal/')) {
+                if (!location.pathname.includes('/auth/') && !location.pathname.includes('/portal/')) {
                     navigate('/auth/login', { replace: true });
                 }
             }
@@ -119,20 +97,12 @@ const AuthListener = () => {
 
 const MainLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const location = useLocation();
-
-    // Scroll al principio en cada cambio de ruta
-    useEffect(() => {
-        const mainContent = document.getElementById('main-content');
-        if (mainContent) mainContent.scrollTo(0, 0);
-    }, [location.pathname]);
-
     return (
         <div className="flex h-screen bg-gray-950 text-gray-100 overflow-hidden font-sans selection:bg-primary-500/30">
             <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
             <div className="flex-1 flex flex-col min-w-0">
                 <Header setSidebarOpen={setSidebarOpen} />
-                <main id="main-content" className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-8 animate-fade-in">
+                <main className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-8 animate-fade-in">
                     <Suspense fallback={<LoadingFallback />}>
                         <Outlet />
                     </Suspense>
@@ -149,11 +119,11 @@ function App() {
         initializeAuth();
     }, [initializeAuth]);
 
-    if (isProfileLoading) return <FullPageLoader />;
+    if (isProfileLoading) return <div className="flex h-screen w-full items-center justify-center bg-gray-950"><div className="w-12 h-12 border-[3px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div></div>;
 
     return (
         <GoogleOAuthProvider clientId="457438236235-n2s8q6nvcjm32u0o3ut2lksd8po8gfqf.apps.googleusercontent.com">
-            <BrowserRouter>
+            <HashRouter>
                 <AuthListener />
                 <ToastContainer />
                 <CookieBanner />
@@ -163,7 +133,7 @@ function App() {
                         <Route path="register" element={<RegisterPage />} />
                     </Route>
                     
-                    <Route path="/portal" element={<Suspense fallback={<FullPageLoader />}><PortalLayout /></Suspense>}>
+                    <Route path="/portal" element={<Suspense fallback={<LoadingFallback />}><PortalLayout /></Suspense>}>
                         <Route path="login" element={<PortalLoginPage />} />
                         <Route path="dashboard/:clientId" element={<PortalDashboardPage />} />
                         <Route path="invoice/:invoiceId" element={<PortalInvoiceViewPage />} />
@@ -210,7 +180,7 @@ function App() {
 
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
-            </BrowserRouter>
+            </HashRouter>
         </GoogleOAuthProvider>
     );
 }
