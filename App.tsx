@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, HashRouter, Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAppStore } from './hooks/useAppStore';
 import { supabase } from './lib/supabaseClient';
@@ -112,18 +112,6 @@ const MainLayout = () => {
     );
 };
 
-// Componente para manejar el enrutamiento dinámico según el host
-const DynamicRouter: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    // Detectamos si estamos en el entorno de previsualización de Google
-    const isGooglePreview = window.location.hostname.includes('usercontent.goog') || 
-                           window.location.pathname.length > 20;
-
-    if (isGooglePreview) {
-        return <HashRouter>{children}</HashRouter>;
-    }
-    return <BrowserRouter>{children}</BrowserRouter>;
-};
-
 function App() {
     const { initializeAuth, isAuthenticated, isProfileLoading } = useAppStore();
     
@@ -131,11 +119,15 @@ function App() {
         initializeAuth();
     }, [initializeAuth]);
 
-    if (isProfileLoading) return <div className="flex h-screen w-full items-center justify-center bg-gray-950"><div className="w-12 h-12 border-[3px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div></div>;
+    if (isProfileLoading) return (
+        <div className="flex h-screen w-full items-center justify-center bg-gray-950">
+            <div className="w-12 h-12 border-[3px] border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
+        </div>
+    );
 
     return (
         <GoogleOAuthProvider clientId="457438236235-n2s8q6nvcjm32u0o3ut2lksd8po8gfqf.apps.googleusercontent.com">
-            <DynamicRouter>
+            <Router>
                 <AuthListener />
                 <ToastContainer />
                 <CookieBanner />
@@ -192,7 +184,7 @@ function App() {
 
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
-            </DynamicRouter>
+            </Router>
         </GoogleOAuthProvider>
     );
 }

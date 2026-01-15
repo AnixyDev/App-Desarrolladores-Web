@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthCard from '../../components/auth/AuthCard';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { useAppStore } from '../../hooks/useAppStore';
-import { supabase, getURL } from '../../lib/supabaseClient';
+import { supabase } from '../../lib/supabaseClient';
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
@@ -17,11 +18,11 @@ const LoginPage: React.FC = () => {
     const handleGoogleLogin = async () => {
         try {
             setError('');
-            // Usamos estrictamente la URL base de la app para evitar el error Cannot GET /auth/login
+            // En producción y previsualización, la redirección debe ir a la raíz del origen actual
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: getURL(), 
+                    redirectTo: window.location.origin, 
                 },
             });
             if (error) throw error;
