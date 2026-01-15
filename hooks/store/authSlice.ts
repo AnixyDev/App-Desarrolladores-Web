@@ -1,4 +1,3 @@
-
 import { StateCreator } from 'zustand';
 import { AppState } from '../useAppStore';
 import { Profile, GoogleJwtPayload } from '../../types';
@@ -57,7 +56,7 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
                 return;
             }
 
-            // Forzamos una lectura fresca de la base de datos, no de la sesión local
+            // Forzamos lectura FRESCA desde la base de datos para detectar el plan Pro pagado
             const { data: profileData, error: fetchError } = await supabase
                 .from('profiles')
                 .select('*')
@@ -65,7 +64,6 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
                 .single();
             
             if (fetchError || !profileData) {
-                console.warn("Perfil no encontrado, usando metadatos de sesión");
                 const fallbackProfile = {
                     ...initialProfile,
                     id: session.user.id,
@@ -75,7 +73,8 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
                 };
                 set({ profile: fallbackProfile as Profile, isAuthenticated: true });
             } else {
-                // AQUÍ ESTÁ LA CLAVE: Sincronizamos el plan Pro pagado
+                // Sincronizamos el plan (Pro/Teams) desde la DB
+                console.log('Perfil sincronizado. Plan actual:', profileData.plan);
                 set({ profile: profileData as Profile, isAuthenticated: true });
             }
         } catch (error) {
@@ -88,7 +87,6 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
     initializeAuth: async () => {
         set({ isProfileLoading: true });
 
-        // Escuchar cambios reales de auth
         supabase.auth.onAuthStateChange(async (event, session) => {
             if (session?.user) {
                 await get().refreshProfile();
@@ -100,7 +98,6 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
             await get().refreshProfile();
-            // Cargar datos en segundo plano
             get().fetchClients().catch(() => {});
             get().fetchProjects().catch(() => {});
         } else {

@@ -2,7 +2,6 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@13.10.0?target=deno'
 
-// FIX: Added Deno type declaration to resolve the "Cannot find name 'Deno'" errors.
 declare const Deno: any;
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') as string, {
@@ -34,7 +33,7 @@ serve(async (req) => {
       const itemKey = session.metadata?.itemKey
 
       if (userId) {
-        // --- 1. REGISTRO PARA EL DASHBOARD DE ADMIN ---
+        // 1. Dashboard de Admin
         try {
           await supabaseAdmin.from('platform_payments').insert({
             user_id: userId,
@@ -43,12 +42,11 @@ serve(async (req) => {
             amount_cents: session.amount_total,
             stripe_session_id: session.id
           })
-          console.log('✅ Pago registrado en el Dashboard');
         } catch (dbError) {
-          console.error('❌ Error registrando pago en DB:', dbError);
+          console.error('Error Dashboard:', dbError);
         }
 
-        // --- 2. LÓGICA DE SUSCRIPCIONES ---
+        // 2. Lógica de Suscripciones - AQUÍ SE ACTUALIZA TU PLAN
         if (session.mode === 'subscription') {
           const planName = itemKey?.includes('teams') ? 'Teams' : 'Pro';
           await supabaseAdmin.from('profiles').update({
@@ -57,9 +55,10 @@ serve(async (req) => {
             plan: planName,
             current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
           }).eq('id', userId)
+          console.log(`✅ Plan Pro/Teams activado para ${userId}`);
         } 
         
-        // --- 3. LÓGICA DE CRÉDITOS IA ---
+        // 3. Lógica de Créditos IA
         else if (session.mode === 'payment') {
           if (itemKey?.startsWith('aiCredits')) {
              let amount = 0;
@@ -72,7 +71,6 @@ serve(async (req) => {
              }
           }
           
-          // Caso Oferta Empleo o Factura Fallback
           if (session.metadata?.invoice_id) {
              await supabaseAdmin.from('invoices').update({
                paid: true,
@@ -88,19 +86,6 @@ serve(async (req) => {
     case 'customer.subscription.deleted': {
       const subscription = event.data.object as any
       await supabaseAdmin.from('profiles').update({ plan: 'Free' }).eq('stripe_subscription_id', subscription.id)
-      break
-    }
-
-    case 'payment_intent.succeeded': {
-      const paymentIntent = event.data.object as any
-      const invoiceId = paymentIntent.metadata?.invoice_id
-      if (invoiceId) {
-         await supabaseAdmin.from('invoices').update({
-           paid: true,
-           payment_date: new Date().toISOString(),
-           stripe_payment_intent_id: paymentIntent.id
-         }).eq('id', invoiceId)
-      }
       break
     }
   }
