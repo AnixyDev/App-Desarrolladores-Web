@@ -1,3 +1,4 @@
+
 import React, { useState, lazy, Suspense, useEffect, useMemo } from 'react';
 import { Briefcase, DollarSign, Clock, Zap, Target, Filter, ChevronDown, ChevronUp, TrendingUp, Search, Star, BellRing, X } from 'lucide-react';
 import { Job } from '../types';
@@ -103,7 +104,6 @@ const JobMarketDashboard = () => {
   const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [alertsEnabled, setAlertsEnabled] = useState(true);
 
   // --- Search & Filter State ---
   const [searchTerm, setSearchTerm] = useState('');
@@ -116,26 +116,6 @@ const JobMarketDashboard = () => {
     maxDuration: '',
   });
   const [showFilters, setShowFilters] = useState(false);
-
-  useEffect(() => {
-    // Simular la comprobación de nuevas ofertas coincidentes
-    const timer = setTimeout(() => {
-      if (!profile || !profile.skills || profile.plan !== 'Pro') return;
-
-      const userSkills = new Set(profile.skills);
-      const newMatches = jobs.filter(job => 
-        !notifiedJobIds.includes(job.id) && 
-        job.habilidades.some(skill => userSkills.has(skill))
-      );
-
-      newMatches.forEach(job => {
-        addNotification(`¡Nueva oferta encontrada que coincide con tus habilidades: '${job.titulo}'!`, `/job-market/${job.id}`);
-        markJobAsNotified(job.id);
-      });
-    }, 1500); // Retraso para simular una comprobación en segundo plano
-
-    return () => clearTimeout(timer);
-  }, [jobs, profile, notifiedJobIds, addNotification, markJobAsNotified]);
 
   const allSkills = useMemo(() => {
     const skillSet = new Set<string>();
@@ -201,9 +181,6 @@ const JobMarketDashboard = () => {
             return b.compatibilidadIA - a.compatibilidadIA;
         case 'budget':
             return b.presupuesto - a.presupuesto;
-        case 'date':
-            // Esta es una simulación, necesitaríamos fechas reales para ordenar correctamente
-            return 0; 
         default:
             return 0;
         }
@@ -211,18 +188,14 @@ const JobMarketDashboard = () => {
   }, [filteredJobs, sort]);
 
   const handleApplyClick = (job: Job) => {
+    // ELIMINADO EL BLOQUEO: Si el usuario es Pro, no debería ver el modal. 
+    // Si el perfil no ha cargado aún, esperamos, pero no bloqueamos.
     if (profile?.plan === 'Free') {
         setIsUpgradeModalOpen(true);
     } else {
         setSelectedJob(job);
         setIsProposalModalOpen(true);
     }
-  };
-  
-  const handleAlertsToggle = () => {
-      const newState = !alertsEnabled;
-      setAlertsEnabled(newState);
-      addToast(`Alertas de trabajo ${newState ? 'activadas' : 'desactivadas'} (Simulación)`, 'info');
   };
 
   return (

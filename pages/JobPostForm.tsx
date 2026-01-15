@@ -1,12 +1,11 @@
+
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Briefcase, DollarSign, Clock, Hash, Send, Zap, Star } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
-// FIX: Remove .ts extension from import to fix module resolution error.
 import { redirectToCheckout } from '../services/stripeService';
 import { useAppStore } from '../hooks/useAppStore';
 import { useNavigate } from 'react-router-dom';
 
-// Lista de habilidades comunes para la selección múltiple
 const commonSkills = [
   'Angular', 'AWS', 'CSS', 'Docker', 'Firebase', 'Go', 'GCP (Google Cloud)',
   'HTML', 'Java', 'JavaScript', 'Kubernetes', 'PHP (Laravel)', 'MongoDB', 
@@ -32,8 +31,6 @@ interface InputFieldProps {
     required?: boolean;
 }
 
-// --- COMPONENTE PRINCIPAL ---
-
 const JobPostForm: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
     titulo: '',
@@ -50,11 +47,11 @@ const JobPostForm: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (profile?.plan === 'Free') {
+    // CORRECCIÓN: Permitir acceso si es Pro o Teams
+    if (profile && profile.plan === 'Free') {
       setIsUpgradeModalOpen(true);
     }
   }, [profile?.plan]);
-
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -78,18 +75,15 @@ const JobPostForm: React.FC = () => {
         setIsLoading(true);
         try {
             await redirectToCheckout('featuredJobPost');
-            // El usuario será redirigido a Stripe.
-            // Tras un pago exitoso, la app mostrará una notificación.
         } catch (error) {
             addToast((error as Error).message, 'error');
-            setIsLoading(false); // Reactivar el botón si hay un error antes de la redirección
+            setIsLoading(false);
         }
     } else {
         if (!profile) {
-            addToast('No se pudo identificar al usuario. Por favor, inicia sesión de nuevo.', 'error');
+            addToast('No se pudo identificar al usuario.', 'error');
             return;
         }
-        // Envío normal sin pago
         const newJob = {
             titulo: formData.titulo,
             descripcionCorta: formData.descripcion.substring(0, 100) + '...',
@@ -97,24 +91,24 @@ const JobPostForm: React.FC = () => {
             presupuesto: parseFloat(formData.presupuesto) || 0,
             duracionSemanas: parseInt(formData.duracionSemanas, 10) || 0,
             habilidades: formData.habilidadesRequeridas,
-            cliente: profile.business_name,
-            fechaPublicacion: "Ahora mismo",
+            cliente: profile.business_name || profile.full_name,
+            fechaPublicacion: "Recién publicado",
             isFeatured: false,
-            compatibilidadIA: Math.floor(Math.random() * 30) + 70, // Simula alta compatibilidad
+            compatibilidadIA: 100, 
             postedByUserId: profile.id
         };
-        addJob(newJob);
+        await addJob(newJob);
         addToast('¡Oferta de trabajo publicada con éxito!', 'success');
         navigate('/my-job-posts');
     }
   };
 
-  if (isUpgradeModalOpen) {
+  if (isUpgradeModalOpen && profile?.plan === 'Free') {
     return (
         <Suspense fallback={null}>
             <UpgradePromptModal
                 isOpen={isUpgradeModalOpen}
-                onClose={() => navigate('/')}
+                onClose={() => navigate('/job-market')}
                 featureName="publicar ofertas de trabajo"
             />
         </Suspense>
@@ -147,30 +141,26 @@ const JobPostForm: React.FC = () => {
           Publicar Nueva Oferta
         </h1>
         <p className="text-gray-400 mb-8">
-          Detalla tu proyecto. Usaremos IA para conectar automáticamente tu oferta con los desarrolladores más compatibles.
+          Detalla tu proyecto para que el talento compatible pueda encontrarte.
         </p>
 
         <form onSubmit={handleSubmit}>
-          
           <InputField label="Título del Proyecto" name="titulo" icon={Briefcase} required />
-          
           <div className="mb-6">
             <label htmlFor="descripcion" className="block text-sm font-medium text-white mb-2 flex items-center">
               <Zap className="w-4 h-4 text-fuchsia-500 mr-2" />
-              Descripción Detallada del Trabajo <span className="text-red-500 ml-1">*</span>
+              Descripción Detallada <span className="text-red-500 ml-1">*</span>
             </label>
-            <textarea id="descripcion" name="descripcion" required rows={6} value={formData.descripcion} onChange={handleChange} className="w-full px-4 py-3 bg-gray-800 text-white border border-gray-700 rounded-xl focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 outline-none transition duration-150" placeholder="Describe los objetivos, el stack tecnológico principal y los entregables esperados..."/>
+            <textarea id="descripcion" name="descripcion" required rows={6} value={formData.descripcion} onChange={handleChange} className="w-full px-4 py-3 bg-gray-800 text-white border border-gray-700 rounded-xl focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 outline-none transition duration-150" placeholder="Describe los objetivos..."/>
           </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
             <InputField label="Presupuesto Máximo (€)" name="presupuesto" type="number" icon={DollarSign} required />
             <InputField label="Duración Estimada (Semanas)" name="duracionSemanas" type="number" icon={Clock} required />
           </div>
-
           <div className="mb-8">
             <label className="block text-sm font-medium text-white mb-3 flex items-center">
               <Hash className="w-4 h-4 text-fuchsia-500 mr-2" />
-              Habilidades Tecnológicas Clave <span className="text-gray-500 ml-2">(Selecciona las necesarias)</span>
+              Habilidades Requeridas
             </label>
             <div className="flex flex-wrap gap-2 p-4 bg-gray-800 rounded-xl border border-gray-700">
               {commonSkills.map(skill => (
@@ -180,30 +170,10 @@ const JobPostForm: React.FC = () => {
               ))}
             </div>
           </div>
-          
-          <div className="p-4 bg-fuchsia-900/30 rounded-lg border border-fuchsia-700/50 mb-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <label htmlFor="featured-toggle" className="font-semibold text-white flex items-center gap-2"><Star className="w-5 h-5 text-yellow-400"/>Destacar esta oferta</label>
-                    <p className="text-sm text-fuchsia-200">Aparece primero en los resultados y atrae a más talento.</p>
-                </div>
-                <button type="button" onClick={() => setIsFeatured(!isFeatured)} className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 focus:ring-offset-gray-900 ${isFeatured ? 'bg-yellow-400' : 'bg-gray-700'}`}>
-                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isFeatured ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
-            </div>
-            {isFeatured && (
-                 <p className="text-center text-yellow-300 font-semibold mt-3 text-sm bg-gray-800/50 p-2 rounded">Coste adicional: 5,95 € para 7 días de visibilidad máxima.</p>
-            )}
-          </div>
-
           <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full sm:w-auto px-8 py-3 font-semibold rounded-lg transition duration-200 bg-fuchsia-600 text-black hover:bg-fuchsia-700 shadow-lg shadow-fuchsia-500/50 flex items-center justify-center"
-            >
+            <button type="submit" disabled={isLoading} className="w-full sm:w-auto px-8 py-3 font-semibold rounded-lg transition duration-200 bg-fuchsia-600 text-black hover:bg-fuchsia-700 shadow-lg shadow-fuchsia-500/50 flex items-center justify-center">
               <Send className="w-5 h-5 mr-2" />
-              {isLoading ? 'Procesando Pago...' : (isFeatured ? 'Publicar y Destacar' : 'Publicar Oferta')}
+              {isLoading ? 'Cargando...' : 'Publicar Oferta'}
             </button>
           </div>
         </form>

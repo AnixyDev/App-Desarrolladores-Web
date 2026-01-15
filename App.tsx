@@ -1,6 +1,6 @@
 
 import React, { useEffect, lazy, Suspense } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAppStore } from './hooks/useAppStore';
 import Sidebar from './components/layout/Sidebar';
@@ -94,8 +94,9 @@ function App() {
     const { initializeAuth, isAuthenticated, isProfileLoading } = useAppStore();
     
     useEffect(() => {
+        // Inicializamos la autenticación. El sistema HashRouter se encargará del resto.
         initializeAuth();
-    }, []);
+    }, [initializeAuth]);
 
     if (isProfileLoading) return <LoadingFallback />;
 
@@ -105,19 +106,22 @@ function App() {
                 <ToastContainer />
                 <CookieBanner />
                 <Routes>
+                    {/* Todas las rutas están bajo el Hash para evitar el error de "No routes matched location" con prefijos dinámicos */}
                     <Route path="/auth" element={<AuthLayout />}>
                         <Route path="login" element={<LoginPage />} />
                         <Route path="register" element={<RegisterPage />} />
+                        <Route index element={<Navigate to="login" replace />} />
                     </Route>
                     
                     <Route path="/portal" element={<Suspense fallback={<LoadingFallback />}><PortalLayout /></Suspense>}>
                         <Route path="login" element={<PortalLoginPage />} />
                         <Route path="dashboard/:clientId" element={<PortalDashboardPage />} />
                         <Route path="invoice/:invoiceId" element={<PortalInvoiceViewPage />} />
+                        <Route index element={<Navigate to="login" replace />} />
                     </Route>
 
-                    <Route path="/politica-de-privacidad" element={<PrivacyPolicyPage />} />
-                    <Route path="/condiciones-de-servicio" element={<TermsOfService />} />
+                    <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                    <Route path="/terms" element={<TermsOfService />} />
                     
                     <Route path="/" element={isAuthenticated ? <MainLayout /> : <Navigate to="/auth/login" replace />}>
                         <Route index element={<DashboardPage />} />
@@ -155,6 +159,7 @@ function App() {
                         <Route path="admin" element={<AdminDashboard />} />
                     </Route>
 
+                    {/* Capturador universal para redirigir cualquier ruta fallida a la raíz del Hash */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </Router>

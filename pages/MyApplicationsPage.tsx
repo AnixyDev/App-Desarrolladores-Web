@@ -1,3 +1,4 @@
+
 // pages/MyApplicationsPage.tsx
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
@@ -21,22 +22,24 @@ const MyApplicationsPage: React.FC = () => {
     const navigate = useNavigate();
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
     
-    if (!profile) return null;
-    
-    const userApplications = applications.filter(app => app.userId === profile.id);
-    
     useEffect(() => {
-        if (profile?.plan === 'Free') {
+        // CORRECCIÓN: Solo si el perfil está cargado y es explícitamente Free
+        if (profile && profile.id && profile.plan === 'Free') {
             setIsUpgradeModalOpen(true);
         }
     }, [profile?.plan]);
 
-    if (isUpgradeModalOpen) {
+    if (!profile || !profile.id) return null;
+    
+    const userApplications = applications.filter(app => app.userId === profile.id);
+
+    // Si el usuario es Pro/Teams, ignoramos el modal
+    if (isUpgradeModalOpen && profile.plan === 'Free') {
         return (
             <Suspense fallback={null}>
                 <UpgradePromptModal
                     isOpen={isUpgradeModalOpen}
-                    onClose={() => navigate('/')}
+                    onClose={() => navigate('/job-market')}
                     featureName="ver tus postulaciones"
                 />
             </Suspense>
@@ -54,7 +57,7 @@ const MyApplicationsPage: React.FC = () => {
                     icon={Briefcase}
                     title="Aún no has aplicado a ninguna oferta"
                     message="Explora el mercado de proyectos y encuentra tu próximo desafío. ¡Aplica con la ayuda de nuestra IA!"
-                    action={{ text: 'Buscar Proyectos', onClick: () => {} }}
+                    action={{ text: 'Buscar Proyectos', onClick: () => navigate('/job-market') }}
                 />
             ) : (
                 <Card>
@@ -72,7 +75,7 @@ const MyApplicationsPage: React.FC = () => {
                                 <tbody>
                                     {userApplications.map(app => {
                                         const job = getJobById(app.jobId);
-                                        const statusInfo = applicationStatusConfig[app.status];
+                                        const statusInfo = applicationStatusConfig[app.status] || applicationStatusConfig.sent;
                                         return (
                                             <tr key={app.id} className="border-b border-gray-800 hover:bg-gray-800/50">
                                                 <td className="p-4 font-semibold text-white">

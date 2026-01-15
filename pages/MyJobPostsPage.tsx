@@ -1,3 +1,4 @@
+
 // pages/MyJobPostsPage.tsx
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useAppStore } from '../hooks/useAppStore.tsx';
@@ -14,13 +15,14 @@ const MyJobPostsPage: React.FC = () => {
     const { jobs, applications, profile } = useAppStore();
     const navigate = useNavigate();
     
-    // In a real multi-user app, we would filter by `job.postedByUserId === profile.id`
+    // Filtramos por las ofertas creadas por el usuario actual
     const myJobs = jobs.filter(j => j.postedByUserId === profile?.id); 
     
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
     useEffect(() => {
-        if (profile?.plan === 'Free') {
+        // CORRECCIÓN: Solo mostrar el modal si el usuario es Free explícitamente
+        if (profile && profile.plan === 'Free') {
             setIsUpgradeModalOpen(true);
         }
     }, [profile?.plan]);
@@ -29,17 +31,19 @@ const MyJobPostsPage: React.FC = () => {
         return applications.filter(app => app.jobId === jobId).length;
     };
 
-    if (isUpgradeModalOpen) {
+    // Si el usuario es Pro/Teams, no bloqueamos el renderizado
+    if (isUpgradeModalOpen && profile?.plan === 'Free') {
         return (
             <Suspense fallback={null}>
                 <UpgradePromptModal
                     isOpen={isUpgradeModalOpen}
-                    onClose={() => navigate('/')}
+                    onClose={() => navigate('/job-market')}
                     featureName="gestionar tus ofertas publicadas"
                 />
             </Suspense>
         );
     }
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">

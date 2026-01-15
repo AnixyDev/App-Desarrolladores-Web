@@ -57,31 +57,25 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
                 return;
             }
 
+            // Forzamos una lectura fresca de la base de datos, no de la sesión local
             const { data: profileData, error: fetchError } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', session.user.id)
-                .maybeSingle();
+                .single();
             
             if (fetchError || !profileData) {
+                console.warn("Perfil no encontrado, usando metadatos de sesión");
                 const fallbackProfile = {
+                    ...initialProfile,
                     id: session.user.id,
                     email: session.user.email || '',
-                    full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Usuario',
-                    plan: 'Free',
-                    role: 'Developer',
-                    ai_credits: 10,
-                    avatar_url: session.user.user_metadata?.avatar_url || ''
+                    full_name: session.user.user_metadata?.full_name || 'Usuario',
+                    plan: 'Free'
                 };
-
-                const { data: newProfile } = await supabase
-                    .from('profiles')
-                    .upsert(fallbackProfile, { onConflict: 'id' })
-                    .select()
-                    .single();
-
-                set({ profile: (newProfile || fallbackProfile) as Profile, isAuthenticated: true });
+                set({ profile: fallbackProfile as Profile, isAuthenticated: true });
             } else {
+                // AQUÍ ESTÁ LA CLAVE: Sincronizamos el plan Pro pagado
                 set({ profile: profileData as Profile, isAuthenticated: true });
             }
         } catch (error) {
@@ -92,20 +86,23 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
     },
 
     initializeAuth: async () => {
-        // Evitar múltiples inicializaciones simultáneas
-        if (!get().isProfileLoading && get().isAuthenticated) return;
-
         set({ isProfileLoading: true });
+
+        // Escuchar cambios reales de auth
+        supabase.auth.onAuthStateChange(async (event, session) => {
+            if (session?.user) {
+                await get().refreshProfile();
+            } else {
+                set({ isAuthenticated: false, profile: initialProfile, isProfileLoading: false });
+            }
+        });
 
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
             await get().refreshProfile();
-            // Carga diferida de datos para no bloquear el hilo principal
-            get().fetchClients().catch(console.error);
-            get().fetchProjects().catch(console.error);
-            get().fetchTasks().catch(console.error);
-            get().fetchTimeEntries().catch(console.error);
-            get().fetchFinanceData().catch(console.error);
+            // Cargar datos en segundo plano
+            get().fetchClients().catch(() => {});
+            get().fetchProjects().catch(() => {});
         } else {
             set({ isProfileLoading: false, isAuthenticated: false });
         }
@@ -135,10 +132,10 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
     logout: async () => {
         try {
             await supabase.auth.signOut();
+        } finally {
             set({ isAuthenticated: false, profile: initialProfile, isProfileLoading: false });
-            localStorage.removeItem('devfreelancer-storage');
-        } catch (e) {
-            console.error(e);
+            localStorage.clear();
+            window.location.hash = '/auth/login';
         }
     },
 
@@ -160,15 +157,20 @@ export const createAuthSlice: StateCreator<AppState, [], [], AuthSlice> = (set, 
         if (!profile.id) return;
         
         try {
+            const cleanData = { ...profileData };
+            if (cleanData.hourly_rate_cents !== undefined) {
+                cleanData.hourly_rate_cents = Math.round(Number(cleanData.hourly_rate_cents));
+            }
+
             const { error } = await supabase
                 .from('profiles')
-                .update(profileData)
+                .update(cleanData)
                 .eq('id', profile.id);
 
             if (error) throw error;
             
             set(state => ({ 
-                profile: { ...state.profile, ...profileData } as Profile 
+                profile: { ...state.profile, ...cleanData } as Profile 
             }));
         } catch (err) {
             console.error("Error updating profile:", err);
