@@ -1,11 +1,11 @@
 // FIX: Remove .ts extension from import to fix module resolution error.
-import type { Invoice, Client, Profile } from '../types';
+import { Invoice, Client, Profile } from '../types';
 
 const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(cents / 100);
 };
 
-export const generateInvoicePdf = async (invoice: Invoice, client: Client, profile: Profile) => {
+export const generateInvoicePdf = async (invoice: any, client: any, profile: any) => {
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
 
@@ -46,11 +46,13 @@ export const generateInvoicePdf = async (invoice: Invoice, client: Client, profi
 
     // --- Table ---
     const tableColumn = ["Descripción", "Cantidad", "Precio Unitario", "Total"];
-    const tableRows = invoice.items.map(item => [
-        item.description,
-        item.quantity,
-        formatCurrency(item.price_cents),
-        formatCurrency(item.price_cents * item.quantity),
+    
+    // Definimos qué tiene cada item para que el .map no de error
+    const tableRows = (invoice.items || []).map((item: any) => [
+        item.description || '',
+        item.quantity || 0,
+        formatCurrency(item.price_cents || 0),
+        formatCurrency((item.price_cents || 0) * (item.quantity || 0)),
     ]);
 
     autoTable(doc, {
