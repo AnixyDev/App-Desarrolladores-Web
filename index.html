@@ -16,25 +16,8 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Stripe.js (External dependency for secure elements) -->
+    <!-- Stripe.js -->
     <script src="https://js.stripe.com/v3/" async></script>
-
-    <!-- Tailwind CSS (Optimizado vía CDN para prototipado rápido, se recomienda PostCSS en build final) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        gray: { 900: '#111827', 950: '#030712' },
-                        primary: { 50: '#fdf4ff', 500: '#d946ef', 600: '#c026d3', 700: '#a21caf' },
-                    }
-                }
-            }
-        }
-    </script>
 
     <style>
       :root { color-scheme: dark; }
