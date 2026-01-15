@@ -37,4 +37,3 @@ export const getAIResponse = async (prompt: string, history: any[] = []) => {
     throw error;
   }
 };
-¿Qué hacemos ahora?
